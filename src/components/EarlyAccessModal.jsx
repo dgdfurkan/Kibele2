@@ -47,8 +47,8 @@ const EarlyAccessModal = ({ isOpen, onClose }) => {
                 {success ? (
                     <div className="text-center py-10 animate-in fade-in zoom-in duration-500">
                         <div className="w-20 h-20 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">✓</div>
-                        <h3 className="text-2xl font-serif mb-2">Talebin İtalyan Usulü Alındı!</h3>
-                        <p className="text-text-muted">Kibele Hoca talebini inceleyecek, beklemede kal canım.</p>
+                        <h3 className="text-2xl font-serif mb-2">Başvurun Kibele Hoca'ya İletildi!</h3>
+                        <p className="text-text-muted">Bu bir kayıt formu değil, erişim talebidir canım. Kibele Hoca seni onaylayıp sisteme eklediğinde giriş yapabileceksin. Beklemede kal "it is okey".</p>
                     </div>
                 ) : (
                     <>
