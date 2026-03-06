@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kibele | Yaratıcı Sürecinizin AI Partneri</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- GSAP for Animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+</head>
+
+<body>
+
+    <!-- Header / Navigation -->
+    <header class="navbar">
+        <div class="logo">Kibele.</div>
+        <nav class="nav-links">
+            <a href="#showcase">Keşfet</a>
+            <a href="#process">Nasıl Çalışır</a>
+            <a href="#hubs">İlham Odaları</a>
+        </nav>
+        <button class="btn-primary btn-small">Erken Erişim</button>
+    </header>
+
+    <!-- Content Wrapper for Smooth Scroll (optional but good structure) -->
+    <main class="smooth-wrapper">
+
+        <!-- Hero Section -->
+        <section id="hero" class="hero">
+            <div class="hero-content">
+                <h1 class="hero-title">Sizin yaratıcı dünyanızın <br> <i>bir parçası</i>, <br> işinizin sonu <span
+                        class="accent-text">değil.</span></h1>
+                <p class="hero-subtitle">Sanatçı tercihlerini, estetik filtreleri ve teknik seçimleri anlayan; sizi
+                    süreçten dışlamayan yeni nesil kürasyon ve ilham motoru.</p>
+                <div class="hero-actions">
+                    <button class="btn-primary">Diyaloğa Başla</button>
+                    <button class="btn-secondary">Süreci İzle</button>
+                </div>
+            </div>
+
+            <!-- Abstract Animation Area -->
+            <div class="hero-animation">
+                <!-- Abstract nodes representing AI and Designer dialogue -->
+                <div class="node node-designer"></div>
+                <div class="node node-ai"></div>
+                <div class="connection-line"></div>
+
+                <div class="floating-pill ui-pill">Estetik: Minimalist</div>
+                <div class="floating-pill ai-pill">Öneri: Monokromatik Derinlik</div>
+                <div class="floating-pill ux-pill">Form: 3D Render</div>
+            </div>
+        </section>
+
+        <!-- Showcase / Curation Interface -->
+        <section id="showcase" class="showcase">
+            <div class="section-header">
+                <h2>Derinlikli Kürasyon</h2>
+                <p>Aradığınızı kelimelerle değil, estetik referanslarla bulun.</p>
+            </div>
+
+            <div class="curation-interface">
+                <div class="filters-sidebar">
+                    <div class="filter-group accordion-group active">
+                        <div class="accordion-header">
+                            <h3>Medium</h3>
+                            <span class="icon-plus">-</span>
+                        </div>
+                        <div class="accordion-content">
+                            <label class="custom-checkbox"><input type="checkbox" value="painting"><span
+                                    class="checkmark"></span> Painting</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="photography"><span
+                                    class="checkmark"></span> Photography</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="sculpture" checked><span
+                                    class="checkmark"></span> Sculpture</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="prints"><span
+                                    class="checkmark"></span> Prints</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="work-on-paper"><span
+                                    class="checkmark"></span> Work on Paper</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="design"><span
+                                    class="checkmark"></span> Design</label>
+                        </div>
+                    </div>
+
+                    <div class="filter-group accordion-group">
+                        <div class="accordion-header">
+                            <h3>Rarity</h3>
+                            <span class="icon-plus">+</span>
+                        </div>
+                        <div class="accordion-content" style="display: none;">
+                            <label class="custom-checkbox"><input type="checkbox" value="unique"><span
+                                    class="checkmark"></span> Unique</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="limited edition"><span
+                                    class="checkmark"></span> Limited Edition</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="open edition"><span
+                                    class="checkmark"></span> Open Edition</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="unknown edition"><span
+                                    class="checkmark"></span> Unknown Edition</label>
+                        </div>
+                    </div>
+
+                    <div class="filter-group accordion-group">
+                        <div class="accordion-header">
+                            <h3>Price</h3>
+                            <span class="icon-plus">+</span>
+                        </div>
+                        <div class="accordion-content" style="display: none;">
+                            <div class="price-inputs">
+                                <input type="number" placeholder="$ Min" id="min-price">
+                                <span>-</span>
+                                <input type="number" placeholder="$ Max" id="max-price">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group accordion-group">
+                        <div class="accordion-header">
+                            <h3>Size</h3>
+                            <span class="icon-plus">+</span>
+                        </div>
+                        <div class="accordion-content" style="display: none;">
+                            <label class="custom-checkbox"><input type="checkbox" value="small"><span
+                                    class="checkmark"></span> Small (under 40cm)</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="medium"><span
+                                    class="checkmark"></span> Medium (40cm - 100cm)</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="large"><span
+                                    class="checkmark"></span> Large (over 100cm)</label>
+                        </div>
+                    </div>
+
+                    <div class="filter-group accordion-group">
+                        <div class="accordion-header">
+                            <h3>Color</h3>
+                            <span class="icon-plus">+</span>
+                        </div>
+                        <div class="accordion-content" style="display: none;">
+                            <div class="color-options artsy-colors">
+                                <button class="color-btn" style="background-color: #000000;"
+                                    data-color="black"></button>
+                                <button class="color-btn" style="background-color: #ffffff; border: 1px solid #ccc;"
+                                    data-color="white"></button>
+                                <button class="color-btn" style="background-color: #ff0000;" data-color="red"></button>
+                                <button class="color-btn" style="background-color: #fccc12;"
+                                    data-color="yellow"></button>
+                                <button class="color-btn active" style="background-color: #64b4d2;"
+                                    data-color="blue"></button>
+                                <button class="color-btn" style="background-color: #228b22;"
+                                    data-color="green"></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group accordion-group">
+                        <div class="accordion-header">
+                            <h3>Time Period</h3>
+                            <span class="icon-plus">+</span>
+                        </div>
+                        <div class="accordion-content" style="display: none;">
+                            <label class="custom-checkbox"><input type="checkbox" value="2020"><span
+                                    class="checkmark"></span> 2020s</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="2010"><span
+                                    class="checkmark"></span> 2010s</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="2000"><span
+                                    class="checkmark"></span> 2000s</label>
+                            <label class="custom-checkbox"><input type="checkbox" value="1990"><span
+                                    class="checkmark"></span> 1990s</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gallery-grid" id="dynamic-gallery">
+                    <!-- JavaScript will inject dynamic projects here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Project Details Modal -->
+        <div class="modal-overlay" id="project-modal">
+            <div class="modal-content">
+                <button class="modal-close" id="modal-close">&times;</button>
+                <div class="modal-layout">
+                    <div class="modal-image-col">
+                        <img id="modal-img" src="" alt="Project Image">
+                    </div>
+                    <div class="modal-info-col">
+                        <h2 id="modal-title">Project Title</h2>
+                        <div class="modal-meta">
+                            <span class="meta-tag" id="modal-category">Art Phase</span>
+                        </div>
+                        <div class="modal-description">
+                            <h3>Kibele AI Analizi</h3>
+                            <p id="modal-desc">Yüklenen görsel Kibele tarafından estetik olarak analiz edildi. Renk
+                                geçişleri, kompozisyon dengesi ve dokusal formlar projenin karakterini yansıtıyor.</p>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="btn-primary btn-small">Diyaloğa Devam Et</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- The Process -->
+        <section id="process" class="process">
+            <div class="section-header center">
+                <h2>Yaratıcı Diyalog Nasıl İşler?</h2>
+                <p>Kontrol her zaman sizde. Kibele, süreci devralmaz, sürece ilham katar.</p>
+            </div>
+
+            <div class="process-steps">
+                <div class="step-card">
+                    <div class="step-num">01</div>
+                    <h3>Seçim & Analiz</h3>
+                    <p>Mevcut taslaklarınızı veya beğendiğiniz sanatçıların tarzlarını yükleyin. Yapay zeka,
+                        yöneliminizi estetik bir dille analiz eder.</p>
+                </div>
+                <div class="step-card active-step">
+                    <div class="step-num">02</div>
+                    <h3>Eşleşme & Sentez</h3>
+                    <p>Seçtiğiniz parametrelere göre (renk paleti, akım) kendi tarzınız ile global ilham kaynaklarını
+                        harmanlar.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-num">03</div>
+                    <h3>Yeni Perspektifler</h3>
+                    <p>Doğrudan "bitmiş iş" üretmek yerine, size yeni dokular, formlar ve kompozisyon yolları önerir.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Gemini Chat Integration -->
+            <div class="gemini-chat-container">
+                <div class="gemini-chat-header">
+                    <div class="gemini-icon">✨</div>
+                    <div class="gemini-title">Kibele AI Partner <span class="gemini-model-badge">Gemini 1.5 Flash</span>
+                    </div>
+                </div>
+                <div class="gemini-chat-box" id="gemini-chat-box">
+                    <div class="chat-message ai-message">
+                        Selam Canım! Ben Kibele. Yaratıcı sürecinde sana nasıl ilham verebilirim? Bir fikrin varsa
+                        paylaş, "it is okey" birlikte geliştirebiliriz!
+                    </div>
+                </div>
+                <div class="gemini-chat-input-wrapper" id="chat-input-wrapper">
+                    <textarea id="gemini-chat-input" placeholder="Kibele ile yaratıcı fikirlerini konuş..."
+                        rows="2"></textarea>
+                    <button id="gemini-send-btn" class="btn-primary btn-small">Gönder</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Inspiration Hubs -->
+        <section id="hubs" class="hubs">
+            <div class="section-header">
+                <h2>İlham Odaları</h2>
+                <p>Kendi disiplininize özel eğitilmiş estetik kümelenmeleri keşfedin. Yapay zekanın tasarımcı elinde
+                    evrildiği topluluklar.</p>
+            </div>
+
+            <div class="hub-cards">
+                <div class="hub-card">
+                    <div class="hub-icon">🏛️</div>
+                    <h3>Mimari Estetik</h3>
+                    <p>Brutalist formlar, parametrik yapılar ve malzeme odaklı jenerasyonlar.</p>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-icon">🧊</div>
+                    <h3>3D & CGI</h3>
+                    <p>Gerçeküstü materyaller, aydınlatma senaryoları ve set tasarımları.</p>
+                </div>
+                <div class="hub-card accent-card">
+                    <div class="hub-icon">✨</div>
+                    <h3>UI / UX Dinamikleri</h3>
+                    <p>Navigasyon yapıları, mikro etkileşimler ve tipografik hiyerarşiler.</p>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-icon">📐</div>
+                    <h3>Grafik & Baskı</h3>
+                    <p>Poster tasarımları, grid sistemleri ve editorial düzenler.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h2>Kibele.</h2>
+                    <p>Yapay zeka işinizi elinizden almayacak, <br>aksine hayal gücünüzün sınırlarını genişletecek.</p>
+                </div>
+                <div class="footer-links">
+                    <div class="link-column">
+                        <h4>Platform</h4>
+                        <a href="#">Kürasyon</a>
+                        <a href="#">Sanatçılar</a>
+                        <a href="#">Topluluk</a>
+                    </div>
+                    <div class="link-column">
+                        <h4>Şirket</h4>
+                        <a href="#">Manifesto</a>
+                        <a href="#">İletişim</a>
+                        <a href="#">Gizlilik</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Kibele. Tüm hakları bir sanatçıya aittir.</p>
+            </div>
+        </footer>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
