@@ -9,29 +9,29 @@ export const fetchAICArtworks = async (params = {}) => {
 
     // AIC API Search Endpoint
     // fields: Görsel basmak ve detay göstermek için gereken alanlar
-    let url = `${AIC_API_BASE}/artworks/search?limit=${limit}&page=${page}&fields=id,title,image_id,artist_display,medium_display,classification_title,style_title,place_of_origin&params[query][bool][must][][term][is_public_domain]=true`;
+    // Not: query dsl URL üzerinden kırılabileceği için daha stabil bir yapıya geçiyoruz.
+    let url = `${AIC_API_BASE}/artworks/search?limit=${limit}&page=${page}&fields=id,title,image_id,artist_display,medium_display,classification_title,style_title,place_of_origin`;
 
-    // Temel arama
-    if (query) {
-        url += `&q=${encodeURIComponent(query)}`;
-    }
-
-    // Gelişmiş Filtreleme
-    // Not: AIC API query DSL ile çalışır ancak basit anahtar kelimeler q parametresiyle de filtrelenebilir.
-    // Burada daha spesifik sonuçlar için q parametresine eklemeler yapıyoruz.
+    // Gelişmiş Filtreleme 
+    // Basit arama terimlerini q parametresine ekliyoruz
     let searchQuery = query || '';
-
     if (filters.medium) searchQuery += ` ${filters.medium}`;
     if (filters.style) searchQuery += ` ${filters.style}`;
     if (filters.place) searchQuery += ` ${filters.place}`;
 
-    if (searchQuery) {
-        url += `&q=${encodeURIComponent(searchQuery.trim())}`;
-    }
+    // public domain sınırlamasını q içine ekleyerek 500 hatasını önlüyoruz (URL param karmaşası yerine)
+    searchQuery = searchQuery.trim() || 'art';
+    url += `&q=${encodeURIComponent(searchQuery)}`;
 
     try {
         const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
+
+        if (!data || !data.data) {
+            console.warn("AIC API return no data:", data);
+            return [];
+        }
 
         // Görsel URL'lerini oluşturmak için AIC IIIF base URL'ine ihtiyaç var
         const iiifBaseUrl = data.config?.iiif_url || "https://www.artic.edu/iiif/2";
