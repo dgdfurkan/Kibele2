@@ -8,17 +8,14 @@ export const fetchAICArtworks = async (params = {}) => {
     const { limit = 12, page = 1, query = '', filters = {} } = params;
 
     // AIC API Search Endpoint
-    // fields: Görsel basmak ve detay göstermek için gereken alanlar
-    // Not: query dsl URL üzerinden kırılabileceği için daha stabil bir yapıya geçiyoruz.
-    let url = `${AIC_API_BASE}/artworks/search?limit=${limit}&page=${page}&fields=id,title,image_id,artist_display,medium_display,classification_title,style_title,place_of_origin`;
+    // [is_public_domain]=true: Görsel erişiminde 403 hatalarını önlemek için
+    let url = `${AIC_API_BASE}/artworks/search?limit=${limit}&page=${page}&fields=id,title,image_id,artist_display,medium_display,classification_title,style_title,place_of_origin&query[term][is_public_domain]=true`;
 
     // Gelişmiş Filtreleme 
-    // Basit arama terimlerini q parametresine ekliyoruz
-    // Coğrafya ve diğer filtreleri daha açık hale getiriyoruz
     let searchQuery = query || '';
     if (filters.medium) searchQuery += ` medium:${filters.medium}`;
     if (filters.style) searchQuery += ` style:${filters.style}`;
-    if (filters.place) searchQuery += ` "${filters.place}"`; // Tırnak içine alarak tam eşleşme zorluyoruz
+    if (filters.place) searchQuery += ` "${filters.place}"`;
 
     searchQuery = searchQuery.trim() || 'art';
     url += `&q=${encodeURIComponent(searchQuery)}`;
