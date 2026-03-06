@@ -239,7 +239,16 @@ const App = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                             {artworks.length > 0 ? artworks.map((art, i) => (
                                 <div key={art.id || i} className="group relative aspect-[4/5] rounded-[2rem] overflow-hidden bg-white shadow-sm cursor-pointer hover:shadow-xl transition-all duration-700">
-                                    <img src={art.image_url || art.thumbnail} alt={art.title} className="absolute inset-0 w-full h-full object-cover transition-all duration-700" />
+                                    <img
+                                        src={art.image_url || art.thumbnail}
+                                        alt={art.title}
+                                        className="absolute inset-0 w-full h-full object-cover transition-all duration-700"
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=800&auto=format&fit=crop";
+                                            e.target.className += " grayscale opacity-30";
+                                        }}
+                                    />
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-700" />
                                     <div className="absolute bottom-0 left-0 w-full p-8 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 bg-gradient-to-t from-background to-transparent">
                                         <h4 className="text-2xl mb-1 line-clamp-1">{art.title}</h4>
@@ -308,10 +317,14 @@ const App = () => {
                         <p className="text-lg text-text-muted">Kendi disiplininize özel eğitilmiş estetik kümelenmeleri keşfedin.</p>
                     </div>
 
-                    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 ${!user ? 'blur-xl grayscale pointer-events-none opacity-50' : ''}`}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
                         {/* Dynamic Rooms from Firebase */}
                         {rooms.map((room, i) => (
-                            <div key={room.id} className={`p-10 rounded-[2.5rem] transition-all duration-500 group cursor-pointer hover:-translate-y-2 ${room.isPrivate ? 'bg-text-main text-white' : 'bg-background glass-card hover:bg-white'}`}>
+                            <div
+                                key={room.id}
+                                onClick={() => !user && setIsLoginOpen(true)}
+                                className={`p-10 rounded-[2.5rem] transition-all duration-500 group cursor-pointer hover:-translate-y-2 ${room.isPrivate ? 'bg-text-main text-white' : 'bg-background glass-card hover:bg-white'}`}
+                            >
                                 <div className="text-4xl mb-6">{room.isPrivate ? '🔒' : '✨'}</div>
                                 <h3 className="text-2xl mb-4 line-clamp-1">{room.name}</h3>
                                 <p className={room.isPrivate ? 'text-white/60' : 'text-text-muted'}>
@@ -332,32 +345,14 @@ const App = () => {
                             </div>
                         ))}
 
-                        {user && (
-                            <button className="p-10 rounded-[2.5rem] border-2 border-dashed border-text-main/20 flex flex-col items-center justify-center gap-4 hover:border-accent-blue hover:text-accent-blue transition-all group">
-                                <LucidePlus size={40} className="opacity-20 group-hover:opacity-100" />
-                                <span className="font-serif text-xl">Yeni Oda Aç</span>
-                            </button>
-                        )}
+                        <button
+                            onClick={() => !user ? setIsLoginOpen(true) : null}
+                            className="p-10 rounded-[2.5rem] border-2 border-dashed border-text-main/20 flex flex-col items-center justify-center gap-4 hover:border-accent-blue hover:text-accent-blue transition-all group cursor-pointer"
+                        >
+                            <LucidePlus size={40} className="opacity-20 group-hover:opacity-100" />
+                            <span className="font-serif text-xl">Yeni Oda Aç</span>
+                        </button>
                     </div>
-
-                    {!user && (
-                        <div className="absolute inset-x-0 bottom-0 top-32 flex items-center justify-center z-20">
-                            <div className="glass-card p-16 text-center max-w-lg mx-auto shadow-2xl border-white/40 backdrop-blur-2xl">
-                                <div className="text-5xl mb-8">🔒</div>
-                                <h3 className="text-3xl font-serif mb-6 italic text-text-main">Özel İlham Alanı</h3>
-                                <p className="text-base text-text-muted mb-10 leading-relaxed">
-                                    Odaları görmek ve kendi odanı açmak için giriş yapmalısın canım.
-                                    <br />"it is okey", sadece bir adım kaldı.
-                                </p>
-                                <button
-                                    onClick={() => setIsLoginOpen(true)}
-                                    className="btn-primary w-full py-4 text-lg tracking-wide"
-                                >
-                                    Giriş Yap
-                                </button>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </section>
 

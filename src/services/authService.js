@@ -10,7 +10,7 @@ export const loginWithUsername = async (username, password) => {
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
-            throw new Error("Kullanıcı adı bulunamadı canım. Eğer sadece 'Erken Erişim' talebi gönderdiysen, hocanın onaylamasını beklemelisin. Ya da Firestore'da dökümanını elle oluşturduğundan emin misin?");
+            throw new Error("Böyle bir kullanıcı adı bulamadım canım. Eğer 'Erken Erişim' talebi gönderdiysen Kibele Hoca'nın onaylamasını beklemelisin. Her şey yolunda, beklemede kal.");
         }
 
         const userData = querySnapshot.docs[0].data();

@@ -23,9 +23,13 @@ export const AuthProvider = ({ children }) => {
             if (user) {
                 setUser(user);
                 // User role check from Firestore
-                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                const userRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userRef);
                 if (userDoc.exists()) {
-                    setIsAdmin(userDoc.data().role === 'admin');
+                    const data = userDoc.data();
+                    setIsAdmin(data.role === 'admin' || data.role === 'Admin');
+                } else {
+                    setIsAdmin(false);
                 }
             } else {
                 setUser(null);
