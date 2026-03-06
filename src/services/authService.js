@@ -2,21 +2,9 @@ import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from 
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from '../firebase';
 
-// Username tabanlı login yardımı
-export const loginWithUsername = async (username, password) => {
+// Email tabanlı login
+export const loginWithEmail = async (email, password) => {
     try {
-        // 1. Username -> Email eşleşmesini bul
-        const q = query(collection(db, "users"), where("username", "==", username));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            throw new Error("Kullanıcı kaydı bulunamadı. Lütfen kullanıcı adınızı kontrol edin veya erken erişim onay sürecini bekleyin.");
-        }
-
-        const userData = querySnapshot.docs[0].data();
-        const email = userData.email;
-
-        // 2. Firebase Auth ile giriş yap
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         return userCredential.user;
     } catch (error) {

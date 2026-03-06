@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { loginWithUsername as firebaseLoginWithUsername } from '../services/authService';
+import { loginWithEmail as firebaseLoginWithEmail } from '../services/authService';
 
 const AuthContext = createContext();
 
@@ -11,9 +11,8 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
 
-    const loginWithUsername = async (username, password) => {
-        const user = await firebaseLoginWithUsername(username, password);
-        return user;
+    const loginWithEmail = async (email, password) => {
+        return await firebaseLoginWithEmail(email, password);
     };
 
     const logout = () => signOut(auth);
@@ -42,7 +41,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, loading, isAdmin, loginWithUsername, logout }}>
+        <AuthContext.Provider value={{ user, loading, isAdmin, loginWithEmail, logout }}>
             {!loading && children}
         </AuthContext.Provider>
     );

@@ -3,21 +3,21 @@ import { LucideX, LucideLogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const LoginModal = ({ isOpen, onClose }) => {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const { loginWithUsername } = useAuth();
+    const { loginWithEmail } = useAuth();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
         try {
-            await loginWithUsername(username, password);
+            await loginWithEmail(email, password);
             onClose();
         } catch (err) {
-            setError(err.message || 'Giriş yapılamadı canım.');
+            setError(err.message || 'Giriş yapılamadı.');
         }
         setLoading(false);
     };
@@ -38,12 +38,13 @@ const LoginModal = ({ isOpen, onClose }) => {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-[10px] uppercase tracking-widest text-text-muted mb-2 ml-1">Kullanıcı Adı</label>
+                        <label className="block text-[10px] uppercase tracking-widest text-text-muted mb-2 ml-1">E-posta</label>
                         <input
                             required
+                            type="email"
                             className="w-full bg-surface-light border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-accent-blue outline-none transition-all"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                         />
                     </div>
                     <div>
