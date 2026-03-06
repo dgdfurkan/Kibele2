@@ -5,6 +5,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const EarlyAccessModal = ({ isOpen, onClose }) => {
     const [formData, setFormData] = useState({
+        username: '',
         name: '',
         email: '',
         password: '',
@@ -56,7 +57,17 @@ const EarlyAccessModal = ({ isOpen, onClose }) => {
                             <p className="text-sm text-text-muted italic">Kibele ile diyaloğa girmek için ilk adımı at, it is okey.</p>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] uppercase tracking-widest text-text-muted mb-2 ml-1">Kullanıcı Adı</label>
+                                <input
+                                    required
+                                    className="w-full bg-surface-light border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-accent-blue outline-none transition-all"
+                                    placeholder="kibele_canim"
+                                    value={formData.username}
+                                    onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s/g, '') })}
+                                />
+                            </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] uppercase tracking-widest text-text-muted mb-2 ml-1">İsim Soyisim</label>

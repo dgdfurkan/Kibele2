@@ -7,6 +7,7 @@ import { useAuth } from './context/AuthContext';
 import KibeleChat from './components/KibeleChat';
 import AdminPanel from './components/AdminPanel';
 import EarlyAccessModal from './components/EarlyAccessModal';
+import LoginModal from './components/LoginModal';
 import { auth, db } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { subscribeToRooms } from './services/dbService';
@@ -65,6 +66,8 @@ const App = () => {
         setLoading(false);
     };
 
+    const [isLoginOpen, setIsLoginOpen] = useState(false);
+
     const handleLogin = async () => {
         try {
             const provider = new GoogleAuthProvider();
@@ -115,7 +118,7 @@ const App = () => {
                                 <button onClick={handleLogout} className="text-sm text-text-muted hover:text-red-500 transition-colors">Çıkış</button>
                             </div>
                         ) : (
-                            <button onClick={handleLogin} className="text-sm font-medium hover:text-accent-blue transition-colors">Giriş Yap</button>
+                            <button onClick={() => setIsLoginOpen(true)} className="text-sm font-medium hover:text-accent-blue transition-colors">Giriş Yap</button>
                         )}
                         <button
                             onClick={() => setIsEarlyAccessOpen(true)}
@@ -231,7 +234,7 @@ const App = () => {
                     {[
                         { num: "01", title: "Seçim & Analiz", desc: "Mevcut taslaklarınızı veya beğendiğiniz sanatçıların tarzlarını yükleyin. Yapay zeka, yöneliminizi estetik bir dille analiz eder." },
                         { num: "02", title: "Eşleşme & Sentez", desc: "Seçtiğiniz parametrelere göre (renk paleti, akım) kendi tarzınız ile global ilham kaynaklarını harmanlar.", active: true },
-                        { num: "03", title: "Yeni Perspektifler", desc: "Doğrudan 'bitmiş iş' üretmek yerine, size yeni dokular, formlar ve kompozisyon yolları önerir." }
+                        { num: "03", title: "Yeni Perspektivler", desc: "Doğrudan 'bitmiş iş' üretmek yerine, size yeni dokular, formlar ve kompozisyon yolları önerir." }
                     ].map((step, i) => (
                         <div key={i} className={`p-12 rounded-[2rem] border transition-all duration-500 group hover:-translate-y-2 ${step.active ? 'bg-white border-accent-blue/30 shadow-xl shadow-accent-blue/5' : 'bg-surface-light/50 border-transparent hover:bg-white hover:shadow-xl'}`}>
                             <div className={`font-serif text-6xl mb-6 italic transition-colors duration-500 ${step.active ? 'text-accent-blue opacity-100' : 'text-text-muted opacity-20 group-hover:text-accent-blue group-hover:opacity-100'}`}>{step.num}</div>
@@ -318,6 +321,12 @@ const App = () => {
             <EarlyAccessModal
                 isOpen={isEarlyAccessOpen}
                 onClose={() => setIsEarlyAccessOpen(false)}
+            />
+
+            {/* Login Modal */}
+            <LoginModal
+                isOpen={isLoginOpen}
+                onClose={() => setIsLoginOpen(false)}
             />
         </div>
     );
