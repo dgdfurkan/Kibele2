@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LucideX, LucideSparkles } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -13,6 +13,17 @@ const EarlyAccessModal = ({ isOpen, onClose }) => {
     });
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isOpen]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -38,8 +49,11 @@ const EarlyAccessModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-text-main/20 backdrop-blur-xl">
-            <div className="glass-card w-full max-w-lg p-10 relative overflow-hidden">
+        <div
+            className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-text-main/20 backdrop-blur-xl cursor-pointer"
+            onClick={(e) => e.target === e.currentTarget && onClose()}
+        >
+            <div className="glass-card w-full max-w-lg p-10 relative overflow-hidden cursor-default">
                 <button onClick={onClose} className="absolute top-6 right-6 text-text-muted hover:text-text-main transition-colors">
                     <LucideX size={24} />
                 </button>
