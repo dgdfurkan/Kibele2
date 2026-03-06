@@ -20,7 +20,6 @@ export const fetchAICArtworks = async (params = {}) => {
     if (filters.style) searchQuery += ` style:${filters.style}`;
     if (filters.place) searchQuery += ` "${filters.place}"`; // Tırnak içine alarak tam eşleşme zorluyoruz
 
-    // public domain sınırlamasını q içine ekleyerek 500 hatasını önlüyoruz (URL param karmaşası yerine)
     searchQuery = searchQuery.trim() || 'art';
     url += `&q=${encodeURIComponent(searchQuery)}`;
 

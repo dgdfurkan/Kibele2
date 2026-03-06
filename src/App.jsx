@@ -160,69 +160,71 @@ const App = () => {
                     <p className="text-lg text-text-muted">Aradığınızı kelimelerle değil, estetik referanslarla bulun.</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-16">
-                    <aside className="glass-card p-8 h-fit sticky top-32">
-                        <h3 className="text-sm font-semibold mb-6 uppercase tracking-wider text-text-muted">Filtreler</h3>
-                        <div className="space-y-8">
-                            <div>
-                                <div className="flex justify-between items-center mb-4 cursor-pointer group" onClick={() => setFilters(prev => ({ ...prev, medium: prev.medium === '' ? 'painting' : '' }))}>
-                                    <span className="font-medium group-hover:text-accent-blue transition-colors">Teknik</span>
-                                    <LucideChevronDown size={16} className={`transition-transform ${filters.medium ? 'rotate-180' : ''}`} />
+                <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-12 lg:gap-16">
+                    <aside className="lg:sticky lg:top-32 h-fit">
+                        <div className="glass-card p-6 lg:p-8">
+                            <h3 className="text-sm font-semibold mb-6 uppercase tracking-wider text-text-muted">Filtreler</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-8">
+                                <div>
+                                    <div className="flex justify-between items-center mb-4 cursor-pointer group" onClick={() => setFilters(prev => ({ ...prev, medium: prev.medium === '' ? 'painting' : '' }))}>
+                                        <span className="font-medium group-hover:text-accent-blue transition-colors">Teknik</span>
+                                        <LucideChevronDown size={16} className={`transition-transform ${filters.medium ? 'rotate-180' : ''}`} />
+                                    </div>
+                                    {filters.medium && (
+                                        <div className="space-y-3 pl-2">
+                                            {['painting', 'photography', 'sculpture', 'textile', 'print'].map(m => (
+                                                <label key={m} className="flex items-center gap-3 cursor-pointer group">
+                                                    <input type="checkbox" className="hidden" checked={filters.medium === m} onChange={() => setFilters(prev => ({ ...prev, medium: m }))} />
+                                                    <div className={`w-4 h-4 border transition-all rounded ${filters.medium === m ? 'bg-accent-blue border-accent-blue' : 'border-text-muted group-hover:border-accent-blue'}`} />
+                                                    <span className={`text-sm capitalize ${filters.medium === m ? 'text-text-main font-medium' : 'text-text-muted'}`}>{m}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                {filters.medium && (
-                                    <div className="space-y-3 pl-2">
-                                        {['painting', 'photography', 'sculpture', 'textile', 'print'].map(m => (
-                                            <label key={m} className="flex items-center gap-3 cursor-pointer group">
-                                                <input type="checkbox" className="hidden" checked={filters.medium === m} onChange={() => setFilters(prev => ({ ...prev, medium: m }))} />
-                                                <div className={`w-4 h-4 border transition-all rounded ${filters.medium === m ? 'bg-accent-blue border-accent-blue' : 'border-text-muted group-hover:border-accent-blue'}`} />
-                                                <span className={`text-sm capitalize ${filters.medium === m ? 'text-text-main font-medium' : 'text-text-muted'}`}>{m}</span>
-                                            </label>
+                                <div>
+                                    <div className="flex justify-between items-center mb-4 cursor-pointer group" onClick={() => setFilters(prev => ({ ...prev, style: prev.style === '' ? 'Modernism' : '' }))}>
+                                        <span className="font-medium group-hover:text-accent-blue transition-colors">Sanat Akımı</span>
+                                        <LucideChevronDown size={16} className={`transition-transform ${filters.style ? 'rotate-180' : ''}`} />
+                                    </div>
+                                    {filters.style && (
+                                        <div className="space-y-3 pl-2">
+                                            {['Modernism', 'Impressionism', 'Surrealism', 'Ancient Egyptian', 'Pop Art'].map(s => (
+                                                <label key={s} className="flex items-center gap-3 cursor-pointer group">
+                                                    <input type="checkbox" className="hidden" checked={filters.style === s} onChange={() => setFilters(prev => ({ ...prev, style: s }))} />
+                                                    <div className={`w-4 h-4 border transition-all rounded ${filters.style === s ? 'bg-accent-blue border-accent-blue' : 'border-text-muted group-hover:border-accent-blue'}`} />
+                                                    <span className={`text-sm capitalize ${filters.style === s ? 'text-text-main font-medium' : 'text-text-muted'}`}>{s}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <div className="flex justify-between items-center mb-4 cursor-pointer group" onClick={() => setFilters(prev => ({ ...prev, place: prev.place === '' ? 'France' : '' }))}>
+                                        <span className="font-medium group-hover:text-accent-blue transition-colors">Coğrafya</span>
+                                        <LucideChevronDown size={16} className={`transition-transform ${filters.place ? 'rotate-180' : ''}`} />
+                                    </div>
+                                    {filters.place && (
+                                        <div className="space-y-3 pl-2">
+                                            {['France', 'Japan', 'Egypt', 'Netherlands', 'USA'].map(p => (
+                                                <label key={p} className="flex items-center gap-3 cursor-pointer group">
+                                                    <input type="checkbox" className="hidden" checked={filters.place === p} onChange={() => setFilters(prev => ({ ...prev, place: p }))} />
+                                                    <div className={`w-4 h-4 border transition-all rounded ${filters.place === p ? 'bg-accent-blue border-accent-blue' : 'border-text-muted group-hover:border-accent-blue'}`} />
+                                                    <span className={`text-sm capitalize ${filters.place === p ? 'text-text-main font-medium' : 'text-text-muted'}`}>{p}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <span className="font-medium">Color</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['black', 'white', 'red', 'yellow', 'blue', 'green'].map(c => (
+                                            <button key={c} onClick={() => setFilters(prev => ({ ...prev, color: c }))} className={`w-8 h-8 rounded-full border-2 transition-all ${filters.color === c ? 'border-text-main scale-110 shadow-md' : 'border-transparent hover:scale-105'}`} style={{ backgroundColor: c === 'white' ? '#fff' : c, border: c === 'white' ? '1px solid #ddd' : '' }} />
                                         ))}
                                     </div>
-                                )}
-                            </div>
-                            <div>
-                                <div className="flex justify-between items-center mb-4 cursor-pointer group" onClick={() => setFilters(prev => ({ ...prev, style: prev.style === '' ? 'Modernism' : '' }))}>
-                                    <span className="font-medium group-hover:text-accent-blue transition-colors">Sanat Akımı</span>
-                                    <LucideChevronDown size={16} className={`transition-transform ${filters.style ? 'rotate-180' : ''}`} />
-                                </div>
-                                {filters.style && (
-                                    <div className="space-y-3 pl-2">
-                                        {['Modernism', 'Impressionism', 'Surrealism', 'Ancient Egyptian', 'Pop Art'].map(s => (
-                                            <label key={s} className="flex items-center gap-3 cursor-pointer group">
-                                                <input type="checkbox" className="hidden" checked={filters.style === s} onChange={() => setFilters(prev => ({ ...prev, style: s }))} />
-                                                <div className={`w-4 h-4 border transition-all rounded ${filters.style === s ? 'bg-accent-blue border-accent-blue' : 'border-text-muted group-hover:border-accent-blue'}`} />
-                                                <span className={`text-sm capitalize ${filters.style === s ? 'text-text-main font-medium' : 'text-text-muted'}`}>{s}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                            <div>
-                                <div className="flex justify-between items-center mb-4 cursor-pointer group" onClick={() => setFilters(prev => ({ ...prev, place: prev.place === '' ? 'France' : '' }))}>
-                                    <span className="font-medium group-hover:text-accent-blue transition-colors">Coğrafya</span>
-                                    <LucideChevronDown size={16} className={`transition-transform ${filters.place ? 'rotate-180' : ''}`} />
-                                </div>
-                                {filters.place && (
-                                    <div className="space-y-3 pl-2">
-                                        {['France', 'Japan', 'Egypt', 'Netherlands', 'USA'].map(p => (
-                                            <label key={p} className="flex items-center gap-3 cursor-pointer group">
-                                                <input type="checkbox" className="hidden" checked={filters.place === p} onChange={() => setFilters(prev => ({ ...prev, place: p }))} />
-                                                <div className={`w-4 h-4 border transition-all rounded ${filters.place === p ? 'bg-accent-blue border-accent-blue' : 'border-text-muted group-hover:border-accent-blue'}`} />
-                                                <span className={`text-sm capitalize ${filters.place === p ? 'text-text-main font-medium' : 'text-text-muted'}`}>{p}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                            <div>
-                                <div className="flex justify-between items-center mb-4">
-                                    <span className="font-medium">Color</span>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {['black', 'white', 'red', 'yellow', 'blue', 'green'].map(c => (
-                                        <button key={c} onClick={() => setFilters(prev => ({ ...prev, color: c }))} className={`w-8 h-8 rounded-full border-2 transition-all ${filters.color === c ? 'border-text-main scale-110 shadow-md' : 'border-transparent hover:scale-105'}`} style={{ backgroundColor: c === 'white' ? '#fff' : c, border: c === 'white' ? '1px solid #ddd' : '' }} />
-                                    ))}
                                 </div>
                             </div>
                         </div>
