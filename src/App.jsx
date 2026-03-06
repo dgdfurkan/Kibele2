@@ -272,20 +272,20 @@ const App = () => {
 
             {/* Hubs Section */}
             <section id="hubs" className="py-32 px-[5%] bg-surface">
-                <div className="max-w-7xl mx-auto">
+                <div className="max-w-7xl mx-auto relative">
                     <div className="max-w-2xl mb-20">
                         <h2 className="text-5xl mb-6">İlham Odaları</h2>
                         <p className="text-lg text-text-muted">Kendi disiplininize özel eğitilmiş estetik kümelenmeleri keşfedin.</p>
                     </div>
 
-                    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 ${!user ? 'blur-md pointer-events-none' : ''}`}>
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 ${!user ? 'blur-xl grayscale pointer-events-none opacity-50' : ''}`}>
                         {/* Dynamic Rooms from Firebase */}
                         {rooms.map((room, i) => (
                             <div key={room.id} className={`p-10 rounded-[2.5rem] transition-all duration-500 group cursor-pointer hover:-translate-y-2 ${room.isPrivate ? 'bg-text-main text-white' : 'bg-background glass-card hover:bg-white'}`}>
                                 <div className="text-4xl mb-6">{room.isPrivate ? '🔒' : '✨'}</div>
                                 <h3 className="text-2xl mb-4 line-clamp-1">{room.name}</h3>
                                 <p className={room.isPrivate ? 'text-white/60' : 'text-text-muted'}>
-                                    {room.isPrivate ? 'Giriş için šifre gereklidir canım.' : 'Açık ilham odası.'}
+                                    {room.isPrivate ? 'Giriş için şifre gereklidir canım.' : 'Açık ilham odası.'}
                                 </p>
                             </div>
                         ))}
@@ -311,11 +311,20 @@ const App = () => {
                     </div>
 
                     {!user && (
-                        <div className="absolute inset-0 flex items-center justify-center z-10">
-                            <div className="glass-card p-12 text-center max-w-sm">
-                                <h3 className="text-2xl mb-4">Özel İlham Alanı</h3>
-                                <p className="text-sm text-text-muted mb-8">Odaları görmek ve kendi odanı açmak için giriş yapmalısın canım.</p>
-                                <button onClick={handleLogin} className="btn-primary w-full">Giriş Yap</button>
+                        <div className="absolute inset-x-0 bottom-0 top-32 flex items-center justify-center z-20">
+                            <div className="glass-card p-16 text-center max-w-lg mx-auto shadow-2xl border-white/40 backdrop-blur-2xl">
+                                <div className="text-5xl mb-8">🔒</div>
+                                <h3 className="text-3xl font-serif mb-6 italic text-text-main">Özel İlham Alanı</h3>
+                                <p className="text-base text-text-muted mb-10 leading-relaxed">
+                                    Odaları görmek ve kendi odanı açmak için giriş yapmalısın canım.
+                                    <br />"it is okey", sadece bir adım kaldı.
+                                </p>
+                                <button
+                                    onClick={() => setIsLoginOpen(true)}
+                                    className="btn-primary w-full py-4 text-lg tracking-wide"
+                                >
+                                    Giriş Yap
+                                </button>
                             </div>
                         </div>
                     )}
