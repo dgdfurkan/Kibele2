@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-color: #f4f3ee;
+  --surface-color: #faebe6;
+  --surface-light: #e8e5f9;
+  --text-main: #2d3235;
+  --text-muted: #666c71;
+  --accent-blue: #64b4d2;
+  --accent-blue-hover: #1f87f4;
+  --font-sans: 'Montserrat', sans-serif;
+  --font-serif: 'EB Garamond', serif;
+  --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 @layer base {
   body {
     @apply bg-background text-text-main font-sans antialiased overflow-x-hidden;
@@ -22,7 +35,12 @@
     filter: url(#noiseFilter);
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-serif font-medium leading-tight;
   }
 }
@@ -31,12 +49,81 @@
   .btn-primary {
     @apply bg-accent-blue text-white px-7 py-3 rounded-full font-medium transition-all duration-500 hover:bg-accent-blue-hover hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent-blue/30 active:scale-95;
   }
-  
+
   .btn-secondary {
     @apply bg-transparent text-text-main border border-text-main px-7 py-3 rounded-full font-medium transition-all duration-500 hover:bg-text-main hover:text-white hover:-translate-y-0.5 active:scale-95;
   }
 
   .glass-card {
     @apply bg-background/75 backdrop-blur-xl border border-text-main/10 rounded-[2rem] shadow-sm;
+  }
+}
+
+/* Footer Original Styles */
+.footer {
+  padding: 5rem 5%;
+  background-color: var(--bg-color);
+  border-top: 1px solid rgba(45, 50, 53, 0.1);
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4rem;
+}
+
+.footer-brand h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  font-family: var(--font-serif);
+}
+
+.footer-brand p {
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+}
+
+.footer-links {
+  display: flex;
+  gap: 4rem;
+}
+
+.link-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.link-column h4 {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.link-column a {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  transition: color var(--transition-smooth);
+}
+
+.link-column a:hover {
+  color: var(--accent-blue);
+}
+
+.footer-bottom {
+  text-align: center;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(45, 50, 53, 0.1);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+    gap: 3rem;
   }
 }

@@ -332,36 +332,29 @@ const App = () => {
             </section>
 
             {/* Footer */}
-            <footer className="footer bg-text-main text-white pt-24 pb-8 p-12 mt-20">
-                <div className="footer-content max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-12 border-b border-white/10 pb-16">
-                    <div className="footer-brand max-w-sm">
-                        <h2 className="font-serif text-4xl mb-6">Kibele.</h2>
-                        <p className="text-white/60 leading-relaxed italic text-lg">
-                            Yapay zeka işinizi elinizden almayacak, <br />
-                            aksine hayal gücünüzün sınırlarını genişletecek.
-                        </p>
+            <footer className="footer overflow-hidden">
+                <div className="footer-content">
+                    <div className="footer-brand">
+                        <h2>Kibele.</h2>
+                        <p>Yapay zeka işinizi elinizden almayacak, <br />aksine hayal gücünüzün sınırlarını genişletecek.</p>
                     </div>
-                    <div className="footer-links flex gap-12 md:gap-24">
-                        <div className="link-column flex flex-col gap-4">
-                            <h4 className="text-sm font-semibold uppercase tracking-widest text-white/40 mb-2">Platform</h4>
-                            <a href="#" className="text-white/70 hover:text-accent-blue transition-colors">Kürasyon</a>
-                            <a href="#" className="text-white/70 hover:text-accent-blue transition-colors">Sanatçılar</a>
-                            <a href="#" className="text-white/70 hover:text-accent-blue transition-colors">Topluluk</a>
+                    <div className="footer-links">
+                        <div className="link-column">
+                            <h4>Platform</h4>
+                            <a href="#">Kürasyon</a>
+                            <a href="#">Sanatçılar</a>
+                            <a href="#">Topluluk</a>
                         </div>
-                        <div className="link-column flex flex-col gap-4">
-                            <h4 className="text-sm font-semibold uppercase tracking-widest text-white/40 mb-2">Şirket</h4>
-                            <a href="#" className="text-white/70 hover:text-accent-blue transition-colors">Manifesto</a>
-                            <a href="#" className="text-white/70 hover:text-accent-blue transition-colors">İletişim</a>
-                            <a href="#" className="text-white/70 hover:text-accent-blue transition-colors">Gizlilik</a>
+                        <div className="link-column">
+                            <h4>Şirket</h4>
+                            <a href="#">Manifesto</a>
+                            <a href="#">İletişim</a>
+                            <a href="#">Gizlilik</a>
                         </div>
                     </div>
                 </div>
-                <div className="footer-bottom max-w-7xl mx-auto pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-white/30 text-xs">&copy; 2026 Kibele. Tüm hakları bir sanatçıya aittir.</p>
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">System Operational</span>
-                    </div>
+                <div className="footer-bottom">
+                    <p>&copy; 2026 Kibele. Tüm hakları bir sanatçıya aittir.</p>
                 </div>
             </footer>
 
