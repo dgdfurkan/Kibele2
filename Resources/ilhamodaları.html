@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Kibele - İlham Odaları</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Inter:wght@300;400;500;600&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#54AEDB",
+                        "background-light": "#F5F3F1",
+                        "background-dark": "#1A1A1A",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#2A2A2A",
+                        "text-light": "#333333",
+                        "text-dark": "#E0E0E0",
+                        "text-muted-light": "#666666",
+                        "text-muted-dark": "#999999",
+                        "border-light": "#E5E5E5",
+                        "border-dark": "#404040"
+                    },
+                    fontFamily: {
+                        display: ["Playfair Display", "serif"],
+                        sans: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.75rem",
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .dark .glass-panel {
+            background: rgba(42, 42, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .masonry-grid {
+            column-count: 3;
+            column-gap: 1.5rem;
+        }
+
+        .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-sans min-h-screen transition-colors duration-300">
+    <header class="fixed top-0 left-0 right-0 z-50 px-6 py-4 transition-all duration-300">
+        <div class="max-w-7xl mx-auto flex items-center justify-between glass-panel rounded-full px-6 py-3 shadow-sm">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl font-display font-semibold">Kibele.</span>
+            </div>
+            <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
+                <a class="text-text-light dark:text-text-dark hover:text-primary transition-colors" href="#">Keşfet</a>
+                <a class="text-text-light dark:text-text-dark hover:text-primary transition-colors" href="#">Nasıl
+                    Çalışır</a>
+                <a class="text-text-light dark:text-text-dark hover:text-primary transition-colors" href="#">İlham
+                    Odaları</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <button class="text-sm font-medium hover:text-primary transition-colors">Giriş Yap</button>
+                <button
+                    class="bg-primary text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-opacity-90 transition-all shadow-md">Erken
+                    Erişim</button>
+            </div>
+        </div>
+    </header>
+    <main class="pt-32 pb-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span
+                            class="text-sm font-medium px-3 py-1 bg-surface-light dark:bg-surface-dark rounded-full shadow-sm text-primary flex items-center gap-1">
+                            <span class="material-icons text-sm">lock</span> Özel
+                        </span>
+                        <span class="text-text-muted-light dark:text-text-muted-dark text-sm">VCD Kitap Tasarımı
+                            Projesi</span>
+                    </div>
+                    <h1 class="text-4xl md:text-5xl font-display font-semibold mb-3">İlham Odası</h1>
+                    <p class="text-text-muted-light dark:text-text-muted-dark max-w-2xl">Bu alanda VCD proje ödevim için
+                        topladığım brutalist mimari, tipografi ve kitap düzeni referanslarını biriktiriyorum.</p>
+                </div>
+                <div
+                    class="flex bg-surface-light dark:bg-surface-dark p-1 rounded-full shadow-sm border border-border-light dark:border-border-dark self-start md:self-auto">
+                    <button
+                        class="px-6 py-2.5 rounded-full text-sm font-medium bg-primary text-white shadow-sm transition-all">Bireysel
+                        Çalışma Alanı</button>
+                    <button
+                        class="px-6 py-2.5 rounded-full text-sm font-medium text-text-muted-light dark:text-text-muted-dark hover:text-text-light dark:hover:text-text-dark transition-all">Ortak
+                        İlham Panosu</button>
+                </div>
+            </div>
+            <div class="flex flex-col lg:flex-row gap-8">
+                <div class="lg:w-2/3">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-display font-semibold flex items-center gap-2">
+                            <span class="material-icons text-primary">collections</span> Referanslar
+                        </h2>
+                        <div class="flex items-center gap-2">
+                            <button
+                                class="p-2 rounded-full hover:bg-surface-light dark:hover:bg-surface-dark transition-colors border border-border-light dark:border-border-dark shadow-sm bg-white dark:bg-transparent">
+                                <span class="material-icons text-sm">filter_list</span>
+                            </button>
+                            <button
+                                class="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-light dark:bg-surface-dark shadow-sm border border-border-light dark:border-border-dark text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <span class="material-icons text-sm">add</span> Yeni Ekle
+                            </button>
+                        </div>
+                    </div>
+                    <div class="masonry-grid">
+                        <div class="masonry-item rounded-xl overflow-hidden shadow-sm group relative">
+                            <img alt="Brutalist architecture reference"
+                                class="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOGWFtpC52MbwLOWi8TaCgSTfX13Ek8VpcFYNBcqbPfUOLbDHTrM8XCCJuWoxB4Bgq7Culd60oUTKWa4J11iQJcjQzMKXtr_hI1PPOmx3ottIAuqGlsgJKsP3bGOsVVD3vue7uX6DGHjhYrMmS3AMTPN8qU87r0cHoi8ltDKCySxftsphqxOVnYLFyTku-A_jBWrYwKhcharo6bNkZjC6d4JDca8OYKWLitf-X1WFJRXvTuRvYgw6bGvYM0m5pRhoc8SK_7ObEYg" />
+                            <div
+                                class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+                                <button
+                                    class="p-2 bg-white rounded-full text-gray-900 hover:text-primary transition-colors"><span
+                                        class="material-icons">zoom_in</span></button>
+                                <button
+                                    class="p-2 bg-white rounded-full text-gray-900 hover:text-primary transition-colors"><span
+                                        class="material-icons">more_horiz</span></button>
+                            </div>
+                        </div>
+                        <div
+                            class="masonry-item rounded-xl overflow-hidden shadow-sm group relative bg-surface-light dark:bg-surface-dark p-4 border border-border-light dark:border-border-dark">
+                            <div class="font-serif text-3xl font-bold leading-tight mb-4 text-center">
+                                T<br />Y<br />P<br />O
+                            </div>
+                            <p
+                                class="text-xs text-text-muted-light dark:text-text-muted-dark text-center mt-2 border-t border-border-light dark:border-border-dark pt-2">
+                                İsviçre stili dikey dizgi denemesi</p>
+                            <div
+                                class="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+                                <button
+                                    class="p-2 bg-white shadow-md rounded-full text-gray-900 hover:text-primary transition-colors"><span
+                                        class="material-icons">edit</span></button>
+                            </div>
+                        </div>
+                        <div class="masonry-item rounded-xl overflow-hidden shadow-sm group relative">
+                            <img alt="Book layout reference"
+                                class="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsAVEArq4XWKzN1ImwIQ3z1kR4ovJEZy06rxmyBMT7yfrKzO7-JZDxrM9n21UnjYkr2M0AX8AonU-ltpr7dUt2Lm1vz48cUeMj0RLSLoymREmnkGHXy6gR4NKbIUe8Oc78Me4eQhW0Bd3Q_NO8NQ2Yw6S0HtRmiSy6-EKo1nFWHAcq4H8amlOwF3spoll35Kny4FWGVF4Af9y1Bc_NUp-DDiPaIx-0oYIhphZLjjVYgvvUqOWkK0CdOut4aRe53EnPCyRtrkivMA" />
+                            <div
+                                class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+                                <button
+                                    class="p-2 bg-white rounded-full text-gray-900 hover:text-primary transition-colors"><span
+                                        class="material-icons">zoom_in</span></button>
+                                <button
+                                    class="p-2 bg-white rounded-full text-gray-900 hover:text-primary transition-colors"><span
+                                        class="material-icons">more_horiz</span></button>
+                            </div>
+                        </div>
+                        <div class="masonry-item rounded-xl overflow-hidden shadow-sm group relative">
+                            <img alt="Minimalist design inspiration"
+                                class="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxw6zn2_2IAG4fhWUKozHCCqSyKpyeyaHjKxtVK0WHWz90VaQ9yBiFn-hgLNm72qvv9rh0LjP9yU9Ii06I6GwLs49eW5940WCeQWrgF1uetO5UdNUatLV6-kJQexguEIIVDCTOtgWNwRNl8tBIZYDPvBIVTUbOFxmPuljXHmCFyETJUw6zq8H7A740fDurKEQOmQgDP_8kHx7_SjhHAQDmnwxz3gk0ZSNox0VcemJHSS8Ec6mPH5DHHYNsj8a6C56f0kJgEYfmSw" />
+                            <div
+                                class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+                                <button
+                                    class="p-2 bg-white rounded-full text-gray-900 hover:text-primary transition-colors"><span
+                                        class="material-icons">zoom_in</span></button>
+                                <button
+                                    class="p-2 bg-white rounded-full text-gray-900 hover:text-primary transition-colors"><span
+                                        class="material-icons">more_horiz</span></button>
+                            </div>
+                        </div>
+                        <div
+                            class="masonry-item rounded-xl overflow-hidden shadow-sm group relative bg-surface-light dark:bg-surface-dark p-6 border border-border-light dark:border-border-dark">
+                            <div class="grid grid-cols-2 gap-2 mb-4">
+                                <div class="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                <div class="h-32 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                                <div class="h-24 bg-gray-400 dark:bg-gray-500 rounded col-span-2"></div>
+                            </div>
+                            <p
+                                class="text-xs text-text-muted-light dark:text-text-muted-dark mt-2 border-t border-border-light dark:border-border-dark pt-2">
+                                Asimetrik grid sistemi taslağı</p>
+                            <div
+                                class="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+                                <button
+                                    class="p-2 bg-white shadow-md rounded-full text-gray-900 hover:text-primary transition-colors"><span
+                                        class="material-icons">edit</span></button>
+                            </div>
+                        </div>
+                        <div class="masonry-item rounded-xl overflow-hidden shadow-sm group relative">
+                            <img alt="Concrete textures"
+                                class="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMNpLtJiO-_FmeMxfgcS_OBEZ7kpJ2xxHWyvZWzsO-_jO0CuxvcN98437vb8K6UY8ZKAi4nfuKB9JpX-f2g62UG7UXaJpsz7gQcXyh8FsUjMe6bWMC3ATkOnEf9n_7ABoIX4TOf8MuvIpXXAE1mDe2Be5C5EUQWnaVjH2VNh1ZYu16n5HQ4lgsZr7dJZ7CVmEzDMX5d5BOSEXk1MiadjZcFh5rRNVpE3XCotWuw_yeQ93If6IEBZuZOtD7zPq7yfS2GIi9nxVk0w" />
+                            <div
+                                class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+                                <button
+                                    class="p-2 bg-white rounded-full text-gray-900 hover:text-primary transition-colors"><span
+                                        class="material-icons">zoom_in</span></button>
+                                <button
+                                    class="p-2 bg-white rounded-full text-gray-900 hover:text-primary transition-colors"><span
+                                        class="material-icons">more_horiz</span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:w-1/3">
+                    <div
+                        class="sticky top-28 flex flex-col h-[calc(100vh-10rem)] bg-surface-light dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden">
+                        <div
+                            class="p-5 border-b border-border-light dark:border-border-dark bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center">
+                            <h3 class="font-display font-semibold text-lg flex items-center gap-2">
+                                <span class="material-icons text-primary text-xl">school</span> Kibele Hoca'nın
+                                Katkıları
+                            </h3>
+                            <span class="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded-md">Yapay
+                                Zeka</span>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-5 space-y-6">
+                            <div class="flex gap-3">
+                                <div
+                                    class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                    <span class="material-icons text-gray-500 text-sm">person</span>
+                                </div>
+                                <div>
+                                    <div class="flex items-baseline gap-2 mb-1">
+                                        <span class="text-sm font-semibold">Sen</span>
+                                        <span
+                                            class="text-xs text-text-muted-light dark:text-text-muted-dark">10:42</span>
+                                    </div>
+                                    <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-2xl rounded-tl-none text-sm">
+                                        Hocam, bu brutalist yapıları kitap kapağına uyarlarken tipografiyi nasıl
+                                        konumlandırmalıyım? Fazla mı karmaşık duruyor?
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                <div
+                                    class="w-8 h-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center overflow-hidden text-white">
+                                    <span class="font-display font-bold text-sm">K</span>
+                                </div>
+                                <div>
+                                    <div class="flex items-baseline gap-2 mb-1">
+                                        <span class="text-sm font-semibold">Kibele Hoca</span>
+                                        <span
+                                            class="text-xs text-text-muted-light dark:text-text-muted-dark">10:45</span>
+                                    </div>
+                                    <div
+                                        class="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-3 rounded-2xl rounded-tl-none text-sm mb-2">
+                                        Harika bir başlangıç noktası! Brutalizmin o ağır ve çiğ hissini korumak için
+                                        sans-serif ve kalın (bold/black) ağırlıkta fontlar kullanmayı deneyebilirsin.
+                                        Görsellerindeki blok yapılarla uyumlu olması için metin bloklarını da asimetrik
+                                        ama keskin hatlarla yerleştirmeni öneririm.
+                                    </div>
+                                    <div
+                                        class="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-3 rounded-2xl text-sm">
+                                        Bak, şu referanslara göz at. Benzer bir yaklaşımı tipografide nasıl
+                                        uyguladıklarını görebilirsin:
+                                        <div class="grid grid-cols-2 gap-2 mt-3">
+                                            <div
+                                                class="rounded-lg overflow-hidden border border-border-light dark:border-border-dark cursor-pointer hover:opacity-80 transition-opacity">
+                                                <img alt="Typography reference 1" class="w-full h-20 object-cover"
+                                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuADPVYmxSLHjUjze7F1fNPQfrBqBUpf4fYAHTDzSsP15gK196ll4YMeOGwa4R27UAxPooWgW5zrOLmQW20QA5aW0Cthmd0mRjH5ebb2ab3cJzgQfPcPLfNZXChWOPzlyRujj_t1Lw0OKqMd_3incGcjcHvpMbvXvdeNJqB_9a3HVMOjI_DZr977O7o68vMYhQz9cpIeG7evJTB3QWtPVT4wH0aG0QsNDrWoJ1QdExBz_qEaz6JsR9WQigAEudy2DaUUnTu3T1vpMg" />
+                                            </div>
+                                            <div
+                                                class="rounded-lg overflow-hidden border border-border-light dark:border-border-dark cursor-pointer hover:opacity-80 transition-opacity">
+                                                <img alt="Typography reference 2" class="w-full h-20 object-cover"
+                                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMc_Jx-5BNj9kNMbWItFpUSclVr7ujMCgHd6q27dLDU6NKa8Up-gei72mJyQOIkBmghhLPnNrba9QfBvca8r_k7uDBr-UuyaMTgLjrzObeHktyhs0hLe_QIiRwv9Os0-eLl5OZu8jRpGxzvT3z-aTVZ7O-6Rw_hioLVfxwuQf0a4Vv3ThLm-2XWGptBXufIO6vtww_tEAylHALeMSAmf6nTwJk0TmljQyl5WYJBidfUBGQ3S2pjKFZo0exfOa8EbshD1y5Y2po4w" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 border-t border-border-light dark:border-border-dark bg-white dark:bg-gray-900">
+                            <div
+                                class="flex items-end gap-2 bg-gray-50 dark:bg-gray-800 rounded-xl p-2 border border-border-light dark:border-border-dark focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
+                                <button
+                                    class="p-2 text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                                    <span class="material-icons text-xl">add_photo_alternate</span>
+                                </button>
+                                <textarea
+                                    class="w-full bg-transparent border-none focus:ring-0 resize-none text-sm py-2.5 max-h-24"
+                                    placeholder="Hocaya soru sor veya görsel yükle..." rows="1"></textarea>
+                                <button
+                                    class="p-2 bg-primary text-white rounded-lg hover:bg-opacity-90 transition-colors shadow-sm mb-0.5">
+                                    <span class="material-icons text-lg">send</span>
+                                </button>
+                            </div>
+                            <div class="text-center mt-2">
+                                <span class="text-[10px] text-text-muted-light dark:text-text-muted-dark">Kibele Hoca
+                                    bağlamı anlar ve spesifik geri bildirim verir.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body>
+
+</html>

@@ -12,16 +12,30 @@ import { auth, db } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { subscribeToRooms } from './services/dbService';
 
+import RoomRequestView from './views/RoomView/RoomRequestView';
+import RoomDetailView from './views/RoomView/RoomDetailView';
+import SharedBoardView from './views/RoomView/SharedBoardView';
+
 gsap.registerPlugin(ScrollTrigger);
 
-const App = () => {
+function App() {
     const heroRef = useRef(null);
     const { user, isAdmin } = useAuth();
 
     // States
+    const [isLoginOpen, setIsLoginOpen] = useState(false);
+    const [isEarlyAccessOpen, setIsEarlyAccessOpen] = useState(false);
     const [artworks, setArtworks] = useState([]);
-    const [token, setToken] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [rooms, setRooms] = useState([]);
+    const [currentView, setCurrentView] = useState('hub'); // hub, request, detail, board
+    const [selectedRoom, setSelectedRoom] = useState(null);
+
     const [filters, setFilters] = useState({
+        query: '',
+        technique: '',
+        movement: '',
+        geography: '',
         medium: 'painting',
         style: '',
         place: '',
@@ -29,9 +43,6 @@ const App = () => {
     });
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [loading, setLoading] = useState(false);
-    const [rooms, setRooms] = useState([]);
-    const [isEarlyAccessOpen, setIsEarlyAccessOpen] = useState(false);
 
     useEffect(() => {
         const unsubscribe = subscribeToRooms(setRooms);
@@ -39,14 +50,12 @@ const App = () => {
     }, []);
 
     useEffect(() => {
-        // AIC API key gerekmez, doğrudan fetch başlar
         handleFetchArtworks();
     }, [filters, page]);
 
-    // Filtre değişince sayfayı 1 yap
     useEffect(() => {
         setPage(1);
-    }, [filters]);
+    }, [filters.medium, filters.style, filters.place]);
 
     const handleFetchArtworks = async () => {
         setLoading(true);
@@ -63,18 +72,22 @@ const App = () => {
         setLoading(false);
     };
 
-    const [isLoginOpen, setIsLoginOpen] = useState(false);
+    const handleLogout = () => signOut(auth);
 
-    const handleLogin = async () => {
-        try {
-            const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
-        } catch (error) {
-            console.error("Login Error:", error);
+    const handleRoomClick = (room) => {
+        if (!user) {
+            setIsLoginOpen(true);
+            return;
+        }
+
+        setSelectedRoom(room);
+
+        if (room.isPrivate && !isAdmin) {
+            setCurrentView('request');
+        } else {
+            setCurrentView(room.isShared ? 'board' : 'detail');
         }
     };
-
-    const handleLogout = () => signOut(auth);
 
     useEffect(() => {
         let ctx = gsap.context(() => {
@@ -91,12 +104,23 @@ const App = () => {
         return () => ctx.revert();
     }, []);
 
+    // View Navigation Logic
+    if (currentView === 'request') {
+        return <RoomRequestView room={selectedRoom} onBack={() => setCurrentView('hub')} />;
+    }
+
+    if (currentView === 'detail') {
+        return <RoomDetailView room={selectedRoom} onBack={() => setCurrentView('hub')} />;
+    }
+
+    if (currentView === 'board') {
+        return <SharedBoardView room={selectedRoom} onBack={() => setCurrentView('hub')} />;
+    }
+
     return (
-        <div className="min-h-screen">
-            {/* Hoca Paneli */}
+        <div className="min-h-screen bg-background text-text-main font-sans selection:bg-accent-blue selection:text-white">
             <AdminPanel />
 
-            {/* Floating Navbar */}
             <nav className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-4xl">
                 <div className="glass-card px-8 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -111,7 +135,7 @@ const App = () => {
                     <div className="flex items-center gap-4">
                         {user ? (
                             <div className="flex items-center gap-4">
-                                <span className="text-sm font-medium hidden sm:inline">{user.displayName}</span>
+                                <span className="text-sm font-medium hidden sm:inline">{user.displayName || user.email}</span>
                                 <button onClick={handleLogout} className="text-sm text-text-muted hover:text-red-500 transition-colors">Çıkış</button>
                             </div>
                         ) : (
@@ -125,7 +149,6 @@ const App = () => {
                 </div>
             </nav>
 
-            {/* Hero Section */}
             <section ref={heroRef} className="h-screen flex items-center px-[5%] relative overflow-hidden">
                 <div className="max-w-4xl z-10">
                     <h1 className="text-7xl mb-8 hero-text leading-[1.1]">
@@ -143,7 +166,6 @@ const App = () => {
                     </div>
                 </div>
 
-                {/* Abstract Animation Area */}
                 <div className="absolute right-0 top-0 w-1/2 h-full hidden lg:flex items-center justify-center">
                     <div className="relative w-96 h-96">
                         <div className="absolute top-1/4 left-0 w-6 h-6 rounded-full bg-text-main shadow-[0_0_30px_rgba(45,50,53,0.4)] animate-pulse" />
@@ -153,7 +175,6 @@ const App = () => {
                 </div>
             </section>
 
-            {/* Deep Curation Section */}
             <section id="kesfet" className="py-32 px-[5%] bg-surface">
                 <div className="max-w-2xl mb-20">
                     <h2 className="text-5xl mb-6">Derinlikli Kürasyon</h2>
@@ -166,59 +187,53 @@ const App = () => {
                             <h3 className="text-sm font-semibold mb-6 uppercase tracking-wider text-text-muted">Filtreler</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-8">
                                 <div>
-                                    <div className="flex justify-between items-center mb-4 cursor-pointer group" onClick={() => setFilters(prev => ({ ...prev, medium: prev.medium === '' ? 'painting' : '' }))}>
+                                    <div className="flex justify-between items-center mb-4 cursor-pointer group" onClick={() => setFilters(prev => ({ ...prev, techniqueOpen: !prev.techniqueOpen }))}>
                                         <span className="font-medium group-hover:text-accent-blue transition-colors">Teknik</span>
-                                        <LucideChevronDown size={16} className={`transition-transform ${filters.medium ? 'rotate-180' : ''}`} />
+                                        <LucideChevronDown size={16} />
                                     </div>
-                                    {filters.medium && (
-                                        <div className="space-y-3 pl-2">
-                                            {['painting', 'photography', 'sculpture', 'textile', 'print'].map(m => (
-                                                <label key={m} className="flex items-center gap-3 cursor-pointer group">
-                                                    <input type="checkbox" className="hidden" checked={filters.medium === m} onChange={() => setFilters(prev => ({ ...prev, medium: m }))} />
-                                                    <div className={`w-4 h-4 border transition-all rounded ${filters.medium === m ? 'bg-accent-blue border-accent-blue' : 'border-text-muted group-hover:border-accent-blue'}`} />
-                                                    <span className={`text-sm capitalize ${filters.medium === m ? 'text-text-main font-medium' : 'text-text-muted'}`}>{m}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    )}
+                                    <div className="space-y-3 pl-2">
+                                        {['painting', 'photography', 'sculpture', 'textile', 'print'].map(m => (
+                                            <label key={m} className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" className="hidden" checked={filters.medium === m} onChange={() => setFilters(prev => ({ ...prev, medium: m }))} />
+                                                <div className={`w-4 h-4 border transition-all rounded ${filters.medium === m ? 'bg-accent-blue border-accent-blue' : 'border-text-muted group-hover:border-accent-blue'}`} />
+                                                <span className={`text-sm capitalize ${filters.medium === m ? 'text-text-main font-medium' : 'text-text-muted'}`}>{m}</span>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
                                 <div>
-                                    <div className="flex justify-between items-center mb-4 cursor-pointer group" onClick={() => setFilters(prev => ({ ...prev, style: prev.style === '' ? 'Modernism' : '' }))}>
+                                    <div className="flex justify-between items-center mb-4 cursor-pointer group" onClick={() => setFilters(prev => ({ ...prev, movementOpen: !prev.movementOpen }))}>
                                         <span className="font-medium group-hover:text-accent-blue transition-colors">Sanat Akımı</span>
-                                        <LucideChevronDown size={16} className={`transition-transform ${filters.style ? 'rotate-180' : ''}`} />
+                                        <LucideChevronDown size={16} />
                                     </div>
-                                    {filters.style && (
-                                        <div className="space-y-3 pl-2">
-                                            {['Modernism', 'Impressionism', 'Surrealism', 'Ancient Egyptian', 'Pop Art'].map(s => (
-                                                <label key={s} className="flex items-center gap-3 cursor-pointer group">
-                                                    <input type="checkbox" className="hidden" checked={filters.style === s} onChange={() => setFilters(prev => ({ ...prev, style: s }))} />
-                                                    <div className={`w-4 h-4 border transition-all rounded ${filters.style === s ? 'bg-accent-blue border-accent-blue' : 'border-text-muted group-hover:border-accent-blue'}`} />
-                                                    <span className={`text-sm capitalize ${filters.style === s ? 'text-text-main font-medium' : 'text-text-muted'}`}>{s}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    )}
+                                    <div className="space-y-3 pl-2">
+                                        {['Modernism', 'Impressionism', 'Surrealism', 'Ancient Egyptian', 'Pop Art'].map(s => (
+                                            <label key={s} className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" className="hidden" checked={filters.style === s} onChange={() => setFilters(prev => ({ ...prev, style: s }))} />
+                                                <div className={`w-4 h-4 border transition-all rounded ${filters.style === s ? 'bg-accent-blue border-accent-blue' : 'border-text-muted group-hover:border-accent-blue'}`} />
+                                                <span className={`text-sm capitalize ${filters.style === s ? 'text-text-main font-medium' : 'text-text-muted'}`}>{s}</span>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
                                 <div>
-                                    <div className="flex justify-between items-center mb-4 cursor-pointer group" onClick={() => setFilters(prev => ({ ...prev, place: prev.place === '' ? 'France' : '' }))}>
+                                    <div className="flex justify-between items-center mb-4 cursor-pointer group" onClick={() => setFilters(prev => ({ ...prev, geographyOpen: !prev.geographyOpen }))}>
                                         <span className="font-medium group-hover:text-accent-blue transition-colors">Coğrafya</span>
-                                        <LucideChevronDown size={16} className={`transition-transform ${filters.place ? 'rotate-180' : ''}`} />
+                                        <LucideChevronDown size={16} />
                                     </div>
-                                    {filters.place && (
-                                        <div className="space-y-3 pl-2">
-                                            {['France', 'Japan', 'Egypt', 'Netherlands', 'USA'].map(p => (
-                                                <label key={p} className="flex items-center gap-3 cursor-pointer group">
-                                                    <input type="checkbox" className="hidden" checked={filters.place === p} onChange={() => setFilters(prev => ({ ...prev, place: p }))} />
-                                                    <div className={`w-4 h-4 border transition-all rounded ${filters.place === p ? 'bg-accent-blue border-accent-blue' : 'border-text-muted group-hover:border-accent-blue'}`} />
-                                                    <span className={`text-sm capitalize ${filters.place === p ? 'text-text-main font-medium' : 'text-text-muted'}`}>{p}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    )}
+                                    <div className="space-y-3 pl-2">
+                                        {['France', 'Japan', 'Egypt', 'Netherlands', 'USA'].map(p => (
+                                            <label key={p} className="flex items-center gap-3 cursor-pointer group">
+                                                <input type="checkbox" className="hidden" checked={filters.place === p} onChange={() => setFilters(prev => ({ ...prev, place: p }))} />
+                                                <div className={`w-4 h-4 border transition-all rounded ${filters.place === p ? 'bg-accent-blue border-accent-blue' : 'border-text-muted group-hover:border-accent-blue'}`} />
+                                                <span className={`text-sm capitalize ${filters.place === p ? 'text-text-main font-medium' : 'text-text-muted'}`}>{p}</span>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
                                 <div>
                                     <div className="flex justify-between items-center mb-4">
-                                        <span className="font-medium">Color</span>
+                                        <span className="font-medium">Renk</span>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
                                         {['black', 'white', 'red', 'yellow', 'blue', 'green'].map(c => (
@@ -259,18 +274,18 @@ const App = () => {
                                     </div>
                                 </div>
                             )) : (
-                                <div className="col-span-full flex flex-col items-center justify-center py-32 text-text-muted">
-                                    <LucideSearch size={48} className="mb-4 opacity-20" />
-                                    <p>Aradığınız kriterlere uygun eser bulunamadı canım.</p>
-                                </div>
+                                !loading && (
+                                    <div className="col-span-full flex flex-col items-center justify-center py-32 text-text-muted">
+                                        <LucideSearch size={48} className="mb-4 opacity-20" />
+                                        <p>Aradığınız kriterlere uygun eser bulunamadı canım.</p>
+                                    </div>
+                                )
                             )}
                         </div>
 
-                        {/* Pagination */}
                         {totalPages > 1 && (
                             <div className="mt-16 flex justify-center items-center gap-3">
                                 {[...Array(Math.min(totalPages, 7))].map((_, i) => {
-                                    // Çok fazla sayfa olabileceği için dotları sınırlıyoruz
                                     const pageNum = i + 1;
                                     return (
                                         <button
@@ -288,7 +303,6 @@ const App = () => {
                 </div>
             </section>
 
-            {/* Process Section */}
             <section id="nasil-calisir" className="py-32 px-[5%] bg-background">
                 <div className="max-w-2xl mx-auto text-center mb-20">
                     <h2 className="text-5xl mb-6">Yaratıcı Diyalog Nasıl İşler?</h2>
@@ -296,7 +310,7 @@ const App = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                     {[
-                        { num: "01", title: "Seçim & Analiz", desc: "Mevcut taslaklarınızı veya beğendiğiniz sanatçıların tarzlarını yükleyin. Yapay zeka, yöneliminizi estetik bir dille analiz eder." },
+                        { num: "01", title: "Seçim & Analiz", desc: "Mevcut taslaklarınızı veya beğendiğiniz sanatçıların tarzlarını yükleyin. Yapay zeka, yönelimlerinizi estetik bir dille analiz eder." },
                         { num: "02", title: "Eşleşme & Sentez", desc: "Seçtiğiniz parametrelere göre (renk paleti, akım) kendi tarzınız ile global ilham kaynaklarını harmanlar.", active: true },
                         { num: "03", title: "Yeni Perspektivler", desc: "Doğrudan 'bitmiş iş' üretmek yerine, size yeni dokular, formlar ve kompozisyon yolları önerir." }
                     ].map((step, i) => (
@@ -309,7 +323,6 @@ const App = () => {
                 </div>
             </section>
 
-            {/* Hubs Section */}
             <section id="hubs" className="py-32 px-[5%] bg-surface">
                 <div className="max-w-7xl mx-auto relative">
                     <div className="max-w-2xl mb-20">
@@ -318,11 +331,10 @@ const App = () => {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
-                        {/* Dynamic Rooms from Firebase */}
-                        {rooms.map((room, i) => (
+                        {rooms.map((room) => (
                             <div
                                 key={room.id}
-                                onClick={() => !user && setIsLoginOpen(true)}
+                                onClick={() => handleRoomClick(room)}
                                 className={`p-10 rounded-[2.5rem] transition-all duration-500 group cursor-pointer hover:-translate-y-2 ${room.isPrivate ? 'bg-text-main text-white' : 'bg-background glass-card hover:bg-white'}`}
                             >
                                 <div className="text-4xl mb-6">{room.isPrivate ? '🔒' : '✨'}</div>
@@ -330,18 +342,6 @@ const App = () => {
                                 <p className={room.isPrivate ? 'text-white/60' : 'text-text-muted'}>
                                     {room.isPrivate ? 'Giriş için şifre gereklidir canım.' : 'Açık ilham odası.'}
                                 </p>
-                            </div>
-                        ))}
-
-                        {/* Static/Template Rooms */}
-                        {[
-                            { icon: "🏛️", title: "Mimari Estetik", desc: "Brutalist formlar." },
-                            { icon: "🧊", title: "3D & CGI", desc: "Gerçeküstü materyaller." }
-                        ].map((hub, i) => (
-                            <div key={i} className="p-10 rounded-[2.5rem] bg-background glass-card hover:bg-white transition-all duration-500 group cursor-pointer hover:-translate-y-2">
-                                <div className="text-4xl mb-6">{hub.icon}</div>
-                                <h3 className="text-2xl mb-4">{hub.title}</h3>
-                                <p className="text-text-muted">{hub.desc}</p>
                             </div>
                         ))}
 
@@ -356,7 +356,6 @@ const App = () => {
                 </div>
             </section>
 
-            {/* Footer */}
             <footer className="footer">
                 <div className="footer-content">
                     <div className="footer-brand">
@@ -383,19 +382,17 @@ const App = () => {
                 </div>
             </footer>
 
-            {/* Early Access Modal */}
             <EarlyAccessModal
                 isOpen={isEarlyAccessOpen}
                 onClose={() => setIsEarlyAccessOpen(false)}
             />
 
-            {/* Login Modal */}
             <LoginModal
                 isOpen={isLoginOpen}
                 onClose={() => setIsLoginOpen(false)}
             />
         </div>
     );
-};
+}
 
 export default App;

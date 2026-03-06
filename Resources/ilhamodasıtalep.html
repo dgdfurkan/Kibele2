@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Kibele - İlham Odası</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&amp;family=Inter:wght@300;400;500;600&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#60B2D4", // Extracted from the images
+                        secondary: "#FDF5F2", // Background tone from images
+                        dark: "#1A1A1A",
+                        gray: {
+                            50: '#F9FAFB',
+                            100: '#F3F4F6',
+                            200: '#E5E7EB',
+                            300: '#D1D5DB',
+                            400: '#9CA3AF',
+                            500: '#6B7280',
+                            600: '#4B5563',
+                            700: '#374151',
+                            800: '#1F2937',
+                            900: '#111827',
+                        },
+                        "background-light": "#FDF5F2",
+                        "background-dark": "#121212",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1E1E1E",
+                    },
+                    fontFamily: {
+                        display: ["Playfair Display", "serif"],
+                        sans: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.75rem",
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .dark .glass {
+            background: rgba(30, 30, 30, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200 font-sans antialiased min-h-screen flex flex-col">
+    <header class="fixed top-4 left-1/2 transform -translate-x-1/2 w-11/12 max-w-5xl z-50">
+        <nav class="glass rounded-full px-6 py-3 flex items-center justify-between shadow-sm">
+            <div class="flex items-center space-x-2 cursor-pointer">
+                <span class="font-display font-semibold text-xl tracking-tight text-dark dark:text-white">Kibele.</span>
+            </div>
+            <div class="hidden md:flex items-center space-x-8 text-sm font-medium">
+                <a class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors"
+                    href="#">Keşfet</a>
+                <a class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors"
+                    href="#">Nasıl Çalışır</a>
+                <a class="text-dark dark:text-white font-semibold relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-primary"
+                    href="#">İlham Odaları</a>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a class="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-dark dark:hover:text-white transition-colors"
+                    href="#">Giriş Yap</a>
+                <a class="bg-primary hover:bg-opacity-90 text-white text-sm font-medium py-2 px-4 rounded-full transition-colors shadow-sm"
+                    href="#">Erken Erişim</a>
+            </div>
+        </nav>
+    </header>
+    <main class="flex-grow flex flex-col items-center justify-center pt-32 pb-16 px-4">
+        <div class="w-full max-w-3xl mb-8 flex items-center text-sm text-gray-500 dark:text-gray-400 font-medium">
+            <a class="hover:text-dark dark:hover:text-white transition-colors" href="#">Kibele.</a>
+            <span class="mx-2 material-icons text-xs">chevron_right</span>
+            <a class="hover:text-dark dark:hover:text-white transition-colors" href="#">İlham Odaları</a>
+            <span class="mx-2 material-icons text-xs">chevron_right</span>
+            <span class="text-dark dark:text-white">VCD141. Asg1</span>
+        </div>
+        <div
+            class="w-full max-w-3xl glass rounded-2xl p-10 md:p-14 shadow-lg flex flex-col items-center text-center relative overflow-hidden">
+            <div
+                class="absolute top-0 right-0 w-32 h-32 bg-primary rounded-full mix-blend-multiply filter blur-3xl opacity-20 transform translate-x-1/2 -translate-y-1/2">
+            </div>
+            <div
+                class="absolute bottom-0 left-0 w-40 h-40 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 transform -translate-x-1/2 translate-y-1/2">
+            </div>
+            <div
+                class="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-50 dark:bg-yellow-900/30 text-yellow-500 mb-6">
+                <span class="material-icons text-3xl">lock</span>
+            </div>
+            <h1 class="font-display text-4xl md:text-5xl font-semibold text-dark dark:text-white mb-4">
+                VCD141. Asg1
+            </h1>
+            <p class="text-lg text-gray-600 dark:text-gray-300 mb-6">
+                Kitap Tasarımı Ödevi - Book Design Assignment
+            </p>
+            <div class="flex items-center space-x-4 mb-10">
+                <div
+                    class="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-sm font-medium border border-green-200 dark:border-green-800">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                    <span>Aktif</span>
+                </div>
+                <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                    <span class="material-icons text-base mr-1">schedule</span>
+                    <span>Teslim: 24 Mayıs 2024</span>
+                </div>
+            </div>
+            <div class="w-full max-w-md flex flex-col space-y-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400 px-6">
+                    Bu ilham odasına erişim sağlamak için eğitmeninizin onayına ihtiyacınız var.
+                </p>
+                <button
+                    class="w-full bg-primary hover:bg-opacity-90 text-white font-medium py-3.5 px-6 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center space-x-2">
+                    <span>İlham Odasına Katılma İsteği Gönder</span>
+                    <span class="material-icons text-sm">arrow_forward</span>
+                </button>
+            </div>
+            <div class="w-full h-px bg-gray-200 dark:bg-gray-800 my-10"></div>
+            <div class="w-full text-left">
+                <h3 class="text-sm font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">Görünüm
+                    Varyantı: Beklemede</h3>
+                <div class="w-full max-w-md mx-auto">
+                    <button
+                        class="w-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-medium py-3.5 px-6 rounded-xl cursor-not-allowed flex items-center justify-center space-x-2 border border-gray-200 dark:border-gray-700">
+                        <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-gray-500 dark:text-gray-400" fill="none"
+                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                fill="currentColor"></path>
+                        </svg>
+                        <span>İstek Beklemede</span>
+                    </button>
+                    <p class="text-xs text-center text-gray-500 mt-3">
+                        Eğitmeniniz isteğinizi değerlendiriyor. Onaylandığında bildirim alacaksınız.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer class="w-full bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 pt-16 pb-8">
+        <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-start md:items-center">
+            <div class="mb-8 md:mb-0 max-w-xs">
+                <h2 class="font-display text-2xl font-bold text-dark dark:text-white mb-2">Kibele.</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Yapay zeka işinizi elinizden almayacak, aksine hayal
+                    gücünüzün sınırlarını genişletecek.</p>
+            </div>
+            <div class="flex space-x-12">
+                <div>
+                    <h4 class="font-medium text-dark dark:text-white mb-4 text-sm">Platform</h4>
+                    <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+                        <li><a class="hover:text-primary transition-colors" href="#">Kürasyon</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="#">Sanatçılar</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="#">Topluluk</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium text-dark dark:text-white mb-4 text-sm">Şirket</h4>
+                    <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+                        <li><a class="hover:text-primary transition-colors" href="#">Manifesto</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="#">İletişim</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="#">Gizlilik</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div
+            class="max-w-6xl mx-auto px-6 mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 text-center text-xs text-gray-400 dark:text-gray-500">
+            <p>© 2024 Kibele. Tüm hakları bir sanatçıya aittir.</p>
+        </div>
+    </footer>
+
+</body>
+
+</html>

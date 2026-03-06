@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Kibele - Ortak İlham Panosu</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&amp;family=Inter:wght@300;400;500;600&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#60A5FA", // Soft Blue
+                        "background-light": "#FDFBF7", // Off-white/Cream
+                        "background-dark": "#1A1A1A",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#2A2A2A",
+                        "text-main-light": "#1F2937",
+                        "text-muted-light": "#6B7280",
+                        "text-main-dark": "#F9FAFB",
+                        "text-muted-dark": "#9CA3AF",
+                        "border-light": "#E5E7EB",
+                        "border-dark": "#4B5563"
+                    },
+                    fontFamily: {
+                        display: ["'Playfair Display'", "serif"],
+                        sans: ["'Inter'", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        'xl': "1rem",
+                        '2xl': "1.5rem",
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        .masonry {
+            column-count: 1;
+            column-gap: 1.5rem;
+        }
+
+        @media (min-width: 640px) {
+            .masonry {
+                column-count: 2;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .masonry {
+                column-count: 3;
+            }
+        }
+
+        @media (min-width: 1280px) {
+            .masonry {
+                column-count: 4;
+            }
+        }
+
+        .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background-color: #CBD5E1;
+            border-radius: 20px;
+        }
+
+        .dark .sidebar-scroll::-webkit-scrollbar-thumb {
+            background-color: #4B5563;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark font-sans antialiased h-screen overflow-hidden flex flex-col">
+    <header
+        class="h-16 border-b border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark flex items-center justify-between px-6 flex-shrink-0 z-20">
+        <div class="flex items-center gap-4">
+            <span class="font-display font-semibold text-2xl tracking-tight">Kibele.</span>
+            <div class="h-6 w-px bg-border-light dark:bg-border-dark mx-2"></div>
+            <div class="flex flex-col">
+                <span
+                    class="text-xs text-text-muted-light dark:text-text-muted-dark uppercase tracking-wider font-semibold">İlham
+                    Odası</span>
+                <span class="text-sm font-medium">VCD Kitap Tasarımı</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2 text-sm font-medium text-text-muted-light dark:text-text-muted-dark">
+                <div class="flex -space-x-2">
+                    <img alt="User Avatar"
+                        class="w-8 h-8 rounded-full border-2 border-surface-light dark:border-surface-dark"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDapfr-lMp6t2m31rTOPms04veml1ChOnYZvIwlEn4tvBcT4DQGaJdWIh8gZ2C_qH9ze5dmLFhfgW4UsSea2t19CMvMiuvkx_jPwmhcGuWyVf4sxJXgfiALGFRPiQAcBym0swFdgQbrMkjaCPrnCPKTglRcYb-wPtNVSYGwUsxmC9mi5joxxkZh2JeLXcoRmj2-w4UmQdn3EeiFFN9sPgzUenRYjewHf2uB-4pWdeYlaQ8PapBPOJcZ5L0Mog7M0nafqzhGv5xmnA" />
+                    <img alt="User Avatar"
+                        class="w-8 h-8 rounded-full border-2 border-surface-light dark:border-surface-dark"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXpF1qcbSED119xSzTUjR0SebwGNw0L9aCzCsodr9M7es5u2ywUl-0ZadYnGFDsVLUFOx6T7Y6f61wtTlLg5RextVmI-D-goXD_tTQ3cmOBvdTm_8Per_4xdUzp9LN4ifXc0qreLm9nAlfoVCSIgUE0Nbu6dRmWYnwmutrzyEIqw9LlRf8I-Wf5DEy4c5JB3DPTl4PwcKCER8OBo5xQlgPSDw-J6GT41xzrUXBTMtb269_KaRh9ocH9ceRgGG6adpcvgMTNwTJPA" />
+                    <img alt="User Avatar"
+                        class="w-8 h-8 rounded-full border-2 border-surface-light dark:border-surface-dark"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBg-Jucljjn7pT63RDujTq22XZetkpElcAItJ571bNdCdGjBDgx3TgC5qibR58dkEqJOZY7oQS2_cvhLklEf7GfKPUzjI2k4iKPXZ7DwpsXSk_FUx33USqQUlCV0huU2tgxIg1fTnSfSMi7L-uKBibat8nX7qeZ0d2trKZ2PaB7HGCarvCAtcVfMtclz117jlcPJpwJHcNHK8HNPNrwge4glNdZdMV7ZFtd80gAop59aG5M5803VOApjaq3NSkbCllVyEooXukr6A" />
+                </div>
+                <span class="ml-2">+2 Katılımcı</span>
+            </div>
+            <button
+                class="flex items-center gap-2 px-4 py-2 rounded-full border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm font-medium">
+                <span class="material-icons text-sm">share</span>
+                Paylaş
+            </button>
+            <button
+                class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons">more_horiz</span>
+            </button>
+        </div>
+    </header>
+    <main class="flex-1 flex overflow-hidden relative">
+        <div class="flex-1 overflow-y-auto p-8 pb-32 relative">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-8 flex justify-between items-end">
+                    <div>
+                        <h1 class="font-display text-4xl mb-2">Ortak İlham Panosu</h1>
+                        <p class="text-text-muted-light dark:text-text-muted-dark">Ekip ile toplanan referanslar ve
+                            fikirler.</p>
+                    </div>
+                </div>
+                <div class="masonry">
+                    <div
+                        class="masonry-item rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-surface-light dark:bg-surface-dark group relative">
+                        <img alt="Vintage book cover design" class="w-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwFROqje22cijtPh1h9sbiT7KQk7My8Hr9FCJX94t2QPViC6jJATn-7iHFX2ql1qLLQfN5l47HDWnkbPHWv3hxpY-V4bqlUtt2cqiwH2QzgzoMtxajz9GEgOBrALmln04IVrrXmqgI-XL7vxigaAVAkbuZLPi4P2WOFoE8FxEl5EGPDJuIhP8LbWI-mwHSLvXYBoILgXncu0MhPXqcWbmJyl4rIf5msqxB42s2q0lHWnVLN50GbuRQZWnPR6bjuMznrua7LqcloQ" />
+                        <div
+                            class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                            <button
+                                class="w-10 h-10 rounded-full bg-white text-gray-900 flex items-center justify-center hover:bg-gray-100"><span
+                                    class="material-icons text-sm">open_in_full</span></button>
+                            <button
+                                class="w-10 h-10 rounded-full bg-white text-red-500 flex items-center justify-center hover:bg-gray-100"><span
+                                    class="material-icons text-sm">favorite_border</span></button>
+                        </div>
+                    </div>
+                    <div
+                        class="masonry-item rounded-xl p-6 shadow-sm border border-border-light dark:border-border-dark bg-[#FFFDF0] dark:bg-[#2A2A20]">
+                        <div class="flex justify-between items-start mb-4">
+                            <span
+                                class="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Tipografi
+                                Notu</span>
+                            <button class="text-gray-400 hover:text-gray-600"><span
+                                    class="material-icons text-sm">more_horiz</span></button>
+                        </div>
+                        <p class="font-display text-lg italic mb-3">"Kapakta kullanılacak serif fontun, metin içindeki
+                            sans-serif ile yarattığı kontrast modern bir his vermeli."</p>
+                        <div
+                            class="flex items-center gap-2 mt-4 text-xs text-text-muted-light dark:text-text-muted-dark">
+                            <img alt="Ayşe" class="w-5 h-5 rounded-full"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCErfsJAKdHjjDtnHLZOSb8ViAVQorUQ-tHV1NeWJywn0fFZ6hDSO1QNWZUFmImjoPAIhly4Q2912dqhGVuwWHs7PoWKMth3tkVeHq4gMJdPHwCKpbAI7l3JZcxmQ1zyndY4353yEp7ncITtYhnOfv2j6i5gE8G3A2Na4JI3eVCNKJ4kOfAIQ5uCG1j4qrXqe7gihtHA5W4IyBi8eUSVYHHO20crhHFqmELpGei4ibhwXFqWOfbZozy5-KMoD0cbQtdLnR6rTzMmA" />
+                            <span>Ayşe ekledi</span>
+                        </div>
+                    </div>
+                    <div
+                        class="masonry-item rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-surface-light dark:bg-surface-dark group relative">
+                        <img alt="Minimalist layout" class="w-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQRdmje1eC8PV9CbvXzbyhlnuAxAyxlZ1APT5w40bW3lzqxQqwN7z2OSfOMCAKmtUl4XjCewJnrtCdau5ApD_DoUMXBdYosEGbrYg5wz_XJX17g_1d7OHsPoBMawN32ZgAUFDuO8f67pOZeuEajJ93AXaQED-MQUaRFgJjwoyJvriuqeWB4H0X_q8J_6YSxHzxUevteqp93cwmkMiwtlKMMmAxpuos4zVzc8K7W2IYJ-2OgPKLIluAXyV1EKwbh1cAp82LH2-7Dw" />
+                        <div class="p-4">
+                            <h3 class="font-medium text-sm mb-1">Grid Sistemi Referansı</h3>
+                            <p class="text-xs text-text-muted-light dark:text-text-muted-dark">Swiss design etkileri.
+                            </p>
+                        </div>
+                        <div
+                            class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                            <button
+                                class="w-10 h-10 rounded-full bg-white text-gray-900 flex items-center justify-center hover:bg-gray-100"><span
+                                    class="material-icons text-sm">open_in_full</span></button>
+                        </div>
+                    </div>
+                    <div
+                        class="masonry-item rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-surface-light dark:bg-surface-dark group relative">
+                        <img alt="Abstract texture" class="w-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZPGv0srqOEIRjfaTBEDOgQSxCOKgSk-o-hb5TdOKTgxWjZPPzCFHhQfLnguhooDF7inwKkPHuRhrKLAnjHEcatOlJ1AuK_lvS2Dc-LQqgQzSRCWHqzQVhLdH06U3HAnQK0VSDamN61Tds0z2wIOhcTfz6aaGzAK5p2PoM1D1fxrrGQIqh4T8rXnbOrVuXmaJMaHSoAxOEq7CxVM8QD9dCaU5cp5VK0wISeONb-Pw8PS5khZnuYk-Q3nJ2ESfynanX-aQcZzWLuQ" />
+                    </div>
+                    <div
+                        class="masonry-item rounded-xl p-6 shadow-sm border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark">
+                        <h3 class="font-medium text-sm mb-4">Renk Paleti Denemesi</h3>
+                        <div class="flex gap-2 h-16 rounded-lg overflow-hidden mb-3">
+                            <div class="flex-1 bg-[#1E293B]"></div>
+                            <div class="flex-1 bg-[#E2E8F0]"></div>
+                            <div class="flex-1 bg-[#F59E0B]"></div>
+                            <div class="flex-1 bg-[#EF4444]"></div>
+                        </div>
+                        <p class="text-xs text-text-muted-light dark:text-text-muted-dark">Sıcak vurgularla koyu zemin.
+                        </p>
+                    </div>
+                    <div
+                        class="masonry-item rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-surface-light dark:bg-surface-dark group relative">
+                        <img alt="Art piece" class="w-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1f78CdrwTVutbXfXMjzTYZ_Fha60yqOg4xqxOufk2PPEz6tFDvP93mQmMWiEDTeXcaqi6BPO9v-_FtbWK4M6-y_mMahFulS-b9tbdDk2TqeKcDe1iXcJDqbeIg7jrVh8Pqns7Yx5pUYsS0ybCf-eXYbCGosqhzNaQaiFmNZQtNHaf4TLjO8f8MiNnyLdkB6qL5L2he83SkrJdiENByHfa-7_kUsD0fOf7syQfRVoZNhqdJRe7834MsrMjkwn2JAd8QsXvv6RPEw" />
+                        <div class="p-4 border-t border-border-light dark:border-border-dark">
+                            <div class="flex flex-wrap gap-2">
+                                <span
+                                    class="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md text-[10px] font-medium text-gray-600 dark:text-gray-300">İllüstrasyon</span>
+                                <span
+                                    class="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md text-[10px] font-medium text-gray-600 dark:text-gray-300">Kapak
+                                    Fikri</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="masonry-item rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-surface-light dark:bg-surface-dark group relative">
+                        <img alt="Modern art" class="w-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBy7fkNKtSNOp0Gkdijd-Kl8KF5kMQoTilDmgI8p1BSxCK1gkrVSIlvKKsEmCT8-BYQ9yeSFGElolY6UD-Qz_3OVDTIASppxPKJR1GfgSNAjk5CygNGFiZ7aCPtERlnoSdT-J8617bxsUG5Uq2QQiUXT6LV4ftJlbHm4i7R-bGF9dxWBDX-glwjSpSXACFlTl4RJydTMGREKxdfMoCH7RslXazdCLWeE4Hn0R0U1YYZeseOeMSEKgrjeMk63BT8XZDF4IXxh47RLA" />
+                    </div>
+                </div>
+            </div>
+            <div
+                class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark shadow-xl rounded-full px-2 py-2 flex items-center gap-1 z-30">
+                <button
+                    class="flex items-center gap-2 px-5 py-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm font-medium">
+                    <span class="material-icons text-base">edit_note</span>
+                    Yazı Ekle
+                </button>
+                <div class="w-px h-6 bg-border-light dark:bg-border-dark mx-1"></div>
+                <button
+                    class="flex items-center gap-2 px-5 py-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm font-medium">
+                    <span class="material-icons text-base">upload_file</span>
+                    Galeriden Yükle
+                </button>
+                <div class="w-px h-6 bg-border-light dark:bg-border-dark mx-1"></div>
+                <button
+                    class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-white hover:bg-blue-500 transition-colors text-sm font-medium shadow-md shadow-blue-500/20">
+                    <span class="material-icons text-base">auto_awesome</span>
+                    Derinlikli Kürasyon'dan Seç
+                </button>
+            </div>
+        </div>
+        <aside
+            class="w-[420px] flex-shrink-0 border-l border-border-light dark:border-border-dark bg-[#FDF8F5] dark:bg-[#1E1C1A] flex flex-col z-20 shadow-[-4px_0_24px_rgba(0,0,0,0.05)]">
+            <div
+                class="p-6 border-b border-border-light dark:border-border-dark bg-white/50 dark:bg-black/20 backdrop-blur-sm sticky top-0 z-10">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="font-display text-2xl font-medium">Derinlikli Kürasyon</h2>
+                    <button
+                        class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <span class="material-icons text-sm">close</span>
+                    </button>
+                </div>
+                <p class="text-sm text-text-muted-light dark:text-text-muted-dark">Aradığınızı kelimelerle değil,
+                    estetik referanslarla bulun.</p>
+            </div>
+            <div class="flex-1 overflow-y-auto sidebar-scroll p-6">
+                <div
+                    class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 mb-8 shadow-sm border border-border-light dark:border-border-dark">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3
+                            class="text-xs font-bold tracking-widest text-text-muted-light dark:text-text-muted-dark uppercase">
+                            Filtreler</h3>
+                        <button class="text-xs text-primary hover:underline">Temizle</button>
+                    </div>
+                    <div class="mb-4">
+                        <button
+                            class="w-full flex justify-between items-center py-2 text-sm font-medium hover:text-primary transition-colors">
+                            <span>Teknik</span>
+                            <span class="material-icons text-sm">expand_less</span>
+                        </button>
+                        <div class="pl-2 pr-2 pb-2 space-y-2">
+                            <label class="flex items-center gap-3 text-sm cursor-pointer group">
+                                <input checked=""
+                                    class="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                                    type="checkbox" />
+                                <span
+                                    class="text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Painting</span>
+                            </label>
+                            <label class="flex items-center gap-3 text-sm cursor-pointer group">
+                                <input
+                                    class="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                                    type="checkbox" />
+                                <span
+                                    class="text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Photography</span>
+                            </label>
+                            <label class="flex items-center gap-3 text-sm cursor-pointer group">
+                                <input
+                                    class="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                                    type="checkbox" />
+                                <span
+                                    class="text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Sculpture</span>
+                            </label>
+                            <label class="flex items-center gap-3 text-sm cursor-pointer group">
+                                <input
+                                    class="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                                    type="checkbox" />
+                                <span
+                                    class="text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Print</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="h-px bg-border-light dark:bg-border-dark w-full mb-4"></div>
+                    <div class="mb-4">
+                        <button
+                            class="w-full flex justify-between items-center py-2 text-sm font-medium hover:text-primary transition-colors">
+                            <span>Sanat Akımı</span>
+                            <span class="material-icons text-sm">expand_more</span>
+                        </button>
+                    </div>
+                    <div class="h-px bg-border-light dark:bg-border-dark w-full mb-4"></div>
+                    <div class="mb-4">
+                        <button
+                            class="w-full flex justify-between items-center py-2 text-sm font-medium hover:text-primary transition-colors">
+                            <span>Coğrafya</span>
+                            <span class="material-icons text-sm">expand_more</span>
+                        </button>
+                    </div>
+                    <div class="h-px bg-border-light dark:bg-border-dark w-full mb-4"></div>
+                    <div>
+                        <span class="block text-sm font-medium mb-3">Renk</span>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                class="w-6 h-6 rounded-full bg-black ring-2 ring-offset-2 ring-transparent hover:ring-gray-300 dark:ring-offset-gray-900 transition-all"></button>
+                            <button
+                                class="w-6 h-6 rounded-full bg-white border border-gray-200 ring-2 ring-offset-2 ring-transparent hover:ring-gray-300 dark:ring-offset-gray-900 transition-all"></button>
+                            <button
+                                class="w-6 h-6 rounded-full bg-red-500 ring-2 ring-offset-2 ring-transparent hover:ring-red-300 dark:ring-offset-gray-900 transition-all"></button>
+                            <button
+                                class="w-6 h-6 rounded-full bg-yellow-400 ring-2 ring-offset-2 ring-transparent hover:ring-yellow-300 dark:ring-offset-gray-900 transition-all"></button>
+                            <button
+                                class="w-6 h-6 rounded-full bg-blue-600 ring-2 ring-offset-2 ring-blue-300 dark:ring-offset-gray-900 transition-all"></button>
+                            <button
+                                class="w-6 h-6 rounded-full bg-green-600 ring-2 ring-offset-2 ring-transparent hover:ring-green-300 dark:ring-offset-gray-900 transition-all"></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="relative group rounded-xl overflow-hidden aspect-[4/5] bg-gray-200 dark:bg-gray-800">
+                        <img alt="Classical portrait painting" class="w-full h-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4ArgUeliMUweUvOD46DwAnLf-8ywCdS5blDPaEidxHlKaTU4bkv86CetsxHU1FrTGvEH0iSiYrvWKS0fxEoq1ikPHI8KyVboxpzMPCDUeTMq-cBB8BFqNOmKq-32YkyYzKL5GT4SlKZ91VDCC4TsluZ3Au1qG6dZxlRN1T0xFfook9GJsdZIVKpNXilIirJpCUWZfOwiszRV7pmltJyBK_ONcP7H257ZqTIsscoxUql89s8JujUZ4ZdqloHbthSH83na1buMQ4w" />
+                        <div
+                            class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                            <button
+                                class="w-full py-2 bg-white text-gray-900 rounded-lg text-sm font-medium shadow-sm hover:bg-gray-50 flex items-center justify-center gap-2">
+                                <span class="material-icons text-sm">add</span> Panoya Ekle
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative group rounded-xl overflow-hidden aspect-[4/5] bg-gray-200 dark:bg-gray-800">
+                        <img alt="Classical engraving" class="w-full h-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAB2awdCy6FrYS1jboLfEEYz3YOi3miTfdLmcmdq7_YOeoCU0liwy_YECDe3fgh_zvvrdx5o6D7YdEun86MJIJZJysrBhvh9ux0BGZdXaL0I77An-6FKt2pljtVaArSDRFr3nMPOY7gM3jfA_VqeawNlqtre7rKYxLPo9-oACqI42oy1QwHrczOx6P-9kPEI-hqT90m5u0WTv94q6nIj7YkfGcWXvLe3iqVjlr00QlrefqiZv9YO5tPg7sSy9xYQvfSQv3IbbaqZA" />
+                        <div
+                            class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                            <button
+                                class="w-full py-2 bg-white text-gray-900 rounded-lg text-sm font-medium shadow-sm hover:bg-gray-50 flex items-center justify-center gap-2">
+                                <span class="material-icons text-sm">add</span> Panoya Ekle
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative group rounded-xl overflow-hidden aspect-[4/5] bg-gray-200 dark:bg-gray-800">
+                        <img alt="Landscape etching" class="w-full h-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuEQOcUD027r08VdXR1YjtGkYNrFu00-x-BJn-suTuRNAnlH8PlH_7Bw3yVm4OBOHn2bKwTs2AXR6abZ9vm01vBHD2m-7x14-o595QaCUM3W8IIchqiDUyARKiZa7EQeXHPD-XCXBXrnYzNTHzrJkAHQL0fJRAxbsoQDzcMI06ia84XHaYmU0bEzUb0S_uhXgccGX04Rp83dFK9-g6ueUfjeI_eiEEDj-mSRuz4_nFPX0UNIW1U1_8SEiFA7gG8RrpprAOZ03HUQ" />
+                        <div
+                            class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                            <button
+                                class="w-full py-2 bg-white text-gray-900 rounded-lg text-sm font-medium shadow-sm hover:bg-gray-50 flex items-center justify-center gap-2">
+                                <span class="material-icons text-sm">add</span> Panoya Ekle
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        class="relative group rounded-xl overflow-hidden aspect-[4/5] bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark flex items-center justify-center">
+                        <span class="text-text-muted-light dark:text-text-muted-dark text-sm">Yükleniyor...</span>
+                    </div>
+                    <div class="relative group rounded-xl overflow-hidden aspect-[4/5] bg-gray-200 dark:bg-gray-800">
+                        <img alt="Impressionist painting" class="w-full h-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuATMN2m6CoAiBA5U0fvrTPA5z4mxeieFhqWuCgFtEHNC7EPanxnSHXyTT4KoF9Gf_giCevm1T0CKp2-0-9LsvJ6oX_h3nzwQeEya8Pp5EwHDqxrvyKS54Jpu4TGkHS0hMfdtNjkrRrgQ7TTAWhX96_Chbs8K_yzbgeJhNkHUkOxueTDT_HrDTyN8uj5tuzHchj-Xulio7rnnjkcfpN-fww2m5ccANarQl17dwYuqhKVcblZ0_yzZ3H4b5dkSaXKGiLWV81AKkbuvA" />
+                        <div
+                            class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                            <button
+                                class="w-full py-2 bg-white text-gray-900 rounded-lg text-sm font-medium shadow-sm hover:bg-gray-50 flex items-center justify-center gap-2">
+                                <span class="material-icons text-sm">add</span> Panoya Ekle
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative group rounded-xl overflow-hidden aspect-[4/5] bg-gray-200 dark:bg-gray-800">
+                        <img alt="Seascape painting" class="w-full h-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0oSfm4AhbJ7kmcWh93dkeoe2nt2oxzcjf8FrnUDD7hCRlxnQAmF_-NqsWtGOuO1dUHAzIcwHwOeF_FYqZ-K94O7knzYj8XYROxtrCVl5hmtVG08yNHcwQeWjJi7t5hwuaHwxbHd-86FJ4YluASNSrL6jPgxglA7Uu-yLkCA-xs95PJa8aF7mxE0tJq5bXverbct7RpFkKzydelwdZXo0LCGCqmneiIeMwOIOYjT_doixv0G4e2jNECAmlliwsL4OGfOCOnd1xDg" />
+                        <div
+                            class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                            <button
+                                class="w-full py-2 bg-white text-gray-900 rounded-lg text-sm font-medium shadow-sm hover:bg-gray-50 flex items-center justify-center gap-2">
+                                <span class="material-icons text-sm">add</span> Panoya Ekle
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 flex justify-center">
+                    <button
+                        class="px-4 py-2 text-sm font-medium text-text-muted-light dark:text-text-muted-dark hover:text-text-main-light dark:hover:text-text-main-dark transition-colors flex items-center gap-2">
+                        <span class="material-icons text-sm animate-spin">refresh</span>
+                        Daha fazla sonuç
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+</body>
+
+</html>
