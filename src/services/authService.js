@@ -10,7 +10,7 @@ export const loginWithUsername = async (username, password) => {
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
-            throw new Error("Böyle bir kullanıcı adı bulamadım canım. Eğer 'Erken Erişim' talebi gönderdiysen Kibele Hoca'nın onaylamasını beklemelisin. Her şey yolunda, beklemede kal.");
+            throw new Error("Kullanıcı kaydı bulunamadı. Lütfen kullanıcı adınızı kontrol edin veya erken erişim onay sürecini bekleyin.");
         }
 
         const userData = querySnapshot.docs[0].data();

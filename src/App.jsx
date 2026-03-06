@@ -277,7 +277,7 @@ function App() {
                                 !loading && (
                                     <div className="col-span-full flex flex-col items-center justify-center py-32 text-text-muted">
                                         <LucideSearch size={48} className="mb-4 opacity-20" />
-                                        <p>Aradığınız kriterlere uygun eser bulunamadı canım.</p>
+                                        <p>Kriterlere uygun sonuç bulunamadı.</p>
                                     </div>
                                 )
                             )}
@@ -340,7 +340,7 @@ function App() {
                                 <div className="text-4xl mb-6">{room.isPrivate ? '🔒' : '✨'}</div>
                                 <h3 className="text-2xl mb-4 line-clamp-1">{room.name}</h3>
                                 <p className={room.isPrivate ? 'text-white/60' : 'text-text-muted'}>
-                                    {room.isPrivate ? 'Giriş için şifre gereklidir canım.' : 'Açık ilham odası.'}
+                                    {room.isPrivate ? 'Erişim izni gereklidir.' : 'Açık ilham odası.'}
                                 </p>
                             </div>
                         ))}
