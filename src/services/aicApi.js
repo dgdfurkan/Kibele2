@@ -14,10 +14,11 @@ export const fetchAICArtworks = async (params = {}) => {
 
     // Gelişmiş Filtreleme 
     // Basit arama terimlerini q parametresine ekliyoruz
+    // Coğrafya ve diğer filtreleri daha açık hale getiriyoruz
     let searchQuery = query || '';
-    if (filters.medium) searchQuery += ` ${filters.medium}`;
-    if (filters.style) searchQuery += ` ${filters.style}`;
-    if (filters.place) searchQuery += ` ${filters.place}`;
+    if (filters.medium) searchQuery += ` medium:${filters.medium}`;
+    if (filters.style) searchQuery += ` style:${filters.style}`;
+    if (filters.place) searchQuery += ` "${filters.place}"`; // Tırnak içine alarak tam eşleşme zorluyoruz
 
     // public domain sınırlamasını q içine ekleyerek 500 hatasını önlüyoruz (URL param karmaşası yerine)
     searchQuery = searchQuery.trim() || 'art';
@@ -30,7 +31,7 @@ export const fetchAICArtworks = async (params = {}) => {
 
         if (!data || !data.data) {
             console.warn("AIC API return no data:", data);
-            return [];
+            return { items: [], totalPages: 0 };
         }
 
         // Görsel URL'lerini oluşturmak için AIC IIIF base URL'ine ihtiyaç var
@@ -47,9 +48,13 @@ export const fetchAICArtworks = async (params = {}) => {
             thumbnail: item.image_id ? `${iiifBaseUrl}/${item.image_id}/full/200,/0/default.jpg` : null
         }));
 
-        return artworks;
+        return {
+            items: artworks,
+            totalPages: data.pagination?.total_pages || 1,
+            total: data.pagination?.total || 0
+        };
     } catch (error) {
         console.error("AIC Fetch Error:", error);
-        return [];
+        return { items: [], totalPages: 0 };
     }
 };

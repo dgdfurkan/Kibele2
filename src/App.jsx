@@ -27,6 +27,8 @@ const App = () => {
         place: '',
         color: 'blue'
     });
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(false);
     const [rooms, setRooms] = useState([]);
     const [isEarlyAccessOpen, setIsEarlyAccessOpen] = useState(false);
@@ -39,18 +41,25 @@ const App = () => {
     useEffect(() => {
         // AIC API key gerekmez, doğrudan fetch başlar
         handleFetchArtworks();
+    }, [filters, page]);
+
+    // Filtre değişince sayfayı 1 yap
+    useEffect(() => {
+        setPage(1);
     }, [filters]);
 
     const handleFetchArtworks = async () => {
         setLoading(true);
         const data = await fetchAICArtworks({
+            page: page,
             filters: {
                 medium: filters.medium,
                 style: filters.style,
                 place: filters.place
             }
         });
-        setArtworks(data || []);
+        setArtworks(data.items || []);
+        setTotalPages(data.totalPages || 1);
         setLoading(false);
     };
 
@@ -228,8 +237,8 @@ const App = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                             {artworks.length > 0 ? artworks.map((art, i) => (
                                 <div key={art.id || i} className="group relative aspect-[4/5] rounded-[2rem] overflow-hidden bg-white shadow-sm cursor-pointer hover:shadow-xl transition-all duration-700">
-                                    <img src={art.image_url || art.thumbnail} alt={art.title} className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
-                                    <div className="absolute inset-0 bg-text-main/10 group-hover:bg-transparent transition-colors duration-700" />
+                                    <img src={art.image_url || art.thumbnail} alt={art.title} className="absolute inset-0 w-full h-full object-cover transition-all duration-700" />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-700" />
                                     <div className="absolute bottom-0 left-0 w-full p-8 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 bg-gradient-to-t from-background to-transparent">
                                         <h4 className="text-2xl mb-1 line-clamp-1">{art.title}</h4>
                                         <div className="flex gap-2 flex-wrap">
@@ -245,6 +254,25 @@ const App = () => {
                                 </div>
                             )}
                         </div>
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div className="mt-16 flex justify-center items-center gap-3">
+                                {[...Array(Math.min(totalPages, 7))].map((_, i) => {
+                                    // Çok fazla sayfa olabileceği için dotları sınırlıyoruz
+                                    const pageNum = i + 1;
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setPage(pageNum)}
+                                            className={`w-3 h-3 rounded-full transition-all duration-300 ${page === pageNum ? 'bg-accent-blue scale-125' : 'bg-text-muted/20 hover:bg-accent-blue/40'}`}
+                                            title={`Sayfa ${pageNum}`}
+                                        />
+                                    );
+                                })}
+                                {totalPages > 7 && <span className="text-text-muted text-xs">...</span>}
+                            </div>
+                        )}
                     </main>
                 </div>
             </section>
@@ -357,9 +385,6 @@ const App = () => {
                     <p>&copy; 2026 Kibele. Tüm hakları bir sanatçıya aittir.</p>
                 </div>
             </footer>
-
-            {/* AI Chat Integration */}
-            <KibeleChat apiKey={import.meta.env.VITE_GEMINI_API_KEY} isPremium={!!user} />
 
             {/* Early Access Modal */}
             <EarlyAccessModal

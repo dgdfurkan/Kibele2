@@ -32,76 +32,67 @@ const KibeleChat = ({ apiKey, isPremium }) => {
         setIsTyping(false);
     };
 
-    if (!isOpen) {
-        return (
-            <button
-                onClick={() => setIsOpen(true)}
-                className="fixed bottom-8 right-8 w-16 h-16 bg-accent-blue text-white rounded-full shadow-2xl shadow-accent-blue/40 flex items-center justify-center hover:scale-110 transition-transform z-50 group"
-            >
-                <LucideMessageSquare size={28} />
-                <div className="absolute -top-12 right-0 bg-text-main text-white text-xs px-4 py-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-medium">Kibele ile Konuş</div>
-            </button>
-        );
-    }
-
     return (
-        <div className={`fixed bottom-8 right-8 w-[400px] h-[600px] glass-card shadow-2xl flex flex-col z-50 overflow-hidden transition-all duration-500 scale-100 ${!isPremium ? 'blur-sm pointer-events-none' : ''}`}>
+        <div className={`w-full max-w-5xl mx-auto glass-card shadow-xl flex flex-col overflow-hidden transition-all duration-500 border-white/40 ${!isPremium ? 'blur-md pointer-events-none' : ''}`}>
             {/* Header */}
-            <div className="px-8 py-6 bg-text-main text-white flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-accent-blue flex items-center justify-center text-xl">✨</div>
-                    <div>
-                        <div className="font-serif text-lg leading-tight">Kibele AI Partner</div>
-                        <div className="text-[10px] uppercase tracking-widest text-white/40">Gemini 1.5 Flash</div>
-                    </div>
+            <div className="px-10 py-8 bg-[#E8E5F9]/80 backdrop-blur-md flex items-center justify-between border-b border-text-main/5">
+                <div className="flex items-center gap-4">
+                    <span className="text-2xl">✨</span>
+                    <h3 className="font-serif text-2xl text-text-main font-medium">Kibele AI Partner</h3>
                 </div>
-                <button onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white text-2xl">&times;</button>
             </div>
 
-            {/* Messages */}
-            <div ref={scrollRef} className="flex-1 p-8 overflow-y-auto space-y-6 bg-background/50">
+            {/* Messages Area */}
+            <div ref={scrollRef} className="h-[450px] p-10 overflow-y-auto bg-[#FDF0E9]/60 backdrop-blur-sm space-y-8">
                 {messages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] px-6 py-4 rounded-[1.5rem] text-sm leading-relaxed ${msg.role === 'user' ? 'bg-accent-blue text-white rounded-tr-none' : 'bg-surface-light/50 text-text-main rounded-tl-none'}`}>
+                        <div className={`max-w-[85%] px-8 py-5 rounded-[2rem] text-lg leading-relaxed shadow-sm ${msg.role === 'user'
+                                ? 'bg-accent-blue text-white rounded-tr-none'
+                                : 'bg-[#E8E5F9] text-text-main rounded-tl-none font-sans'
+                            }`}>
                             {msg.parts[0].text}
                         </div>
                     </div>
                 ))}
                 {isTyping && (
                     <div className="flex justify-start">
-                        <div className="bg-surface-light/30 text-text-muted text-xs px-6 py-3 rounded-full italic animate-pulse">
-                            Kibele düşünüyor...
+                        <div className="bg-[#E8E5F9]/50 text-text-muted text-sm px-8 py-4 rounded-full italic animate-pulse">
+                            Kibele ilham topluyor...
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* Input */}
-            <div className="p-6 bg-white/50 backdrop-blur-md border-t border-text-main/5 flex gap-3">
-                <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-                    placeholder="Kibele ile yaratıcı fikirlerini konuş..."
-                    className="flex-1 bg-transparent border-none outline-none text-sm resize-none py-2"
-                    rows={1}
-                />
+            {/* Input Footer */}
+            <div className="p-10 bg-[#F4F3EE]/80 backdrop-blur-md border-t border-text-main/5 flex items-center gap-6">
+                <div className="flex-1 bg-white rounded-2xl border border-text-main/10 px-6 py-4 shadow-inner">
+                    <textarea
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
+                        placeholder="Kibele ile yaratıcı fikirlerini konuş..."
+                        className="w-full bg-transparent border-none outline-none text-base text-text-main placeholder:text-text-muted/50 resize-none min-h-[40px] flex items-center"
+                        rows={1}
+                    />
+                </div>
                 <button
                     onClick={handleSend}
                     disabled={!input.trim() || isTyping}
-                    className="w-10 h-10 bg-text-main text-white rounded-full flex items-center justify-center disabled:opacity-30 hover:bg-accent-blue transition-colors"
+                    className="bg-accent-blue hover:bg-accent-blue-hover text-white px-10 py-5 rounded-2xl font-serif text-xl transition-all duration-300 disabled:opacity-40 shadow-lg shadow-accent-blue/20 active:scale-95 flex items-center justify-center min-w-[140px]"
                 >
-                    <LucideSend size={18} />
+                    Gönder
                 </button>
             </div>
 
             {!isPremium && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/20 backdrop-blur-sm z-10">
-                    <div className="text-center p-8">
-                        <LucideSparkles className="mx-auto mb-4 text-accent-blue" size={40} />
-                        <h4 className="text-lg font-serif mb-2">Özel Diyalog</h4>
-                        <p className="text-xs text-text-muted mb-6">Kibele ile konuşmak için öğrenci girişi yapmalısın canım.</p>
-                        <button className="btn-primary py-2 px-6 text-xs">Giriş Yap</button>
+                <div className="absolute inset-0 flex items-center justify-center bg-background/20 backdrop-blur-md z-10">
+                    <div className="glass-card p-12 text-center max-w-sm border-white/60 shadow-2xl">
+                        <LucideSparkles className="mx-auto mb-6 text-accent-blue animate-pulse" size={48} />
+                        <h4 className="text-2xl font-serif mb-4 italic">Özel Diyalog</h4>
+                        <p className="text-base text-text-muted mb-8 leading-relaxed">
+                            Kibele hoca ile birebir yaratıcı diyalog kurmak için giriş yapmalısın canım.
+                        </p>
+                        <button className="btn-primary w-full py-4 text-lg">Giriş Yap</button>
                     </div>
                 </div>
             )}
