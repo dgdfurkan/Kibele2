@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { LucideHome, LucideLayers, LucideMessageSquare, LucideUser, LucidePlus, LucideChevronDown, LucideSearch } from 'lucide-react';
-import { fetchArtworks, getArtsyToken } from './services/artsyApi';
+import { fetchAICArtworks } from './services/aicApi';
 import { useAuth } from './context/AuthContext';
 import KibeleChat from './components/KibeleChat';
 import AdminPanel from './components/AdminPanel';
@@ -37,32 +37,18 @@ const App = () => {
     }, []);
 
     useEffect(() => {
-        const artsyKey = import.meta.env.VITE_ARTSY_CLIENT_ID;
-        const artsySecret = import.meta.env.VITE_ARTSY_CLIENT_SECRET;
-
-        const initArtsy = async () => {
-            if (artsyKey && artsySecret) {
-                const t = await getArtsyToken(artsyKey, artsySecret);
-                setToken(t);
-            }
-        };
-        initArtsy();
-    }, []);
-
-    useEffect(() => {
-        if (token) {
-            handleFetchArtworks();
-        }
-    }, [token, filters]);
+        // AIC API key gerekmez, doğrudan fetch başlar
+        handleFetchArtworks();
+    }, [filters]);
 
     const handleFetchArtworks = async () => {
         setLoading(true);
-        const data = await fetchArtworks(token, {
-            gene_id: filters.medium,
-            size: filters.size,
-            color: filters.color
+        const data = await fetchAICArtworks({
+            filters: {
+                medium: filters.medium
+            }
         });
-        setArtworks(data?._embedded?.artworks || []);
+        setArtworks(data || []);
         setLoading(false);
     };
 
@@ -206,7 +192,7 @@ const App = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                             {artworks.length > 0 ? artworks.map((art, i) => (
                                 <div key={art.id || i} className="group relative aspect-[4/5] rounded-[2rem] overflow-hidden bg-white shadow-sm cursor-pointer hover:shadow-xl transition-all duration-700">
-                                    <img src={art._links?.thumbnail?.href} alt={art.title} className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
+                                    <img src={art.image_url || art.thumbnail} alt={art.title} className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
                                     <div className="absolute inset-0 bg-text-main/10 group-hover:bg-transparent transition-colors duration-700" />
                                     <div className="absolute bottom-0 left-0 w-full p-8 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 bg-gradient-to-t from-background to-transparent">
                                         <h4 className="text-2xl mb-1 line-clamp-1">{art.title}</h4>

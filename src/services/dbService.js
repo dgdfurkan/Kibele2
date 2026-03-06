@@ -8,7 +8,7 @@ export const createRoom = async (name, creatorId, isPrivate = false, password = 
             name,
             creatorId,
             isPrivate,
-            password, // In a real app, hash this
+            password,
             createdAt: serverTimestamp(),
             participants: [creatorId]
         });
@@ -30,14 +30,12 @@ export const subscribeToRooms = (callback) => {
 // Admin stuff: teacher approving access
 export const approveAccessRequest = async (requestId, userId, classAssignment = "Genel") => {
     try {
-        // Approve and assign class
         await setDoc(doc(db, "users", userId), {
             role: "student",
             class: classAssignment,
             approvedAt: serverTimestamp()
         }, { merge: true });
 
-        // Mark request as approved
         await setDoc(doc(db, "access_requests", requestId), {
             status: "approved",
             approvedAt: serverTimestamp()
