@@ -332,7 +332,7 @@ const App = () => {
             </section>
 
             {/* Footer */}
-            <footer className="footer overflow-hidden">
+            <footer className="footer">
                 <div className="footer-content">
                     <div className="footer-brand">
                         <h2>Kibele.</h2>
