@@ -1,6 +1,6 @@
 import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from "firebase/firestore";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "./firebase";
+import { auth, db } from '../firebase';
 
 // Username tabanlı login yardımı
 export const loginWithUsername = async (username, password) => {
