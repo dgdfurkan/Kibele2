@@ -8,6 +8,18 @@ export const loginWithEmail = async (email, password) => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         return userCredential.user;
     } catch (error) {
+        // Kullanıcı bulunamadıysa başvuruları kontrol et
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+            const q = query(collection(db, "access_requests"), where("email", "==", email), where("status", "==", "pending"));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                throw new Error("Erişim talebiniz alındı ve şu an Kibele Hoca tarafından inceleniyor. Onaylandığında giriş yapabileceksiniz.");
+            }
+
+            throw new Error("Kullanıcı kaydı bulunamadı. Erken erişim talebinde bulunduysanız lütfen onay sürecini bekleyin.");
+        }
+
         console.error("Login Error:", error);
         throw error;
     }
