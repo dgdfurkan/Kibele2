@@ -59,30 +59,31 @@ export const AuthProvider = ({ children }) => {
                     const userRef = doc(db, 'users', authenticatedUser.uid);
                     const userDoc = await getDoc(userRef);
 
-                    console.log(`[AUTH-DIAG] Project: ${db.app.options.projectId}`);
-                    console.log(`[AUTH-DIAG] Doc Path: users/${authenticatedUser.uid}`);
+                    const config = db.app.options;
+                    const maskedApiKey = config.apiKey ? `${config.apiKey.substring(0, 5)}...${config.apiKey.substring(config.apiKey.length - 5)}` : "MISSING";
+
+                    console.log(`[AUTH-DIAG] Project ID: ${config.projectId}`);
+                    console.log(`[AUTH-DIAG] API Key (Masked): ${maskedApiKey}`);
+                    console.log(`[AUTH-DIAG] Target Doc: users/${authenticatedUser.uid}`);
 
                     if (userDoc.exists()) {
                         const data = userDoc.data();
-                        console.log(`[AUTH-DIAG] Project: ${db.app.options.projectId}`);
-                        console.log(`[AUTH-DIAG] UID: ${authenticatedUser.uid}`);
-                        console.log(`[AUTH-DIAG] DB Data Found:`, data);
+                        console.log(`[AUTH-DIAG] Data Keys:`, Object.keys(data));
+                        console.log(`[AUTH-DIAG] Full Data Object:`, data);
 
-                        const rawRole = data.role || '';
+                        const rawRole = data.role || "";
                         const cleanRole = rawRole.toString().toLowerCase().trim();
 
                         const isAuthorized = cleanRole === 'admin';
                         setIsAdmin(isAuthorized);
 
-                        console.log(`[Auth] Email: ${authenticatedUser.email}, Got Role: "${rawRole}", Admin: ${isAuthorized}`);
+                        console.log(`[Auth Final] Role: "${rawRole}", Admin: ${isAuthorized}`);
                     } else {
-                        // OTOMATIK DOKUMAN OLUSTURMAYI KAPATTIK - Verinin neden gelmedigini anlamak icin
-                        console.error(`[AUTH-DIAG] KRTIK: Dokuman bulunamadi! users/${authenticatedUser.uid}`);
-                        console.log(`[AUTH-DIAG] Lutfen Firebase Console'da bu UID ile bir dokuman oldugundan emin olun.`);
+                        console.error(`[AUTH-DIAG] Döküman veritabanında YOK: users/${authenticatedUser.uid}`);
                         setIsAdmin(false);
                     }
                 } catch (error) {
-                    console.error("[AUTH-DIAG] Critical Fetch Error:", error.message);
+                    console.error("[AUTH-DIAG] HATA:", error.message);
                 }
             } else {
                 setUser(null);
