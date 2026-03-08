@@ -17,6 +17,9 @@ const AdminPanel = () => {
         const q = query(collection(db, "room_requests"), where("status", "==", "pending"), orderBy("createdAt", "desc"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        }, (error) => {
+            console.warn("Hoca Dashboard listener error (check indexes):", error.message);
+            setRequests([]);
         });
         return () => unsubscribe();
     }, [isAdmin]);
