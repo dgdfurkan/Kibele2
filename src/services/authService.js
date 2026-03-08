@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, setDoc, doc, serverTimestamp, increment } from "firebase/firestore";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from '../firebase';
 
@@ -27,7 +27,17 @@ export const registerWithEmail = async (email, password, name) => {
 export const loginWithEmail = async (email, password) => {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        return userCredential.user;
+        const user = userCredential.user;
+
+        // Login metriklerini güncelle
+        const userRef = doc(db, "users", user.uid);
+        await setDoc(userRef, {
+            lastLogin: serverTimestamp(),
+            loginCount: increment(1),
+            isOnline: true // Giriş yaptığı an online kabul edelim
+        }, { merge: true });
+
+        return user;
     } catch (error) {
         console.error("Login Error:", error);
         throw error;

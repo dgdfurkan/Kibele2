@@ -32,6 +32,7 @@ function App() {
     const [currentView, setCurrentView] = useState('hub'); // hub, request, detail, board
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [userRequests, setUserRequests] = useState([]);
+    const [isDashboardOpen, setIsDashboardOpen] = useState(false);
 
     const [filters, setFilters] = useState({
         query: '',
@@ -157,7 +158,7 @@ function App() {
 
     return (
         <div className="min-h-screen bg-background text-text-main font-sans selection:bg-accent-blue selection:text-white">
-            <AdminPanel />
+            <AdminPanel openOverride={isDashboardOpen} onOpenChange={setIsDashboardOpen} />
 
             <nav className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-4xl">
                 <div className="glass-card px-8 py-4 flex items-center justify-between">
@@ -172,17 +173,34 @@ function App() {
                     </div>
                     <div className="flex items-center gap-4">
                         {user ? (
-                            <div className="flex items-center gap-4">
-                                <span className="text-sm font-medium hidden sm:inline">{user.displayName || user.email}</span>
+                            <div className="flex items-center gap-6">
+                                {isAdmin && (
+                                    <button
+                                        onClick={() => setIsDashboardOpen(true)}
+                                        className="p-2 text-accent-blue hover:bg-accent-blue/5 rounded-full transition-all relative group"
+                                        title="Yönetim Paneli"
+                                    >
+                                        <LucideLayers size={21} />
+                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-text-main text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Yönetim Paneli</div>
+                                    </button>
+                                )}
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-surface-light flex items-center justify-center text-xs font-bold text-accent-blue border border-accent-blue/20">
+                                        {user.displayName?.charAt(0) || user.email?.charAt(0).toUpperCase()}
+                                    </div>
+                                    <span className="text-sm font-medium hidden sm:inline">{user.displayName || user.email}</span>
+                                </div>
                                 <button onClick={handleLogout} className="text-sm text-text-muted hover:text-red-500 transition-colors">Çıkış</button>
                             </div>
                         ) : (
-                            <button onClick={() => setIsLoginOpen(true)} className="text-sm font-medium hover:text-accent-blue transition-colors">Giriş Yap</button>
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setIsLoginOpen(true)} className="text-sm font-medium hover:text-accent-blue transition-colors">Giriş Yap</button>
+                                <button
+                                    onClick={() => setIsRegisterOpen(true)}
+                                    className="btn-primary py-2 px-6 text-sm"
+                                >Kayıt Ol</button>
+                            </div>
                         )}
-                        <button
-                            onClick={() => setIsRegisterOpen(true)}
-                            className="btn-primary py-2 px-6 text-sm"
-                        >Kayıt Ol</button>
                     </div>
                 </div>
             </nav>

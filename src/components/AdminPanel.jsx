@@ -2,32 +2,59 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { approveRoomAccessRequest, rejectRoomAccessRequest } from '../services/dbService';
-import { LucideCheck, LucideX, LucideBell, LucideUser, LucideLoader2, LucideSparkles, LucideMail, LucideFileText, LucideLayers } from 'lucide-react';
+import { approveRoomAccessRequest, rejectRoomAccessRequest, fetchAllStudents } from '../services/dbService';
+import { LucideCheck, LucideX, LucideBell, LucideUser, LucideLoader2, LucideSparkles, LucideMail, LucideFileText, LucideLayers, LucideUsers, LucideActivity, LucideClock } from 'lucide-react';
 
-const AdminPanel = () => {
+const AdminPanel = ({ openOverride, onOpenChange }) => {
     const { isAdmin } = useAuth();
     const [requests, setRequests] = useState([]);
+    const [students, setStudents] = useState([]);
+    const [activeTab, setActiveTab] = useState('requests'); // requests, students
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
     const [processingId, setProcessingId] = useState(null);
+    const [loadingStudents, setLoadingStudents] = useState(false);
+
+    // Sync with parent's openOverride
+    useEffect(() => {
+        if (openOverride !== undefined) {
+            setIsDashboardOpen(openOverride);
+        }
+    }, [openOverride]);
+
+    const handleClose = () => {
+        setIsDashboardOpen(false);
+        if (onOpenChange) onOpenChange(false);
+    };
 
     useEffect(() => {
         if (!isAdmin) return;
 
         const q = query(collection(db, "room_requests"), where("status", "==", "pending"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            // Manuel sıralama yapalım (indeks gereksinimi olmadan)
             const sortedRequests = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
             setRequests(sortedRequests);
         }, (error) => {
-            console.warn("Hoca Dashboard listener error (check indexes):", error.message);
+            console.warn("Management Dashboard listener error:", error.message);
             setRequests([]);
         });
         return () => unsubscribe();
     }, [isAdmin]);
+
+    useEffect(() => {
+        if (isDashboardOpen && activeTab === 'students') {
+            loadStudents();
+        }
+    }, [isDashboardOpen, activeTab]);
+
+    const loadStudents = async () => {
+        setLoadingStudents(true);
+        const data = await fetchAllStudents();
+        setStudents(data);
+        setLoadingStudents(false);
+    };
 
     const handleApprove = async (request) => {
         if (!confirm(`${request.userName} adlı kullanıcının ${request.roomName} odasına katılım isteğini onaylamak istiyor musunuz?`)) return;
@@ -57,124 +84,177 @@ const AdminPanel = () => {
 
     if (!isAdmin) return null;
 
+    const formatDate = (timestamp) => {
+        if (!timestamp) return "Hiç";
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
+        return date.toLocaleString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+    };
+
     return (
         <>
-            {/* Bildirim Simgesi - Dashboard Tetikleyici */}
-            <div className="fixed top-24 left-8 z-[150]">
-                <button
-                    onClick={() => setIsDashboardOpen(true)}
-                    className="w-14 h-14 glass-card flex items-center justify-center text-accent-blue hover:scale-110 active:scale-95 transition-all shadow-xl border-accent-blue/20 relative group"
-                >
-                    <LucideBell size={24} className="group-hover:rotate-12 transition-transform" />
-                    {requests.length > 0 && (
-                        <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white border-2 border-white shadow-lg animate-pulse">
-                            {requests.length}
-                        </span>
-                    )}
-                </button>
-            </div>
-
             {/* Premium Dashboard Modal */}
             {isDashboardOpen && (
                 <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-500">
                     {/* Backdrop */}
                     <div
                         className="absolute inset-0 bg-text-main/10 backdrop-blur-3xl"
-                        onClick={() => setIsDashboardOpen(false)}
+                        onClick={handleClose}
                     />
 
                     {/* Dashboard Container */}
                     <div className="glass-card w-full max-w-6xl max-h-[90vh] flex flex-col relative z-10 overflow-hidden shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom-8 duration-700">
                         {/* Header */}
-                        <div className="p-8 border-b border-text-main/5 flex items-center justify-between bg-white/10">
+                        <div className="p-8 border-b border-text-main/5 flex flex-col sm:flex-row items-center justify-between bg-white/10 gap-6">
                             <div>
                                 <div className="flex items-center gap-3 mb-1">
-                                    <h2 className="text-4xl font-serif">Hoca Dashboard</h2>
-                                    <div className="bg-accent-blue/10 text-accent-blue px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">Oda Katılım Yönetimi</div>
+                                    <h2 className="text-4xl font-serif tracking-tight">Öğrenci Yönetimi</h2>
+                                    <div className="bg-accent-blue/10 text-accent-blue px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">Admin Panel</div>
                                 </div>
-                                <p className="text-text-muted text-sm italic">Öğrencilerin oda katılım taleplerini incele ve onaylamanı yap.</p>
+                                <p className="text-text-muted text-sm italic">Öğrenci verilerini ve katılım taleplerini buradan yönetin.</p>
                             </div>
+
+                            {/* Tabs Selection */}
+                            <div className="flex bg-surface-light p-1 rounded-2xl border border-white">
+                                <button
+                                    onClick={() => setActiveTab('requests')}
+                                    className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'requests' ? 'bg-white shadow-sm text-accent-blue' : 'text-text-muted hover:text-text-main'}`}
+                                >
+                                    <LucideBell size={14} /> Talepler {requests.length > 0 && <span className="bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[8px] animate-pulse">{requests.length}</span>}
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('students')}
+                                    className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'students' ? 'bg-white shadow-sm text-accent-blue' : 'text-text-muted hover:text-text-main'}`}
+                                >
+                                    <LucideUsers size={14} /> Öğrenciler
+                                </button>
+                            </div>
+
                             <button
-                                onClick={() => setIsDashboardOpen(false)}
-                                className="w-12 h-12 rounded-full flex items-center justify-center text-text-muted hover:bg-red-50 hover:text-red-500 transition-all"
+                                onClick={handleClose}
+                                className="sm:relative absolute top-8 right-8 w-12 h-12 rounded-full flex items-center justify-center text-text-muted hover:bg-red-50 hover:text-red-500 transition-all"
                             >
                                 <LucideX size={28} />
                             </button>
                         </div>
 
-                        {/* Content */}
+                        {/* Content Area */}
                         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-surface-light/20">
-                            {requests.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center opacity-30 py-20">
-                                    <div className="w-32 h-32 bg-text-main/5 rounded-full flex items-center justify-center mb-6">
-                                        <LucideSparkles size={48} />
+                            {activeTab === 'requests' ? (
+                                requests.length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center opacity-30 py-20">
+                                        <div className="w-32 h-32 bg-text-main/5 rounded-full flex items-center justify-center mb-6">
+                                            <LucideSparkles size={48} />
+                                        </div>
+                                        <h3 className="text-2xl font-serif mb-2 text-center text-text-main">Bekleyen İstek Yok</h3>
+                                        <p className="text-sm text-center">Şu an onay bekleyen bir oda katılım talebi bulunmuyor.</p>
                                     </div>
-                                    <h3 className="text-2xl font-serif mb-2 text-center text-text-main">Bekleyen İstek Yok</h3>
-                                    <p className="text-sm text-center">Şu an onay bekleyen bir oda katılım talebi bulunmuyor.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    {requests.map(req => (
-                                        <div
-                                            key={req.id}
-                                            className="glass-card !bg-white/40 p-8 border-white/50 hover:border-accent-blue/40 transition-all group relative overflow-hidden flex flex-col justify-between"
-                                        >
-                                            {/* Name & Room Section */}
-                                            <div className="relative z-10">
-                                                <div className="flex items-center gap-4 mb-6">
-                                                    <div className="w-14 h-14 bg-gradient-to-br from-accent-blue to-accent-blue/40 rounded-3xl flex items-center justify-center text-white text-xl font-serif shadow-lg group-hover:scale-110 transition-transform">
-                                                        {req.userName.charAt(0)}
+                                ) : (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {requests.map(req => (
+                                            <div
+                                                key={req.id}
+                                                className="glass-card !bg-white/40 p-8 border-white/50 hover:border-accent-blue/40 transition-all group relative overflow-hidden flex flex-col justify-between"
+                                            >
+                                                <div className="relative z-10">
+                                                    <div className="flex items-center gap-4 mb-6">
+                                                        <div className="w-14 h-14 bg-gradient-to-br from-accent-blue to-accent-blue/40 rounded-3xl flex items-center justify-center text-white text-xl font-serif shadow-lg">
+                                                            {req.userName.charAt(0)}
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="text-2xl font-medium tracking-tight text-text-main">{req.userName}</h4>
+                                                            <div className="flex items-center gap-1.5 text-text-muted text-xs">
+                                                                <LucideMail size={12} /> {req.userEmail}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <h4 className="text-2xl font-medium tracking-tight text-text-main group-hover:text-accent-blue transition-colors">{req.userName}</h4>
-                                                        <div className="flex items-center gap-1.5 text-text-muted text-xs">
-                                                            <LucideMail size={12} /> {req.userEmail}
+                                                    <div className="mb-8">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <LucideLayers size={14} className="text-accent-blue" />
+                                                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Katılmak İstediği Oda</span>
+                                                        </div>
+                                                        <div className="bg-white/60 p-5 rounded-3xl border border-white/80 text-lg font-medium text-text-main shadow-inner flex items-center gap-3">
+                                                            <span className="text-2xl">🚪</span> {req.roomName}
                                                         </div>
                                                     </div>
                                                 </div>
-
-                                                {/* Target Room */}
-                                                <div className="mb-8">
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <LucideLayers size={14} className="text-accent-blue" />
-                                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Katılmak İstediği Oda</span>
-                                                    </div>
-                                                    <div className="bg-white/60 p-5 rounded-3xl border border-white/80 text-lg font-medium text-text-main shadow-inner flex items-center gap-3">
-                                                        <span className="text-2xl">🚪</span> {req.roomName}
-                                                    </div>
+                                                <div className="flex gap-4 relative z-10 pt-4 mt-auto">
+                                                    <button
+                                                        disabled={!!processingId}
+                                                        onClick={() => handleApprove(req)}
+                                                        className="flex-[2] bg-accent-blue text-white py-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-3 hover:bg-accent-blue-hover hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-accent-blue/20 disabled:opacity-50"
+                                                    >
+                                                        {processingId === req.id ? <LucideLoader2 size={18} className="animate-spin" /> : <LucideCheck size={18} />}
+                                                        ONAYLA
+                                                    </button>
+                                                    <button
+                                                        disabled={!!processingId}
+                                                        onClick={() => handleReject(req.id)}
+                                                        className="flex-1 bg-white/80 text-text-muted py-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-red-50 hover:text-red-500 transition-all border border-white disabled:opacity-50"
+                                                    >
+                                                        <LucideX size={18} /> REDDET
+                                                    </button>
                                                 </div>
                                             </div>
-
-                                            {/* Action Buttons */}
-                                            <div className="flex gap-4 relative z-10 pt-4 mt-auto">
-                                                <button
-                                                    disabled={!!processingId}
-                                                    onClick={() => handleApprove(req)}
-                                                    className="flex-[2] bg-accent-blue text-white py-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-3 hover:bg-accent-blue-hover hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 shadow-xl shadow-accent-blue/20"
-                                                >
-                                                    {processingId === req.id ? <LucideLoader2 size={18} className="animate-spin" /> : <LucideCheck size={18} />}
-                                                    KATILIMI ONAYLA
-                                                </button>
-                                                <button
-                                                    disabled={!!processingId}
-                                                    onClick={() => handleReject(req.id)}
-                                                    className="flex-1 bg-white/80 text-text-muted py-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-red-50 hover:text-red-500 hover:scale-[1.02] transition-all border border-white disabled:opacity-50"
-                                                >
-                                                    <LucideX size={18} /> REDDET
-                                                </button>
-                                            </div>
-
-                                            {/* Decorative Background Element */}
-                                            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-accent-blue/5 rounded-full blur-3xl group-hover:bg-accent-blue/10 transition-colors" />
+                                        ))}
+                                    </div>
+                                )
+                            ) : (
+                                /* Students List View */
+                                <div className="space-y-4">
+                                    {loadingStudents ? (
+                                        <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-40">
+                                            <LucideLoader2 size={32} className="animate-spin text-accent-blue" />
+                                            <p className="text-sm italic">Öğrenci listesi yükleniyor...</p>
                                         </div>
-                                    ))}
+                                    ) : students.length === 0 ? (
+                                        <p className="text-center py-20 text-text-muted italic">Kayıtlı öğrenci bulunamadı.</p>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {students.map(student => (
+                                                <div key={student.id} className="glass-card !bg-white/50 p-6 border-white/60 hover:border-accent-blue/20 transition-all group">
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-2xl bg-surface-light flex items-center justify-center text-accent-blue font-bold">
+                                                                {student.name?.charAt(0) || '?'}
+                                                            </div>
+                                                            <div>
+                                                                <h5 className="font-bold text-text-main line-clamp-1">{student.name || 'İsimsiz Öğrenci'}</h5>
+                                                                <p className="text-[10px] text-text-muted truncate max-w-[120px]">{student.email}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <div className={`w-2 h-2 rounded-full ${student.isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
+                                                            <span className="text-[8px] font-bold text-text-muted uppercase">{student.isOnline ? 'Online' : 'Offline'}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-3 mt-6">
+                                                        <div className="bg-white/40 p-3 rounded-2xl border border-white/60">
+                                                            <div className="flex items-center gap-1.5 text-[9px] text-text-muted uppercase font-bold mb-1">
+                                                                <LucideActivity size={10} className="text-accent-blue" /> Giriş
+                                                            </div>
+                                                            <div className="text-xl font-serif text-text-main">{student.loginCount || 0}</div>
+                                                        </div>
+                                                        <div className="bg-white/40 p-3 rounded-2xl border border-white/60">
+                                                            <div className="flex items-center gap-1.5 text-[9px] text-text-muted uppercase font-bold mb-1">
+                                                                <LucideClock size={10} className="text-accent-blue" /> Son Görülme
+                                                            </div>
+                                                            <div className="text-[10px] font-medium text-text-main leading-tight mt-1">
+                                                                {formatDate(student.lastLogin)}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
 
                         {/* Footer */}
                         <div className="p-6 bg-white/5 border-t border-text-main/5 text-center">
-                            <p className="text-[10px] uppercase tracking-widest text-text-muted opacity-60">Kibele2 İlham Odası Yönetim Sistemi © 2026</p>
+                            <p className="text-[10px] uppercase tracking-widest text-text-muted opacity-60">Kibele2 Yönetim Arabirimi © 2026</p>
                         </div>
                     </div>
                 </div>

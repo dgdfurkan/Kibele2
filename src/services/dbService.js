@@ -1,4 +1,4 @@
-import { collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, doc, setDoc, getDoc } from "firebase/firestore";
+import { collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, doc, setDoc, getDoc, getDocs, increment } from "firebase/firestore";
 import { db, firebaseConfig } from "../firebase";
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
@@ -27,6 +27,18 @@ export const subscribeToRooms = (callback) => {
         const rooms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         callback(rooms);
     });
+};
+
+// Student Management
+export const fetchAllStudents = async () => {
+    try {
+        const q = query(collection(db, "users"), where("role", "==", "student"));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+        console.error("Error fetching students:", e);
+        return [];
+    }
 };
 
 // Room Access Requests
