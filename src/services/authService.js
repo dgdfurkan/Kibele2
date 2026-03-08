@@ -31,7 +31,7 @@ export const loginWithEmail = async (email, password) => {
 
         // Firestore'da kullanıcı dökümanını kontrol et ve güncelle/oluştur
         const userRef = doc(db, "users", user.uid);
-        const userDoc = await getDocs(query(collection(db, "users"), where("__name__", "==", user.uid)));
+        const userSnap = await getDoc(userRef);
 
         const baseData = {
             lastLogin: serverTimestamp(),
@@ -41,8 +41,9 @@ export const loginWithEmail = async (email, password) => {
             uid: user.uid
         };
 
-        if (userDoc.empty) {
-            // Döküman yoksa oluştur (varsayılan öğrenci rolü ile)
+        if (!userSnap.exists()) {
+            // Döküman yoksa oluştur (Sıfırdan tam döküman)
+            console.log("[AuthService] No profile found, creating new one for:", user.uid);
             await setDoc(userRef, {
                 ...baseData,
                 name: user.displayName || email.split('@')[0],
@@ -50,7 +51,8 @@ export const loginWithEmail = async (email, password) => {
                 createdAt: serverTimestamp()
             });
         } else {
-            // Döküman varsa sadece metrikleri güncelle (rolü koru)
+            // Döküman varsa sadece metrikleri güncelle (Merge role alanını korur)
+            console.log("[AuthService] Existing profile found, merging metrics for:", user.uid);
             await setDoc(userRef, baseData, { merge: true });
         }
 
