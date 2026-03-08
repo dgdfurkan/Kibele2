@@ -1,5 +1,7 @@
-import { collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, doc, setDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, doc, setDoc, getDoc } from "firebase/firestore";
+import { db, firebaseConfig } from "../firebase";
+import { initializeApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 
 // Rooms logic
 export const createRoom = async (name, creatorId, isPrivate = false, password = "") => {
@@ -27,23 +29,45 @@ export const subscribeToRooms = (callback) => {
     });
 };
 
-// Admin stuff: teacher approving access
-export const approveAccessRequest = async (requestId, userId, classAssignment = "Genel") => {
+// Admin: Hoca tarafından onay ve hesap oluşturma
+export const adminApproveAndCreateAccount = async (request) => {
+    // İkincil bir Firebase app oluşturarak admin oturumunu koruyoruz
+    const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+    const secondaryAuth = getAuth(secondaryApp);
+
     try {
-        await setDoc(doc(db, "users", userId), {
+        // 1. Firebase Auth hesabı oluştur (Formdaki mail ve şifre ile)
+        const userCredential = await createUserWithEmailAndPassword(
+            secondaryAuth,
+            request.email,
+            request.password
+        );
+        const newUser = userCredential.user;
+
+        // 2. Firestore üzerinde kullanıcı dökümanını oluştur
+        await setDoc(doc(db, "users", newUser.uid), {
+            name: request.name,
+            email: request.email,
             role: "student",
-            class: classAssignment,
-            approvedAt: serverTimestamp()
-        }, { merge: true });
+            createdAt: serverTimestamp(),
+            fromRequest: request.id
+        });
 
-        await setDoc(doc(db, "access_requests", requestId), {
+        // 3. Talebi "onaylandı" olarak işaretle
+        await setDoc(doc(db, "access_requests", request.id), {
             status: "approved",
-            approvedAt: serverTimestamp()
+            approvedAt: serverTimestamp(),
+            approvedUid: newUser.uid
         }, { merge: true });
 
-        return true;
+        // İkincil auth oturumunu kapat ve app'i temizle
+        await signOut(secondaryAuth);
+        await secondaryApp.delete();
+
+        return { success: true };
     } catch (e) {
-        console.error("Approval error:", e);
-        return false;
+        console.error("Onay ve kayıt hatası:", e);
+        await secondaryApp.delete();
+        throw e;
     }
 };
