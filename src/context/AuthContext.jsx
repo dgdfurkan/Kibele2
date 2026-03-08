@@ -55,31 +55,33 @@ export const AuthProvider = ({ children }) => {
             if (authenticatedUser) {
                 setUser(authenticatedUser);
 
-                // User role check from Firestore (back to getDoc as requested)
-                const userRef = doc(db, 'users', authenticatedUser.uid);
-                unsubscribeProfile = onSnapshot(userRef, (snapshot) => {
-                    if (snapshot.exists()) {
-                        const data = snapshot.data();
+                // User role check from Firestore (Simple getDoc as requested)
+                try {
+                    const userRef = doc(db, 'users', authenticatedUser.uid);
+                    const userDoc = await getDoc(userRef);
+
+                    if (userDoc.exists()) {
+                        const data = userDoc.data();
                         const userRole = data.role?.toLowerCase().trim();
 
-                        // Sadece 'admin' rolünü kontrol et (isteğin üzerine sadeleştirildi)
+                        // Sadece 'admin' (isteğin üzerine sade hoca/teacher yok)
                         const isAuthorized = userRole === 'admin';
                         setIsAdmin(isAuthorized);
 
-                        // Kritik logları sadeleştirdik
                         console.log(`[Auth] Email: ${authenticatedUser.email}, Role: ${data.role}, Admin: ${isAuthorized}`);
                     } else {
-                        // Profil yoksa 'user' olarak oluştur
-                        setDoc(userRef, {
+                        // Profil doc yoksa oluştur
+                        await setDoc(userRef, {
                             email: authenticatedUser.email,
                             role: 'user',
                             createdAt: serverTimestamp(),
                             isOnline: true
-                        }, { merge: true }).then(() => setIsAdmin(false));
+                        }, { merge: true });
+                        setIsAdmin(false);
                     }
-                }, (error) => {
-                    console.error("[Auth] Error:", error);
-                });
+                } catch (error) {
+                    console.error("[Auth] Fetch error:", error);
+                }
             } else {
                 setUser(null);
                 setIsAdmin(false);
