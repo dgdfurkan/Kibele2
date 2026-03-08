@@ -3,11 +3,12 @@ import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { adminApproveAndCreateAccount } from '../services/dbService';
-import { LucideCheck, LucideX, LucideBell, LucideUser, LucideLoader2 } from 'lucide-react';
+import { LucideCheck, LucideX, LucideBell, LucideUser, LucideLoader2, LucideSparkles, LucideMail, LucideFileText } from 'lucide-react';
 
 const AdminPanel = () => {
     const { isAdmin } = useAuth();
     const [requests, setRequests] = useState([]);
+    const [isDashboardOpen, setIsDashboardOpen] = useState(false);
     const [processingId, setProcessingId] = useState(null);
 
     useEffect(() => {
@@ -36,59 +37,124 @@ const AdminPanel = () => {
     if (!isAdmin) return null;
 
     return (
-        <div className="fixed top-24 left-8 z-50">
-            <div className="relative group">
-                <button className="w-12 h-12 glass-card flex items-center justify-center text-accent-blue hover:bg-accent-blue hover:text-white transition-all shadow-lg">
-                    <LucideBell size={20} />
-                    {requests.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-[10px] flex items-center justify-center text-white border-2 border-white animate-pulse">{requests.length}</span>}
+        <>
+            {/* Bildirim Simgesi - Dashboard Tetikleyici */}
+            <div className="fixed top-24 left-8 z-[150]">
+                <button
+                    onClick={() => setIsDashboardOpen(true)}
+                    className="w-14 h-14 glass-card flex items-center justify-center text-accent-blue hover:scale-110 active:scale-95 transition-all shadow-xl border-accent-blue/20 relative group"
+                >
+                    <LucideBell size={24} className="group-hover:rotate-12 transition-transform" />
+                    {requests.length > 0 && (
+                        <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white border-2 border-white shadow-lg animate-pulse">
+                            {requests.length}
+                        </span>
+                    )}
                 </button>
+            </div>
 
-                <div className="absolute top-0 left-full ml-4 w-[400px] glass-card p-6 opacity-0 translate-x-4 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto transition-all duration-500 shadow-2xl border-accent-blue/20">
-                    <div className="flex items-center justify-between mb-6 border-b border-text-main/5 pb-4">
-                        <h3 className="font-serif text-xl">Onay Bekleyenler</h3>
-                        <span className="text-[10px] uppercase tracking-widest text-text-muted">{requests.length} TALEP</span>
-                    </div>
+            {/* Premium Dashboard Modal */}
+            {isDashboardOpen && (
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-500">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-text-main/10 backdrop-blur-3xl"
+                        onClick={() => setIsDashboardOpen(false)}
+                    />
 
-                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                        {requests.length === 0 ? (
-                            <div className="text-center py-10 opacity-40">
-                                <LucideUser size={32} className="mx-auto mb-2" />
-                                <p className="text-xs italic">Şu an inceleme bekleyen bir başvuru bulunmuyor.</p>
+                    {/* Dashboard Container */}
+                    <div className="glass-card w-full max-w-6xl max-h-[90vh] flex flex-col relative z-10 overflow-hidden shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom-8 duration-700">
+                        {/* Header */}
+                        <div className="p-8 border-b border-text-main/5 flex items-center justify-between bg-white/10">
+                            <div>
+                                <div className="flex items-center gap-3 mb-1">
+                                    <h2 className="text-4xl font-serif">Hoca Dashboard</h2>
+                                    <div className="bg-accent-blue/10 text-accent-blue px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">Yönetim Paneli</div>
+                                </div>
+                                <p className="text-text-muted text-sm italic">Sanatçı adaylarını incele ve kapıları aç.</p>
                             </div>
-                        ) : requests.map(req => (
-                            <div key={req.id} className="p-5 bg-surface-light rounded-[2rem] border border-text-main/5 text-sm transition-all hover:border-accent-blue/30">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="font-medium text-lg">{req.name}</div>
-                                    <span className="text-[9px] bg-accent-blue/10 text-accent-blue px-2 py-0.5 rounded-full uppercase tracking-tighter italic">Yeni Talep</span>
-                                </div>
-                                <div className="text-xs text-text-muted mb-4 pb-4 border-b border-text-main/5">{req.email}</div>
+                            <button
+                                onClick={() => setIsDashboardOpen(false)}
+                                className="w-12 h-12 rounded-full flex items-center justify-center text-text-muted hover:bg-red-50 hover:text-red-500 transition-all"
+                            >
+                                <LucideX size={28} />
+                            </button>
+                        </div>
 
-                                <div className="mb-6">
-                                    <div className="text-[9px] uppercase tracking-widest text-text-muted mb-2">Tanıtım & Motivasyon</div>
-                                    <p className="text-xs text-text-main leading-relaxed italic bg-white/50 p-3 rounded-xl border border-dashed border-text-main/10">
-                                        "{req.intro || 'Kendini tanıtıcı bir metin bırakmamış.'}"
-                                    </p>
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-surface-light/20">
+                            {requests.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center opacity-30 py-20">
+                                    <div className="w-32 h-32 bg-text-main/5 rounded-full flex items-center justify-center mb-6">
+                                        <LucideSparkles size={48} />
+                                    </div>
+                                    <h3 className="text-2xl font-serif mb-2 text-center text-text-main">Her Şey Güncel</h3>
+                                    <p className="text-sm text-center">Şu an onay bekleyen bir başvuru bulunmuyor.</p>
                                 </div>
+                            ) : (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {requests.map(req => (
+                                        <div
+                                            key={req.id}
+                                            className="glass-card !bg-white/40 p-8 border-white/50 hover:border-accent-blue/40 transition-all group relative overflow-hidden flex flex-col justify-between"
+                                        >
+                                            {/* Name & Email Section */}
+                                            <div className="relative z-10">
+                                                <div className="flex items-center gap-4 mb-6">
+                                                    <div className="w-14 h-14 bg-gradient-to-br from-accent-blue to-accent-blue/40 rounded-3xl flex items-center justify-center text-white text-xl font-serif shadow-lg group-hover:scale-110 transition-transform">
+                                                        {req.name.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-2xl font-medium tracking-tight text-text-main group-hover:text-accent-blue transition-colors">{req.name}</h4>
+                                                        <div className="flex items-center gap-1.5 text-text-muted text-xs">
+                                                            <LucideMail size={12} /> {req.email}
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-                                <div className="flex gap-3">
-                                    <button
-                                        disabled={!!processingId}
-                                        onClick={() => handleApprove(req)}
-                                        className="flex-1 bg-accent-blue text-white py-3 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-accent-blue-hover transition-all disabled:opacity-50 shadow-md shadow-accent-blue/10"
-                                    >
-                                        {processingId === req.id ? <LucideLoader2 size={14} className="animate-spin" /> : <LucideCheck size={14} />}
-                                        Hesabı Oluştur & Onayla
-                                    </button>
-                                    <button className="w-12 h-12 bg-surface-light text-text-muted rounded-2xl flex items-center justify-center hover:text-red-500 hover:bg-red-50 transition-all">
-                                        <LucideX size={16} />
-                                    </button>
+                                                {/* Bio / Intro Section */}
+                                                <div className="mb-8">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <LucideFileText size={14} className="text-accent-blue" />
+                                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Tanıtım & Motivasyon</span>
+                                                    </div>
+                                                    <div className="bg-white/60 p-5 rounded-3xl border border-white/80 text-sm leading-relaxed text-text-main italic shadow-inner line-clamp-4 group-hover:line-clamp-none transition-all duration-300">
+                                                        "{req.intro || 'Başvuru sahibi kendini henüz detaylı olarak tanıtmamış.'}"
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-4 relative z-10 pt-4 mt-auto">
+                                                <button
+                                                    disabled={!!processingId}
+                                                    onClick={() => handleApprove(req)}
+                                                    className="flex-[2] bg-accent-blue text-white py-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-3 hover:bg-accent-blue-hover hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 shadow-xl shadow-accent-blue/20"
+                                                >
+                                                    {processingId === req.id ? <LucideLoader2 size={18} className="animate-spin" /> : <LucideCheck size={18} />}
+                                                    HESABI OLUŞTUR & ONAYLA
+                                                </button>
+                                                <button className="flex-1 bg-white/80 text-text-muted py-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-red-50 hover:text-red-500 hover:scale-[1.02] transition-all border border-white">
+                                                    <LucideX size={18} /> REDDET
+                                                </button>
+                                            </div>
+
+                                            {/* Decorative Background Element */}
+                                            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-accent-blue/5 rounded-full blur-3xl group-hover:bg-accent-blue/10 transition-colors" />
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
-                        ))}
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 bg-white/5 border-t border-text-main/5 text-center">
+                            <p className="text-[10px] uppercase tracking-widest text-text-muted opacity-60">Kibele2 İleri Erişim Yönetim Sistemi © 2026</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            )}
+        </>
     );
 };
 
