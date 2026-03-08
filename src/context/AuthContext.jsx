@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { loginWithEmail as firebaseLoginWithEmail } from '../services/authService';
+import { loginWithEmail, registerWithEmail } from '../services/authService';
 
 const AuthContext = createContext();
 
@@ -11,11 +11,34 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
 
-    const loginWithEmail = async (email, password) => {
+    /**
+     * Logs in a user with the provided email and password.
+     * @param {string} email - The user's email.
+     * @param {string} password - The user's password.
+     * @returns {Promise<UserCredential>} A promise that resolves with the user credential.
+     */
+    const login = async (email, password) => {
         return await firebaseLoginWithEmail(email, password);
     };
 
-    const logout = () => signOut(auth);
+    /**
+     * Registers a new user with the provided email, password, and name.
+     * @param {string} email - The user's email.
+     * @param {string} password - The user's password.
+     * @param {string} name - The user's display name.
+     * @returns {Promise<UserCredential>} A promise that resolves with the user credential.
+     */
+    const register = async (email, password, name) => {
+        return await firebaseRegisterWithEmail(email, password, name);
+    };
+
+    /**
+     * Logs out the current user.
+     * @returns {Promise<void>} A promise that resolves when the user is logged out.
+     */
+    const logout = () => {
+        return signOut(auth);
+    };
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {

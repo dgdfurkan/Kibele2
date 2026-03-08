@@ -6,7 +6,7 @@ import { fetchAICArtworks } from './services/aicApi';
 import { useAuth } from './context/AuthContext';
 import KibeleChat from './components/KibeleChat';
 import AdminPanel from './components/AdminPanel';
-import EarlyAccessModal from './components/EarlyAccessModal';
+import RegisterModal from './components/RegisterModal';
 import LoginModal from './components/LoginModal';
 import { auth, db } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
@@ -24,7 +24,7 @@ function App() {
 
     // States
     const [isLoginOpen, setIsLoginOpen] = useState(false);
-    const [isEarlyAccessOpen, setIsEarlyAccessOpen] = useState(false);
+    const [isRegisterOpen, setIsRegisterOpen] = useState(false);
     const [artworks, setArtworks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [rooms, setRooms] = useState([]);
@@ -142,9 +142,9 @@ function App() {
                             <button onClick={() => setIsLoginOpen(true)} className="text-sm font-medium hover:text-accent-blue transition-colors">Giriş Yap</button>
                         )}
                         <button
-                            onClick={() => setIsEarlyAccessOpen(true)}
+                            onClick={() => setIsRegisterOpen(true)}
                             className="btn-primary py-2 px-6 text-sm"
-                        >Erken Erişim</button>
+                        >Kayıt Ol</button>
                     </div>
                 </div>
             </nav>
@@ -382,9 +382,9 @@ function App() {
                 </div>
             </footer>
 
-            <EarlyAccessModal
-                isOpen={isEarlyAccessOpen}
-                onClose={() => setIsEarlyAccessOpen(false)}
+            <RegisterModal
+                isOpen={isRegisterOpen}
+                onClose={() => setIsRegisterOpen(false)}
             />
 
             <LoginModal
