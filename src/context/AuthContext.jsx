@@ -55,22 +55,27 @@ export const AuthProvider = ({ children }) => {
             if (authenticatedUser) {
                 setUser(authenticatedUser);
 
-                // User role check from Firestore (Simple getDoc as requested)
                 try {
                     const userRef = doc(db, 'users', authenticatedUser.uid);
                     const userDoc = await getDoc(userRef);
 
+                    console.log(`[AUTH-DIAG] Project: ${db.app.options.projectId}`);
+                    console.log(`[AUTH-DIAG] Doc Path: users/${authenticatedUser.uid}`);
+
                     if (userDoc.exists()) {
                         const data = userDoc.data();
-                        const userRole = data.role?.toLowerCase().trim();
+                        console.log(`[AUTH-DIAG] Full Data:`, data);
 
-                        // Sadece 'admin' (isteğin üzerine sade hoca/teacher yok)
-                        const isAuthorized = userRole === 'admin';
+                        const rawRole = data.role || '';
+                        const cleanRole = rawRole.toString().toLowerCase().trim();
+
+                        const isAuthorized = cleanRole === 'admin';
                         setIsAdmin(isAuthorized);
 
-                        console.log(`[Auth] Email: ${authenticatedUser.email}, Role: ${data.role}, Admin: ${isAuthorized}`);
+                        console.log(`[Auth] Email: ${authenticatedUser.email}, Got Role: "${rawRole}", Admin: ${isAuthorized}`);
                     } else {
-                        // Profil doc yoksa oluştur
+                        console.warn(`[AUTH-DIAG] Document DOES NOT EXIST at users/${authenticatedUser.uid}`);
+                        // Create only if missing
                         await setDoc(userRef, {
                             email: authenticatedUser.email,
                             role: 'user',
@@ -80,7 +85,7 @@ export const AuthProvider = ({ children }) => {
                         setIsAdmin(false);
                     }
                 } catch (error) {
-                    console.error("[Auth] Fetch error:", error);
+                    console.error("[AUTH-DIAG] Critical Fetch Error:", error.message);
                 }
             } else {
                 setUser(null);
