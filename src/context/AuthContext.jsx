@@ -35,9 +35,9 @@ export const AuthProvider = ({ children }) => {
         return signOut(auth);
     };
 
-    // Heartbeat Effect: Update status periodically if user is active
+    // Heartbeat Effect: Update status periodically ONLY after profile is fetched
     useEffect(() => {
-        if (!user) return;
+        if (!user || loading) return;
 
         // Perform initial check-in
         updateOnlineStatus(user.uid, true);
@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
         }, 4 * 60 * 1000);
 
         return () => clearInterval(heartbeatInterval);
-    }, [user]);
+    }, [user, loading]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (authenticatedUser) => {
