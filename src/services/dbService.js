@@ -42,6 +42,17 @@ export const fetchAllStudents = async () => {
 };
 
 // Room Access Requests
+export const fetchAllApprovedRequests = async () => {
+    try {
+        const q = query(collection(db, "room_requests"), where("status", "==", "approved"));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+        console.error("Error fetching approved requests:", e);
+        return [];
+    }
+};
+
 export const requestRoomAccess = async (roomId, roomName, user) => {
     try {
         await addDoc(collection(db, "room_requests"), {
