@@ -57,33 +57,26 @@ export const AuthProvider = ({ children }) => {
 
                 try {
                     const userRef = doc(db, 'users', authenticatedUser.uid);
-                    const userDoc = await getDoc(userRef);
+                    const userSnap = await getDoc(userRef);
 
-                    const config = db.app.options;
-                    const maskedApiKey = config.apiKey ? `${config.apiKey.substring(0, 5)}...${config.apiKey.substring(config.apiKey.length - 5)}` : "MISSING";
-
-                    console.log(`[AUTH-DIAG] Project ID: ${config.projectId}`);
-                    console.log(`[AUTH-DIAG] API Key (Masked): ${maskedApiKey}`);
-                    console.log(`[AUTH-DIAG] Target Doc: users/${authenticatedUser.uid}`);
-
-                    if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        console.log(`[AUTH-DIAG] Data Keys:`, Object.keys(data));
-                        console.log(`[AUTH-DIAG] Full Data Object:`, data);
-
-                        const rawRole = data.role || "";
+                    if (userSnap.exists()) {
+                        const data = userSnap.data();
+                        const rawRole = data.role || "student";
                         const cleanRole = rawRole.toString().toLowerCase().trim();
 
                         const isAuthorized = cleanRole === 'admin';
                         setIsAdmin(isAuthorized);
 
-                        console.log(`[Auth Final] Role: "${rawRole}", Admin: ${isAuthorized}`);
+                        console.log(`[AUTH] User: ${authenticatedUser.email}, Role: ${rawRole}, Admin: ${isAuthorized}`);
                     } else {
-                        console.error(`[AUTH-DIAG] Döküman veritabanında YOK: users/${authenticatedUser.uid}`);
+                        console.warn(`[AUTH] No Firestore document for: ${authenticatedUser.uid}. Defaulting to non-admin.`);
                         setIsAdmin(false);
+
+                        // Opsiyonel: Döküman yoksa burada da basitçe oluşturulabilir ama authService'e taşıdık.
                     }
                 } catch (error) {
-                    console.error("[AUTH-DIAG] HATA:", error.message);
+                    console.error("[AUTH] Firestore verification error:", error.message);
+                    setIsAdmin(false);
                 }
             } else {
                 setUser(null);

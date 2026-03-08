@@ -29,13 +29,30 @@ export const loginWithEmail = async (email, password) => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Login metriklerini güncelle
+        // Firestore'da kullanıcı dökümanını kontrol et ve güncelle/oluştur
         const userRef = doc(db, "users", user.uid);
-        await setDoc(userRef, {
+        const userDoc = await getDocs(query(collection(db, "users"), where("__name__", "==", user.uid)));
+
+        const baseData = {
             lastLogin: serverTimestamp(),
             loginCount: increment(1),
-            isOnline: true // Giriş yaptığı an online kabul edelim
-        }, { merge: true });
+            isOnline: true,
+            email: user.email,
+            uid: user.uid
+        };
+
+        if (userDoc.empty) {
+            // Döküman yoksa oluştur (varsayılan öğrenci rolü ile)
+            await setDoc(userRef, {
+                ...baseData,
+                name: user.displayName || email.split('@')[0],
+                role: "student",
+                createdAt: serverTimestamp()
+            });
+        } else {
+            // Döküman varsa sadece metrikleri güncelle (rolü koru)
+            await setDoc(userRef, baseData, { merge: true });
+        }
 
         return user;
     } catch (error) {
