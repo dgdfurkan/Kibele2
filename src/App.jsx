@@ -54,6 +54,9 @@ function App() {
             const q = query(collection(db, "room_requests"), where("uid", "==", user.uid));
             unsubscribeRequests = onSnapshot(q, (snapshot) => {
                 setUserRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            }, (error) => {
+                console.warn("Room requests permission or listener error:", error.message);
+                setUserRequests([]);
             });
         }
 
@@ -294,9 +297,15 @@ function App() {
                                         alt={art.title}
                                         className="absolute inset-0 w-full h-full object-cover transition-all duration-700"
                                         onError={(e) => {
-                                            e.target.onerror = null;
-                                            e.target.src = "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=800&auto=format&fit=crop";
-                                            e.target.className += " grayscale opacity-30";
+                                            e.target.style.display = 'none';
+                                            e.target.parentElement.classList.add('bg-surface-light');
+                                            // Fallback image as last resort
+                                            const fallbackImg = "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=800&auto=format&fit=crop";
+                                            if (e.target.src !== fallbackImg) {
+                                                e.target.src = fallbackImg;
+                                                e.target.style.display = 'block';
+                                                e.target.className += " grayscale opacity-30";
+                                            }
                                         }}
                                     />
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-700" />

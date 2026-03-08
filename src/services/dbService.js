@@ -63,11 +63,19 @@ export const approveRoomAccessRequest = async (request) => {
         const roomSnap = await getDoc(roomRef);
 
         if (roomSnap.exists()) {
-            const currentParticipants = roomSnap.data().participants || [];
+            const roomData = roomSnap.data();
+            const currentParticipants = roomData.participants || [];
+
             if (!currentParticipants.includes(request.uid)) {
-                await setDoc(roomRef, {
-                    participants: [...currentParticipants, request.uid]
-                }, { merge: true });
+                try {
+                    await setDoc(roomRef, {
+                        participants: [...currentParticipants, request.uid]
+                    }, { merge: true });
+                } catch (updateError) {
+                    console.error("Room participants update failed:", updateError);
+                    // Continue to approve request anyway, or throw? Let's throw to be safe
+                    throw updateError;
+                }
             }
         }
 
