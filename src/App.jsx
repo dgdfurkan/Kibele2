@@ -158,7 +158,7 @@ function App() {
 
     return (
         <div className="min-h-screen bg-background text-text-main font-sans selection:bg-accent-blue selection:text-white">
-            <AdminPanel openOverride={isDashboardOpen} onOpenChange={setIsDashboardOpen} />
+            <AdminPanel rooms={rooms} openOverride={isDashboardOpen} onOpenChange={setIsDashboardOpen} />
 
             <nav className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-4xl">
                 <div className="glass-card px-8 py-4 flex items-center justify-between">

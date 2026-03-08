@@ -5,7 +5,7 @@ import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestor
 import { approveRoomAccessRequest, rejectRoomAccessRequest, fetchAllStudents } from '../services/dbService';
 import { LucideCheck, LucideX, LucideBell, LucideUser, LucideLoader2, LucideSparkles, LucideMail, LucideFileText, LucideLayers, LucideUsers, LucideActivity, LucideClock } from 'lucide-react';
 
-const AdminPanel = ({ openOverride, onOpenChange }) => {
+const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
     const { isAdmin } = useAuth();
     const [requests, setRequests] = useState([]);
     const [students, setStudents] = useState([]);
@@ -100,6 +100,10 @@ const AdminPanel = ({ openOverride, onOpenChange }) => {
         return date.toLocaleString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
     };
 
+    const getStudentRooms = (studentId) => {
+        return rooms.filter(room => room.participants?.includes(studentId));
+    };
+
     return (
         <>
             {/* Premium Dashboard Modal */}
@@ -112,9 +116,9 @@ const AdminPanel = ({ openOverride, onOpenChange }) => {
                     />
 
                     {/* Dashboard Container */}
-                    <div className="glass-card w-full max-w-6xl max-h-[90vh] flex flex-col relative z-10 overflow-hidden shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom-8 duration-700">
+                    <div className="glass-card w-full max-w-6xl h-[85vh] flex flex-col relative z-10 overflow-hidden shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom-8 duration-700">
                         {/* Header */}
-                        <div className="p-8 border-b border-text-main/5 flex flex-col sm:flex-row items-center justify-between bg-white/10 gap-6">
+                        <div className="p-8 border-b border-text-main/5 flex flex-col sm:flex-row items-center justify-between bg-white/10 gap-6 shrink-0">
                             <div>
                                 <div className="flex items-center gap-3 mb-1">
                                     <h2 className="text-4xl font-serif tracking-tight">Öğrenci Yönetimi</h2>
@@ -148,7 +152,7 @@ const AdminPanel = ({ openOverride, onOpenChange }) => {
                         </div>
 
                         {/* Content Area */}
-                        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-surface-light/20">
+                        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-surface-light/20 min-h-0">
                             {activeTab === 'requests' ? (
                                 requests.length === 0 ? (
                                     <div className="h-full flex flex-col items-center justify-center opacity-30 py-20">
@@ -209,7 +213,7 @@ const AdminPanel = ({ openOverride, onOpenChange }) => {
                                     </div>
                                 )
                             ) : (
-                                /* Students List View */
+                                /* Students List View - Minimalist & Informative */
                                 <div className="space-y-4">
                                     {loadingStudents ? (
                                         <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-40">
@@ -219,43 +223,53 @@ const AdminPanel = ({ openOverride, onOpenChange }) => {
                                     ) : students.length === 0 ? (
                                         <p className="text-center py-20 text-text-muted italic">Kayıtlı öğrenci bulunamadı.</p>
                                     ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {students.map(student => (
-                                                <div key={student.id} className="glass-card !bg-white/50 p-6 border-white/60 hover:border-accent-blue/20 transition-all group">
-                                                    <div className="flex items-start justify-between mb-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-2xl bg-surface-light flex items-center justify-center text-accent-blue font-bold">
-                                                                {student.name?.charAt(0) || '?'}
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {students.map(student => {
+                                                const joinedRooms = getStudentRooms(student.id);
+                                                return (
+                                                    <div key={student.id} className="glass-card !bg-white/40 px-6 py-4 border-white/60 hover:border-accent-blue/20 transition-all flex flex-wrap items-center justify-between gap-6 group">
+                                                        {/* Basic Info */}
+                                                        <div className="flex items-center gap-4 flex-1 min-w-[240px]">
+                                                            <div className="relative">
+                                                                <div className="w-10 h-10 rounded-xl bg-surface-light flex items-center justify-center text-accent-blue font-bold text-sm shrink-0">
+                                                                    {student.name?.charAt(0) || '?'}
+                                                                </div>
+                                                                <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${student.isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
                                                             </div>
                                                             <div>
-                                                                <h5 className="font-bold text-text-main line-clamp-1">{student.name || 'İsimsiz Öğrenci'}</h5>
-                                                                <p className="text-[10px] text-text-muted truncate max-w-[120px]">{student.email}</p>
+                                                                <h5 className="font-bold text-text-main text-sm">{student.name || 'İsimsiz'}</h5>
+                                                                <p className="text-[10px] text-text-muted truncate">{student.email}</p>
                                                             </div>
                                                         </div>
-                                                        <div className="flex items-center gap-1">
-                                                            <div className={`w-2 h-2 rounded-full ${student.isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
-                                                            <span className="text-[8px] font-bold text-text-muted uppercase">{student.isOnline ? 'Online' : 'Offline'}</span>
-                                                        </div>
-                                                    </div>
 
-                                                    <div className="grid grid-cols-2 gap-3 mt-6">
-                                                        <div className="bg-white/40 p-3 rounded-2xl border border-white/60">
-                                                            <div className="flex items-center gap-1.5 text-[9px] text-text-muted uppercase font-bold mb-1">
-                                                                <LucideActivity size={10} className="text-accent-blue" /> Giriş
+                                                        {/* Activity Metrics (More compact) */}
+                                                        <div className="flex items-center gap-8 shrink-0">
+                                                            <div className="text-center">
+                                                                <div className="text-[11px] font-bold text-text-main">{student.loginCount || 0}</div>
+                                                                <div className="text-[8px] text-text-muted uppercase tracking-wider font-bold">Giriş</div>
                                                             </div>
-                                                            <div className="text-xl font-serif text-text-main">{student.loginCount || 0}</div>
+                                                            <div className="text-right min-w-[100px]">
+                                                                <div className="text-[10px] font-medium text-text-main">{formatDate(student.lastLogin)}</div>
+                                                                <div className="text-[8px] text-text-muted uppercase tracking-wider font-bold">Son Görülme</div>
+                                                            </div>
                                                         </div>
-                                                        <div className="bg-white/40 p-3 rounded-2xl border border-white/60">
-                                                            <div className="flex items-center gap-1.5 text-[9px] text-text-muted uppercase font-bold mb-1">
-                                                                <LucideClock size={10} className="text-accent-blue" /> Son Görülme
-                                                            </div>
-                                                            <div className="text-[10px] font-medium text-text-main leading-tight mt-1">
-                                                                {formatDate(student.lastLogin)}
+
+                                                        {/* Joined Rooms (The "Eli Açık" part) */}
+                                                        <div className="flex-1 min-w-[200px] flex items-center gap-2 overflow-hidden border-l border-text-main/5 pl-6">
+                                                            <LucideLayers size={14} className="text-accent-blue shrink-0" />
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {joinedRooms.length > 0 ? joinedRooms.map(room => (
+                                                                    <span key={room.id} className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-accent-blue/5 text-accent-blue border border-accent-blue/10 whitespace-nowrap">
+                                                                        {room.name}
+                                                                    </span>
+                                                                )) : (
+                                                                    <span className="text-[9px] text-text-muted italic opacity-50">Henüz odaya katılmadı</span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
@@ -263,7 +277,7 @@ const AdminPanel = ({ openOverride, onOpenChange }) => {
                         </div>
 
                         {/* Footer */}
-                        <div className="p-6 bg-white/5 border-t border-text-main/5 text-center">
+                        <div className="p-6 bg-white/5 border-t border-text-main/5 text-center shrink-0">
                             <p className="text-[10px] uppercase tracking-widest text-text-muted opacity-60">Kibele2 Yönetim Arabirimi © 2026</p>
                         </div>
                     </div>
