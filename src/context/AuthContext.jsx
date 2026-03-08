@@ -51,52 +51,47 @@ export const AuthProvider = ({ children }) => {
     }, [user]);
 
     useEffect(() => {
-        let unsubscribeProfile = () => { };
-
-        const unsubscribeAuth = onAuthStateChanged(auth, async (authenticatedUser) => {
+        const unsubscribe = onAuthStateChanged(auth, async (authenticatedUser) => {
             if (authenticatedUser) {
                 setUser(authenticatedUser);
 
-                // Listen to user profile changes in real-time (onSnapshot is more robust than getDoc)
-                const userRef = doc(db, 'users', authenticatedUser.uid);
+                // User role check from Firestore (back to getDoc as requested)
+                try {
+                    const userRef = doc(db, 'users', authenticatedUser.uid);
+                    const userDoc = await getDoc(userRef);
 
-                unsubscribeProfile = onSnapshot(userRef, (snapshot) => {
-                    if (snapshot.exists()) {
-                        const data = snapshot.data();
+                    if (userDoc.exists()) {
+                        const data = userDoc.data();
                         const userRole = data.role?.toLowerCase().trim();
 
-                        // Robust role checking
-                        const isAuthorized = userRole === 'admin' || userRole === 'teacher' || userRole === 'hoca' || userRole === 'admin ';
+                        // Robust role checking (admin, teacher, hoca)
+                        const isAuthorized = userRole === 'admin' || userRole === 'teacher' || userRole === 'hoca';
                         setIsAdmin(isAuthorized);
 
                         console.log(`[Auth] User: ${authenticatedUser.email} (UID: ${authenticatedUser.uid})`);
                         console.log(`[Auth] Profile Role: "${data.role}", isAuthorized: ${isAuthorized}`);
                     } else {
                         // Auto-create document for the user if it doesn't exist
-                        console.log(`[Auth] Profile doc missing for UID: ${authenticatedUser.uid}, creating...`);
-                        setDoc(userRef, {
+                        console.log(`[Auth] Creating profile for: ${authenticatedUser.uid}`);
+                        await setDoc(userRef, {
                             email: authenticatedUser.email,
                             role: 'user',
                             createdAt: serverTimestamp(),
                             isOnline: true
-                        }, { merge: true }).then(() => setIsAdmin(false));
+                        }, { merge: true });
+                        setIsAdmin(false);
                     }
-                }, (error) => {
-                    console.error("[Auth] Profile Snapshot Error:", error);
-                });
-
+                } catch (error) {
+                    console.error("[Auth] Detailed fetch error:", error);
+                }
             } else {
                 setUser(null);
                 setIsAdmin(false);
-                if (unsubscribeProfile) unsubscribeProfile();
             }
             setLoading(false);
         });
 
-        return () => {
-            unsubscribeAuth();
-            if (unsubscribeProfile) unsubscribeProfile();
-        };
+        return () => unsubscribe();
     }, []);
 
     return (
