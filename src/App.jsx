@@ -114,7 +114,7 @@ function App() {
         if (!user || !selectedRoom) return;
         try {
             const { requestRoomAccess } = await import('./services/dbService');
-            await requestRoomAccess(selectedRoom.id, selectedRoom.name, user);
+            await requestRoomAccess(selectedRoom.id, selectedRoom.name, user, selectedRoom.creatorId);
         } catch (error) {
             alert("İstek gönderilirken bir hata oluştu: " + error.message);
         }

@@ -53,11 +53,12 @@ export const fetchAllApprovedRequests = async () => {
     }
 };
 
-export const requestRoomAccess = async (roomId, roomName, user) => {
+export const requestRoomAccess = async (roomId, roomName, user, roomOwnerId) => {
     try {
         await addDoc(collection(db, "room_requests"), {
             roomId,
             roomName,
+            roomOwnerId,
             uid: user.uid,
             userName: user.displayName || user.email,
             userEmail: user.email,

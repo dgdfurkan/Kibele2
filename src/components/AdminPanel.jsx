@@ -6,7 +6,7 @@ import { approveRoomAccessRequest, rejectRoomAccessRequest, fetchAllStudents, fe
 import { LucideCheck, LucideX, LucideBell, LucideLoader2, LucideSparkles, LucideMail, LucideLayers, LucideUsers, LucideActivity, LucideClock, LucideCalendar } from 'lucide-react';
 
 const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
-    const { isAdmin } = useAuth();
+    const { user, isAdmin } = useAuth();
     const [requests, setRequests] = useState([]);
     const [students, setStudents] = useState([]);
     const [approvedRequests, setApprovedRequests] = useState([]);
@@ -37,9 +37,13 @@ const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
     };
 
     useEffect(() => {
-        if (!isAdmin) return;
+        if (!isAdmin || !user) return;
 
-        const q = query(collection(db, "room_requests"), where("status", "==", "pending"));
+        const q = query(
+            collection(db, "room_requests"),
+            where("status", "==", "pending"),
+            where("roomOwnerId", "==", user.uid)
+        );
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const sortedRequests = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
@@ -51,7 +55,7 @@ const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
             setRequests([]);
         });
         return () => unsubscribe();
-    }, [isAdmin]);
+    }, [isAdmin, user]);
 
     useEffect(() => {
         if (isDashboardOpen && activeTab === 'students') {
