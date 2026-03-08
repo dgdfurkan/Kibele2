@@ -44,6 +44,19 @@ export const loginWithEmail = async (email, password) => {
     }
 };
 
+// Online durumunu güncelle
+export const updateOnlineStatus = async (uid, isOnline) => {
+    try {
+        const userRef = doc(db, "users", uid);
+        await setDoc(userRef, {
+            isOnline,
+            lastLogin: serverTimestamp() // Son aktiflik olarak güncelle
+        }, { merge: true });
+    } catch (error) {
+        console.error("Update Online Status Error:", error);
+    }
+};
+
 // Kayıt/Başvuru sırasında username kontrolü
 export const isUsernameTaken = async (username) => {
     const q = query(collection(db, "users"), where("username", "==", username));

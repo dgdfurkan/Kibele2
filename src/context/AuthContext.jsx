@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { loginWithEmail, registerWithEmail } from '../services/authService';
+import { loginWithEmail, registerWithEmail, updateOnlineStatus } from '../services/authService';
 
 const AuthContext = createContext();
 
@@ -13,32 +13,42 @@ export const AuthProvider = ({ children }) => {
 
     /**
      * Logs in a user with the provided email and password.
-     * @param {string} email - The user's email.
-     * @param {string} password - The user's password.
-     * @returns {Promise<UserCredential>} A promise that resolves with the user credential.
      */
     const login = async (email, password) => {
         return await loginWithEmail(email, password);
     };
 
     /**
-     * Registers a new user with the provided email, password, and name.
-     * @param {string} email - The user's email.
-     * @param {string} password - The user's password.
-     * @param {string} name - The user's display name.
-     * @returns {Promise<UserCredential>} A promise that resolves with the user credential.
+     * Registers a new user.
      */
     const register = async (email, password, name) => {
         return await registerWithEmail(email, password, name);
     };
 
     /**
-     * Logs out the current user.
-     * @returns {Promise<void>} A promise that resolves when the user is logged out.
+     * Logs out the current user and sets status to offline.
      */
-    const logout = () => {
+    const logout = async () => {
+        if (user) {
+            await updateOnlineStatus(user.uid, false);
+        }
         return signOut(auth);
     };
+
+    // Heartbeat Effect: Update status periodically if user is active
+    useEffect(() => {
+        if (!user) return;
+
+        // Perform initial check-in
+        updateOnlineStatus(user.uid, true);
+
+        // Update activity every 4 minutes (Firebase free tier friendly)
+        const heartbeatInterval = setInterval(() => {
+            updateOnlineStatus(user.uid, true);
+        }, 4 * 60 * 1000);
+
+        return () => clearInterval(heartbeatInterval);
+    }, [user]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -57,7 +67,8 @@ export const AuthProvider = ({ children }) => {
                         await setDoc(userRef, {
                             email: user.email,
                             role: 'user',
-                            createdAt: serverTimestamp()
+                            createdAt: serverTimestamp(),
+                            isOnline: true
                         }, { merge: true });
                         setIsAdmin(false);
                     } catch (e) {
