@@ -15,6 +15,16 @@ const AdminPanel = ({ openOverride, onOpenChange }) => {
     const [loadingStudents, setLoadingStudents] = useState(false);
 
     // Sync with parent's openOverride
+    // Prevent scrolling when dashboard is open
+    useEffect(() => {
+        if (isDashboardOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => { document.body.style.overflow = 'unset'; };
+    }, [isDashboardOpen]);
+
     useEffect(() => {
         if (openOverride !== undefined) {
             setIsDashboardOpen(openOverride);
