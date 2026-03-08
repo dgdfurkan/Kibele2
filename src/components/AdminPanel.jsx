@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { adminApproveAndCreateAccount } from '../services/dbService';
-import { LucideCheck, LucideX, LucideBell, LucideUser, LucideLoader2, LucideSparkles, LucideMail, LucideFileText } from 'lucide-react';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { approveRoomAccessRequest, rejectRoomAccessRequest } from '../services/dbService';
+import { LucideCheck, LucideX, LucideBell, LucideUser, LucideLoader2, LucideSparkles, LucideMail, LucideFileText, LucideLayers } from 'lucide-react';
 
 const AdminPanel = () => {
     const { isAdmin } = useAuth();
@@ -14,7 +14,7 @@ const AdminPanel = () => {
     useEffect(() => {
         if (!isAdmin) return;
 
-        const q = query(collection(db, "access_requests"), where("status", "==", "pending"));
+        const q = query(collection(db, "room_requests"), where("status", "==", "pending"), orderBy("createdAt", "desc"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
@@ -22,12 +22,25 @@ const AdminPanel = () => {
     }, [isAdmin]);
 
     const handleApprove = async (request) => {
-        if (!confirm(`${request.name} adlı kullanıcının hesabını onaylayıp oluşturmak istiyor musunuz?`)) return;
+        if (!confirm(`${request.userName} adlı kullanıcının ${request.roomName} odasına katılım isteğini onaylamak istiyor musunuz?`)) return;
 
         setProcessingId(request.id);
         try {
-            await adminApproveAndCreateAccount(request);
-            alert("Hesap başarıyla oluşturuldu ve onaylandı.");
+            await approveRoomAccessRequest(request);
+            alert("Katılım isteği başarıyla onaylandı.");
+        } catch (error) {
+            alert("Hata oluştu: " + error.message);
+        }
+        setProcessingId(null);
+    };
+
+    const handleReject = async (requestId) => {
+        if (!confirm("Bu katılım isteğini reddetmek istediğinize emin misiniz?")) return;
+
+        setProcessingId(requestId);
+        try {
+            await rejectRoomAccessRequest(requestId);
+            alert("Katılım isteği başarıyla reddedildi.");
         } catch (error) {
             alert("Hata oluştu: " + error.message);
         }
@@ -69,9 +82,9 @@ const AdminPanel = () => {
                             <div>
                                 <div className="flex items-center gap-3 mb-1">
                                     <h2 className="text-4xl font-serif">Hoca Dashboard</h2>
-                                    <div className="bg-accent-blue/10 text-accent-blue px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">Yönetim Paneli</div>
+                                    <div className="bg-accent-blue/10 text-accent-blue px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">Oda Katılım Yönetimi</div>
                                 </div>
-                                <p className="text-text-muted text-sm italic">Sanatçı adaylarını incele ve kapıları aç.</p>
+                                <p className="text-text-muted text-sm italic">Öğrencilerin oda katılım taleplerini incele ve onaylamanı yap.</p>
                             </div>
                             <button
                                 onClick={() => setIsDashboardOpen(false)}
@@ -88,8 +101,8 @@ const AdminPanel = () => {
                                     <div className="w-32 h-32 bg-text-main/5 rounded-full flex items-center justify-center mb-6">
                                         <LucideSparkles size={48} />
                                     </div>
-                                    <h3 className="text-2xl font-serif mb-2 text-center text-text-main">Her Şey Güncel</h3>
-                                    <p className="text-sm text-center">Şu an onay bekleyen bir başvuru bulunmuyor.</p>
+                                    <h3 className="text-2xl font-serif mb-2 text-center text-text-main">Bekleyen İstek Yok</h3>
+                                    <p className="text-sm text-center">Şu an onay bekleyen bir oda katılım talebi bulunmuyor.</p>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -98,28 +111,28 @@ const AdminPanel = () => {
                                             key={req.id}
                                             className="glass-card !bg-white/40 p-8 border-white/50 hover:border-accent-blue/40 transition-all group relative overflow-hidden flex flex-col justify-between"
                                         >
-                                            {/* Name & Email Section */}
+                                            {/* Name & Room Section */}
                                             <div className="relative z-10">
                                                 <div className="flex items-center gap-4 mb-6">
                                                     <div className="w-14 h-14 bg-gradient-to-br from-accent-blue to-accent-blue/40 rounded-3xl flex items-center justify-center text-white text-xl font-serif shadow-lg group-hover:scale-110 transition-transform">
-                                                        {req.name.charAt(0)}
+                                                        {req.userName.charAt(0)}
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-2xl font-medium tracking-tight text-text-main group-hover:text-accent-blue transition-colors">{req.name}</h4>
+                                                        <h4 className="text-2xl font-medium tracking-tight text-text-main group-hover:text-accent-blue transition-colors">{req.userName}</h4>
                                                         <div className="flex items-center gap-1.5 text-text-muted text-xs">
-                                                            <LucideMail size={12} /> {req.email}
+                                                            <LucideMail size={12} /> {req.userEmail}
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                {/* Bio / Intro Section */}
+                                                {/* Target Room */}
                                                 <div className="mb-8">
                                                     <div className="flex items-center gap-2 mb-3">
-                                                        <LucideFileText size={14} className="text-accent-blue" />
-                                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Tanıtım & Motivasyon</span>
+                                                        <LucideLayers size={14} className="text-accent-blue" />
+                                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Katılmak İstediği Oda</span>
                                                     </div>
-                                                    <div className="bg-white/60 p-5 rounded-3xl border border-white/80 text-sm leading-relaxed text-text-main italic shadow-inner line-clamp-4 group-hover:line-clamp-none transition-all duration-300">
-                                                        "{req.intro || 'Başvuru sahibi kendini henüz detaylı olarak tanıtmamış.'}"
+                                                    <div className="bg-white/60 p-5 rounded-3xl border border-white/80 text-lg font-medium text-text-main shadow-inner flex items-center gap-3">
+                                                        <span className="text-2xl">🚪</span> {req.roomName}
                                                     </div>
                                                 </div>
                                             </div>
@@ -132,9 +145,13 @@ const AdminPanel = () => {
                                                     className="flex-[2] bg-accent-blue text-white py-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-3 hover:bg-accent-blue-hover hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 shadow-xl shadow-accent-blue/20"
                                                 >
                                                     {processingId === req.id ? <LucideLoader2 size={18} className="animate-spin" /> : <LucideCheck size={18} />}
-                                                    HESABI OLUŞTUR & ONAYLA
+                                                    KATILIMI ONAYLA
                                                 </button>
-                                                <button className="flex-1 bg-white/80 text-text-muted py-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-red-50 hover:text-red-500 hover:scale-[1.02] transition-all border border-white">
+                                                <button
+                                                    disabled={!!processingId}
+                                                    onClick={() => handleReject(req.id)}
+                                                    className="flex-1 bg-white/80 text-text-muted py-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-red-50 hover:text-red-500 hover:scale-[1.02] transition-all border border-white disabled:opacity-50"
+                                                >
                                                     <LucideX size={18} /> REDDET
                                                 </button>
                                             </div>
@@ -149,7 +166,7 @@ const AdminPanel = () => {
 
                         {/* Footer */}
                         <div className="p-6 bg-white/5 border-t border-text-main/5 text-center">
-                            <p className="text-[10px] uppercase tracking-widest text-text-muted opacity-60">Kibele2 İleri Erişim Yönetim Sistemi © 2026</p>
+                            <p className="text-[10px] uppercase tracking-widest text-text-muted opacity-60">Kibele2 İlham Odası Yönetim Sistemi © 2026</p>
                         </div>
                     </div>
                 </div>

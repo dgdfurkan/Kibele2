@@ -29,45 +29,70 @@ export const subscribeToRooms = (callback) => {
     });
 };
 
-// Admin: Hoca tarafından onay ve hesap oluşturma
-export const adminApproveAndCreateAccount = async (request) => {
-    // İkincil bir Firebase app oluşturarak admin oturumunu koruyoruz
-    const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
-    const secondaryAuth = getAuth(secondaryApp);
-
+// Room Access Requests
+export const requestRoomAccess = async (roomId, roomName, user) => {
     try {
-        // 1. Firebase Auth hesabı oluştur (Formdaki mail ve şifre ile)
-        const userCredential = await createUserWithEmailAndPassword(
-            secondaryAuth,
-            request.email,
-            request.password
-        );
-        const newUser = userCredential.user;
-
-        // 2. Firestore üzerinde kullanıcı dökümanını oluştur
-        await setDoc(doc(db, "users", newUser.uid), {
-            name: request.name,
-            email: request.email,
-            role: "student",
-            createdAt: serverTimestamp(),
-            fromRequest: request.id
+        await addDoc(collection(db, "room_requests"), {
+            roomId,
+            roomName,
+            uid: user.uid,
+            userName: user.displayName || user.email,
+            userEmail: user.email,
+            status: "pending",
+            createdAt: serverTimestamp()
         });
+        return { success: true };
+    } catch (e) {
+        console.error("Error requesting room access: ", e);
+        throw e;
+    }
+};
 
-        // 3. Talebi "onaylandı" olarak işaretle
-        await setDoc(doc(db, "access_requests", request.id), {
+export const subscribeToRoomRequests = (callback) => {
+    const q = query(collection(db, "room_requests"), where("status", "==", "pending"), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snapshot) => {
+        const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(requests);
+    });
+};
+
+export const approveRoomAccessRequest = async (request) => {
+    try {
+        // 1. Oda dökümanını güncelle (participants listesine ekle)
+        const roomRef = doc(db, "rooms", request.roomId);
+        const roomSnap = await getDoc(roomRef);
+
+        if (roomSnap.exists()) {
+            const currentParticipants = roomSnap.data().participants || [];
+            if (!currentParticipants.includes(request.uid)) {
+                await setDoc(roomRef, {
+                    participants: [...currentParticipants, request.uid]
+                }, { merge: true });
+            }
+        }
+
+        // 2. İsteği onaylandı olarak işaretle
+        await setDoc(doc(db, "room_requests", request.id), {
             status: "approved",
-            approvedAt: serverTimestamp(),
-            approvedUid: newUser.uid
+            approvedAt: serverTimestamp()
         }, { merge: true });
-
-        // İkincil auth oturumunu kapat ve app'i temizle
-        await signOut(secondaryAuth);
-        await secondaryApp.delete();
 
         return { success: true };
     } catch (e) {
-        console.error("Onay ve kayıt hatası:", e);
-        await secondaryApp.delete();
+        console.error("Error approving room request:", e);
+        throw e;
+    }
+};
+
+export const rejectRoomAccessRequest = async (requestId) => {
+    try {
+        await setDoc(doc(db, "room_requests", requestId), {
+            status: "rejected",
+            rejectedAt: serverTimestamp()
+        }, { merge: true });
+        return { success: true };
+    } catch (e) {
+        console.error("Error rejecting room request:", e);
         throw e;
     }
 };
