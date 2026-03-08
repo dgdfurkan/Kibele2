@@ -8,7 +8,7 @@ export const fetchAICArtworks = async (params = {}) => {
     const { limit = 12, page = 1, query = '', filters = {} } = params;
 
     // AIC API Search Endpoint with public domain filter
-    let url = `${AIC_API_BASE}/artworks/search?limit=${limit}&page=${page}&fields=id,title,image_id,artist_display,medium_display,classification_title,style_title,place_of_origin&params[term][is_public_domain]=true`;
+    let url = `${AIC_API_BASE}/artworks/search?limit=${limit}&page=${page}&fields=id,title,image_id,artist_display,medium_display,classification_title,style_title,place_of_origin&query[term][is_public_domain]=true`;
 
     // Gelişmiş Filtreleme 
     let searchQuery = query || '';

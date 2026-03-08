@@ -14,9 +14,14 @@ const AdminPanel = () => {
     useEffect(() => {
         if (!isAdmin) return;
 
-        const q = query(collection(db, "room_requests"), where("status", "==", "pending"), orderBy("createdAt", "desc"));
+        const q = query(collection(db, "room_requests"), where("status", "==", "pending"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            setRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            // Manuel sıralama yapalım (indeks gereksinimi olmadan)
+            const sortedRequests = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+            setRequests(sortedRequests);
         }, (error) => {
             console.warn("Hoca Dashboard listener error (check indexes):", error.message);
             setRequests([]);
