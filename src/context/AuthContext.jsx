@@ -62,17 +62,21 @@ export const AuthProvider = ({ children }) => {
 
                     if (userDoc.exists()) {
                         const data = userDoc.data();
-                        const userRole = data.role?.toLowerCase().trim();
+                        // Fallback to 'user' if role field is completely missing
+                        const rawRole = data.role || 'user';
+                        const userRole = rawRole.toLowerCase().trim();
 
                         // Robust role checking (admin, teacher, hoca)
                         const isAuthorized = userRole === 'admin' || userRole === 'teacher' || userRole === 'hoca';
                         setIsAdmin(isAuthorized);
 
-                        console.log(`[Auth] User: ${authenticatedUser.email} (UID: ${authenticatedUser.uid})`);
-                        console.log(`[Auth] Profile Role: "${data.role}", isAuthorized: ${isAuthorized}`);
+                        console.log(`[Auth DEBUG] UID: ${authenticatedUser.uid}`);
+                        console.log(`[Auth DEBUG] Email: ${authenticatedUser.email}`);
+                        console.log(`[Auth DEBUG] Found Role in DB: "${data.role}" (Fallback to: "${rawRole}")`);
+                        console.log(`[Auth DEBUG] Is Authorized: ${isAuthorized}`);
                     } else {
                         // Auto-create document for the user if it doesn't exist
-                        console.log(`[Auth] Creating profile for: ${authenticatedUser.uid}`);
+                        console.log(`[Auth DEBUG] Profile doc missing for UID: ${authenticatedUser.uid}, creating as 'user'...`);
                         await setDoc(userRef, {
                             email: authenticatedUser.email,
                             role: 'user',
