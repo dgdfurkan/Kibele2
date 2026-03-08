@@ -51,42 +51,52 @@ export const AuthProvider = ({ children }) => {
     }, [user]);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                setUser(user);
-                // User role check from Firestore
-                const userRef = doc(db, 'users', user.uid);
-                const userDoc = await getDoc(userRef);
+        let unsubscribeProfile = () => { };
 
-                if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    const userRole = data.role?.toLowerCase().trim();
-                    // Include teacher/hoca as admin-level roles for management
-                    const isAuthorized = userRole === 'admin' || userRole === 'teacher' || userRole === 'hoca';
-                    setIsAdmin(isAuthorized);
-                    console.log(`User ${user.email} role: ${data.role}, isAuthorized: ${isAuthorized}`);
-                } else {
-                    // Auto-create document for the user if it doesn't exist
-                    try {
-                        await setDoc(userRef, {
-                            email: user.email,
+        const unsubscribeAuth = onAuthStateChanged(auth, async (authenticatedUser) => {
+            if (authenticatedUser) {
+                setUser(authenticatedUser);
+
+                // Listen to user profile changes in real-time (onSnapshot is more robust than getDoc)
+                const userRef = doc(db, 'users', authenticatedUser.uid);
+
+                unsubscribeProfile = onSnapshot(userRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        const userRole = data.role?.toLowerCase().trim();
+
+                        // Robust role checking
+                        const isAuthorized = userRole === 'admin' || userRole === 'teacher' || userRole === 'hoca' || userRole === 'admin ';
+                        setIsAdmin(isAuthorized);
+
+                        console.log(`[Auth] User: ${authenticatedUser.email} (UID: ${authenticatedUser.uid})`);
+                        console.log(`[Auth] Profile Role: "${data.role}", isAuthorized: ${isAuthorized}`);
+                    } else {
+                        // Auto-create document for the user if it doesn't exist
+                        console.log(`[Auth] Profile doc missing for UID: ${authenticatedUser.uid}, creating...`);
+                        setDoc(userRef, {
+                            email: authenticatedUser.email,
                             role: 'user',
                             createdAt: serverTimestamp(),
                             isOnline: true
-                        }, { merge: true });
-                        setIsAdmin(false);
-                    } catch (e) {
-                        console.error("Error creating user doc:", e);
+                        }, { merge: true }).then(() => setIsAdmin(false));
                     }
-                }
+                }, (error) => {
+                    console.error("[Auth] Profile Snapshot Error:", error);
+                });
+
             } else {
                 setUser(null);
                 setIsAdmin(false);
+                if (unsubscribeProfile) unsubscribeProfile();
             }
             setLoading(false);
         });
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribeAuth();
+            if (unsubscribeProfile) unsubscribeProfile();
+        };
     }, []);
 
     return (
