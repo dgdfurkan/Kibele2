@@ -56,40 +56,30 @@ export const AuthProvider = ({ children }) => {
                 setUser(authenticatedUser);
 
                 // User role check from Firestore (back to getDoc as requested)
-                try {
-                    const userRef = doc(db, 'users', authenticatedUser.uid);
-                    const userDoc = await getDoc(userRef);
+                const userRef = doc(db, 'users', authenticatedUser.uid);
+                unsubscribeProfile = onSnapshot(userRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        const userRole = data.role?.toLowerCase().trim();
 
-                    if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        // Fallback to 'user' if role field is completely missing
-                        const rawRole = data.role || 'user';
-                        const userRole = rawRole.toLowerCase().trim();
-
-                        // Robust role checking (admin, teacher, hoca)
-                        const isAuthorized = userRole === 'admin' || userRole === 'teacher' || userRole === 'hoca';
+                        // Sadece 'admin' rolünü kontrol et (isteğin üzerine sadeleştirildi)
+                        const isAuthorized = userRole === 'admin';
                         setIsAdmin(isAuthorized);
 
-                        console.log(`[Auth DEBUG] Project ID: ${db.app.options.projectId}`);
-                        console.log(`[Auth DEBUG] UID: ${authenticatedUser.uid}`);
-                        console.log(`[Auth DEBUG] Email: ${authenticatedUser.email}`);
-                        console.log(`[Auth DEBUG] DB Data:`, data);
-                        console.log(`[Auth DEBUG] Is Authorized: ${isAuthorized}`);
+                        // Kritik logları sadeleştirdik
+                        console.log(`[Auth] Email: ${authenticatedUser.email}, Role: ${data.role}, Admin: ${isAuthorized}`);
                     } else {
-                        // Auto-create document for the user if it doesn't exist
-                        console.log(`[Auth DEBUG] Project ID: ${db.app.options.projectId}`);
-                        console.log(`[Auth DEBUG] Profile doc missing for UID: ${authenticatedUser.uid}, creating as 'user'...`);
-                        await setDoc(userRef, {
+                        // Profil yoksa 'user' olarak oluştur
+                        setDoc(userRef, {
                             email: authenticatedUser.email,
                             role: 'user',
                             createdAt: serverTimestamp(),
                             isOnline: true
-                        }, { merge: true });
-                        setIsAdmin(false);
+                        }, { merge: true }).then(() => setIsAdmin(false));
                     }
-                } catch (error) {
-                    console.error("[Auth] Detailed fetch error:", error);
-                }
+                }, (error) => {
+                    console.error("[Auth] Error:", error);
+                });
             } else {
                 setUser(null);
                 setIsAdmin(false);
