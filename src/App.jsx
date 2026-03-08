@@ -9,6 +9,7 @@ import AdminPanel from './components/AdminPanel';
 import RegisterModal from './components/RegisterModal';
 import LoginModal from './components/LoginModal';
 import { auth, db } from './firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { subscribeToRooms } from './services/dbService';
 

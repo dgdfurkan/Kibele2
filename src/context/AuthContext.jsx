@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
      * @returns {Promise<UserCredential>} A promise that resolves with the user credential.
      */
     const login = async (email, password) => {
-        return await firebaseLoginWithEmail(email, password);
+        return await loginWithEmail(email, password);
     };
 
     /**
@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
      * @returns {Promise<UserCredential>} A promise that resolves with the user credential.
      */
     const register = async (email, password, name) => {
-        return await firebaseRegisterWithEmail(email, password, name);
+        return await registerWithEmail(email, password, name);
     };
 
     /**
@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, loading, isAdmin, loginWithEmail, logout }}>
+        <AuthContext.Provider value={{ user, loading, isAdmin, login, register, logout }}>
             {!loading && children}
         </AuthContext.Provider>
     );

@@ -7,7 +7,7 @@ const LoginModal = ({ isOpen, onClose }) => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const { loginWithEmail } = useAuth();
+    const { login } = useAuth();
 
     useEffect(() => {
         if (isOpen) {
@@ -25,7 +25,7 @@ const LoginModal = ({ isOpen, onClose }) => {
         setLoading(true);
         setError('');
         try {
-            await loginWithEmail(email, password);
+            await login(email, password);
             onClose();
         } catch (err) {
             setError(err.message || 'Giriş yapılamadı.');
