@@ -60,7 +60,11 @@ export const AuthProvider = ({ children }) => {
 
                 if (userDoc.exists()) {
                     const data = userDoc.data();
-                    setIsAdmin(data.role === 'admin' || data.role === 'Admin');
+                    const userRole = data.role?.toLowerCase().trim();
+                    // Include teacher/hoca as admin-level roles for management
+                    const isAuthorized = userRole === 'admin' || userRole === 'teacher' || userRole === 'hoca';
+                    setIsAdmin(isAuthorized);
+                    console.log(`User ${user.email} role: ${data.role}, isAuthorized: ${isAuthorized}`);
                 } else {
                     // Auto-create document for the user if it doesn't exist
                     try {
