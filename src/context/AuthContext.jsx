@@ -70,12 +70,14 @@ export const AuthProvider = ({ children }) => {
                         const isAuthorized = userRole === 'admin' || userRole === 'teacher' || userRole === 'hoca';
                         setIsAdmin(isAuthorized);
 
+                        console.log(`[Auth DEBUG] Project ID: ${db.app.options.projectId}`);
                         console.log(`[Auth DEBUG] UID: ${authenticatedUser.uid}`);
                         console.log(`[Auth DEBUG] Email: ${authenticatedUser.email}`);
-                        console.log(`[Auth DEBUG] Found Role in DB: "${data.role}" (Fallback to: "${rawRole}")`);
+                        console.log(`[Auth DEBUG] DB Data:`, data);
                         console.log(`[Auth DEBUG] Is Authorized: ${isAuthorized}`);
                     } else {
                         // Auto-create document for the user if it doesn't exist
+                        console.log(`[Auth DEBUG] Project ID: ${db.app.options.projectId}`);
                         console.log(`[Auth DEBUG] Profile doc missing for UID: ${authenticatedUser.uid}, creating as 'user'...`);
                         await setDoc(userRef, {
                             email: authenticatedUser.email,
