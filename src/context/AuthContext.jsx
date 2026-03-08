@@ -64,7 +64,9 @@ export const AuthProvider = ({ children }) => {
 
                     if (userDoc.exists()) {
                         const data = userDoc.data();
-                        console.log(`[AUTH-DIAG] Full Data:`, data);
+                        console.log(`[AUTH-DIAG] Project: ${db.app.options.projectId}`);
+                        console.log(`[AUTH-DIAG] UID: ${authenticatedUser.uid}`);
+                        console.log(`[AUTH-DIAG] DB Data Found:`, data);
 
                         const rawRole = data.role || '';
                         const cleanRole = rawRole.toString().toLowerCase().trim();
@@ -74,14 +76,9 @@ export const AuthProvider = ({ children }) => {
 
                         console.log(`[Auth] Email: ${authenticatedUser.email}, Got Role: "${rawRole}", Admin: ${isAuthorized}`);
                     } else {
-                        console.warn(`[AUTH-DIAG] Document DOES NOT EXIST at users/${authenticatedUser.uid}`);
-                        // Create only if missing
-                        await setDoc(userRef, {
-                            email: authenticatedUser.email,
-                            role: 'user',
-                            createdAt: serverTimestamp(),
-                            isOnline: true
-                        }, { merge: true });
+                        // OTOMATIK DOKUMAN OLUSTURMAYI KAPATTIK - Verinin neden gelmedigini anlamak icin
+                        console.error(`[AUTH-DIAG] KRTIK: Dokuman bulunamadi! users/${authenticatedUser.uid}`);
+                        console.log(`[AUTH-DIAG] Lutfen Firebase Console'da bu UID ile bir dokuman oldugundan emin olun.`);
                         setIsAdmin(false);
                     }
                 } catch (error) {
