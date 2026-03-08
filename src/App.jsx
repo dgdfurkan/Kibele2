@@ -30,6 +30,7 @@ function App() {
     const [rooms, setRooms] = useState([]);
     const [currentView, setCurrentView] = useState('hub'); // hub, request, detail, board
     const [selectedRoom, setSelectedRoom] = useState(null);
+    const [userRequests, setUserRequests] = useState([]);
 
     const [filters, setFilters] = useState({
         query: '',
@@ -45,9 +46,21 @@ function App() {
     const [totalPages, setTotalPages] = useState(1);
 
     useEffect(() => {
-        const unsubscribe = subscribeToRooms(setRooms);
-        return () => unsubscribe();
-    }, []);
+        const unsubscribeRooms = subscribeToRooms(setRooms);
+
+        let unsubscribeRequests = () => { };
+        if (user) {
+            const q = query(collection(db, "room_requests"), where("uid", "==", user.uid));
+            unsubscribeRequests = onSnapshot(q, (snapshot) => {
+                setUserRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            });
+        }
+
+        return () => {
+            unsubscribeRooms();
+            unsubscribeRequests();
+        };
+    }, [user]);
 
     useEffect(() => {
         handleFetchArtworks();
@@ -82,10 +95,23 @@ function App() {
 
         setSelectedRoom(room);
 
-        if (room.isPrivate && !isAdmin) {
+        // Katılım durumunu kontrol et
+        const isParticipant = room.participants?.includes(user.uid) || isAdmin;
+
+        if (room.isPrivate && !isParticipant) {
             setCurrentView('request');
         } else {
             setCurrentView(room.isShared ? 'board' : 'detail');
+        }
+    };
+
+    const handleRequestAccess = async () => {
+        if (!user || !selectedRoom) return;
+        try {
+            const { requestRoomAccess } = await import('./services/dbService');
+            await requestRoomAccess(selectedRoom.id, selectedRoom.name, user);
+        } catch (error) {
+            alert("İstek gönderilirken bir hata oluştu: " + error.message);
         }
     };
 
@@ -106,7 +132,15 @@ function App() {
 
     // View Navigation Logic
     if (currentView === 'request') {
-        return <RoomRequestView room={selectedRoom} onBack={() => setCurrentView('hub')} />;
+        const isPending = userRequests.some(r => r.roomId === selectedRoom?.id && r.status === 'pending');
+        return (
+            <RoomRequestView
+                room={selectedRoom}
+                onBack={() => setCurrentView('hub')}
+                onRequestAccess={handleRequestAccess}
+                isPending={isPending}
+            />
+        );
     }
 
     if (currentView === 'detail') {
