@@ -63,13 +63,13 @@ export const loginWithEmail = async (email, password) => {
     }
 };
 
-// Online durumunu güncelle
+// Online durumunu güncelle (Heartbeat)
 export const updateOnlineStatus = async (uid, isOnline) => {
     try {
         const userRef = doc(db, "users", uid);
         await setDoc(userRef, {
             isOnline,
-            lastLogin: serverTimestamp() // Son aktiflik olarak güncelle
+            lastActive: serverTimestamp() // Sadece son aktiflik, son giriş DEĞİL
         }, { merge: true });
     } catch (error) {
         console.error("Update Online Status Error:", error);

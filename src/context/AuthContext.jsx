@@ -59,6 +59,10 @@ export const AuthProvider = ({ children }) => {
                     const userRef = doc(db, 'users', authenticatedUser.uid);
                     const userSnap = await getDoc(userRef);
 
+                    // DIAGNOSTICS FOR USER
+                    const projId = db.app.options.projectId;
+                    console.log(`[AUTH-DIAG] Project: ${projId}, UID: ${authenticatedUser.uid}`);
+
                     if (userSnap.exists()) {
                         const data = userSnap.data();
                         const rawRole = data.role || "student";
@@ -67,15 +71,13 @@ export const AuthProvider = ({ children }) => {
                         const isAuthorized = cleanRole === 'admin';
                         setIsAdmin(isAuthorized);
 
-                        console.log(`[AUTH] User: ${authenticatedUser.email}, Role: ${rawRole}, Admin: ${isAuthorized}`);
+                        console.log(`[AUTH] Veri çekildi. Rol: ${rawRole}, Admin Mi: ${isAuthorized}`);
                     } else {
-                        console.warn(`[AUTH] No Firestore document for: ${authenticatedUser.uid}. Defaulting to non-admin.`);
+                        console.warn(`[AUTH] Veritabanında döküman BULUNAMADI: users/${authenticatedUser.uid}`);
                         setIsAdmin(false);
-
-                        // Opsiyonel: Döküman yoksa burada da basitçe oluşturulabilir ama authService'e taşıdık.
                     }
                 } catch (error) {
-                    console.error("[AUTH] Firestore verification error:", error.message);
+                    console.error("[AUTH] Hata:", error.message);
                     setIsAdmin(false);
                 }
             } else {
