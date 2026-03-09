@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LucideSparkles, LucideSend, LucideLoader2 } from 'lucide-react';
 
-const ChatPartner = () => {
+const KibelePartner = () => {
     const [messages, setMessages] = useState([
         {
             role: 'ai',
@@ -12,7 +12,7 @@ const ChatPartner = () => {
     const [isTyping, setIsTyping] = useState(false);
     const chatBoxRef = useRef(null);
 
-    const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+    const KIBELE_SECRET_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
     useEffect(() => {
         if (chatBoxRef.current) {
@@ -34,11 +34,11 @@ const ChatPartner = () => {
         setIsTyping(true);
 
         try {
-            const { generateKibeleResponse } = await import('../services/geminiApi');
-            const aiResponse = await generateKibeleResponse(GEMINI_API_KEY, history, userText);
+            const { generateKibeleResponse } = await import('../services/kibeleApi');
+            const aiResponse = await generateKibeleResponse(KIBELE_SECRET_KEY, history, userText);
             setMessages(prev => [...prev, { role: 'ai', text: aiResponse }]);
         } catch (error) {
-            console.error("Chat Error:", error);
+            console.error("Kibele Chat Error:", error);
             setMessages(prev => [...prev, { role: 'ai', text: "Bir sorun oluştu canım, ama it is okey. Tekrar dener misin?" }]);
         } finally {
             setIsTyping(false);
@@ -46,26 +46,26 @@ const ChatPartner = () => {
     };
 
     return (
-        <div className="gemini-chat-container">
-            <div className="gemini-chat-header">
-                <div className="gemini-icon">✨</div>
-                <div className="gemini-title">Kibele AI Partner</div>
+        <div className="kibele-chat-container">
+            <div className="kibele-chat-header">
+                <div className="kibele-icon">✨</div>
+                <div className="kibele-title">Kibele AI Partner</div>
             </div>
 
-            <div className="gemini-chat-box shadow-inner" ref={chatBoxRef}>
+            <div className="kibele-chat-box shadow-inner" ref={chatBoxRef}>
                 {messages.map((msg, index) => (
-                    <div key={index} className={`chat-message ${msg.role}-message animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                    <div key={index} className={`kibele-message ${msg.role}-message animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                         {msg.text}
                     </div>
                 ))}
                 {isTyping && (
-                    <div className="chat-message ai-message typing-indicator italic opacity-60">
+                    <div className="kibele-message ai-message typing-indicator italic opacity-60">
                         Kibele düşünüyor...
                     </div>
                 )}
             </div>
 
-            <div className="gemini-chat-input-wrapper">
+            <div className="kibele-chat-input-wrapper">
                 <textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
@@ -91,4 +91,4 @@ const ChatPartner = () => {
     );
 };
 
-export default ChatPartner;
+export default KibelePartner;

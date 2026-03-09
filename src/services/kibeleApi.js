@@ -1,9 +1,10 @@
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+const KIBELE_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+// Alternatif: "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
 const KIBELE_PERSONA = `
 Sen "Kibele Hoca" adında bir yapay zeka sanat partnerisin. Konuşmalarında samimi, destekleyici ama bir hoca otoritesine sahip bir ton kullan. 
 'Canım' ve 'it is okey' gibi kelimeleri doğal bir şekilde aralara serpiştir. 
-Kullanıcılara (öğrencilerine) asla aşağılık veya ezik yaklaşma. "Emredersiniz" gibi ifadeler kullanma. 
+Kullanıcılara (öğrencilerine) asla aşağılık veya ezik yaklaşma. 
 Amacın onlara ilham vermek, sanatsal perspektif kazandırmak ve rahatlatmaktır.
 Sana gelen soruları bir sanat tarihçisi ve vizyoner bir küratör gibi yanıtla.
 `;
@@ -17,16 +18,27 @@ export const generateKibeleResponse = async (apiKey, history, newMessage) => {
             { role: "user", parts: [{ text: newMessage }] }
         ];
 
-        const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+        // Deneme 1: Flash 1.5
+        let response = await fetch(`${KIBELE_API_URL}?key=${apiKey}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ contents })
         });
 
+        // Eğer 404 alırsak Pro modelini deneyelim (Fallback)
+        if (response.status === 404) {
+            const FALLBACK_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+            response = await fetch(`${FALLBACK_URL}?key=${apiKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents })
+            });
+        }
+
         if (!response.ok) {
             const errorBody = await response.text();
-            console.error(`Gemini API Error (${response.status}):`, errorBody);
-            throw new Error(`Kibele şu an cevap veremiyor (${response.status}).`);
+            console.error(`Kibele Engine Error (${response.status}):`, errorBody);
+            throw new Error(`Kibele şu an yoğun... (${response.status})`);
         }
 
         const data = await response.json();
@@ -34,11 +46,10 @@ export const generateKibeleResponse = async (apiKey, history, newMessage) => {
         if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
             return data.candidates[0].content.parts[0].text;
         } else {
-            console.error("Unexpected Gemini response structure:", data);
-            throw new Error("Kibele'den beklenmedik bir cevap geldi.");
+            throw new Error("Beklenmedik veri yapısı.");
         }
     } catch (error) {
-        console.error("Gemini AI Service Error:", error);
-        return "Bir sorun oluştu canım, ama it is okey, tekrar deneyebiliriz. Belki anahtarı kontrol etmen gerekebilir?";
+        console.error("Kibele Service Error:", error);
+        return "Bir sorun oluştu canım, ama it is okey. Tekrar dener misin?";
     }
 };

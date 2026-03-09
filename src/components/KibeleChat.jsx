@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { LucideMessageSquare, LucideSend, LucideSparkles } from 'lucide-react';
-import { generateKibeleResponse } from '../services/geminiApi';
+import { generateKibeleResponse } from '../services/kibeleApi';
 
 const KibeleChat = ({ apiKey, isPremium }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -47,8 +47,8 @@ const KibeleChat = ({ apiKey, isPremium }) => {
                 {messages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[85%] px-8 py-5 rounded-[2rem] text-lg leading-relaxed shadow-sm ${msg.role === 'user'
-                                ? 'bg-accent-blue text-white rounded-tr-none'
-                                : 'bg-[#E8E5F9] text-text-main rounded-tl-none font-sans'
+                            ? 'bg-accent-blue text-white rounded-tr-none'
+                            : 'bg-[#E8E5F9] text-text-main rounded-tl-none font-sans'
                             }`}>
                             {msg.parts[0].text}
                         </div>

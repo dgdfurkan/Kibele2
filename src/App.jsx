@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { LucideHome, LucideLayers, LucideMessageSquare, LucideUser, LucidePlus, LucideChevronDown, LucideSearch } from 'lucide-react';
 import { fetchAICArtworks } from './services/aicApi';
 import { useAuth } from './context/AuthContext';
-import ChatPartner from './components/ChatPartner';
+import KibelePartner from './components/KibelePartner';
 import AdminPanel from './components/AdminPanel';
 import RegisterModal from './components/RegisterModal';
 import LoginModal from './components/LoginModal';
@@ -384,7 +384,7 @@ function App() {
                 </div>
 
                 <div className="mt-20">
-                    <ChatPartner />
+                    <KibelePartner />
                 </div>
             </section>
 

@@ -127,8 +127,8 @@
   }
 }
 
-/* --- Gemini Chat UI --- */
-.gemini-chat-container {
+/* --- Kibele Chat UI --- */
+.kibele-chat-container {
   max-width: 800px;
   margin: 4rem auto 0 auto;
   background: var(--surface-color);
@@ -140,7 +140,7 @@
   flex-direction: column;
 }
 
-.gemini-chat-header {
+.kibele-chat-header {
   background: var(--surface-light);
   padding: 1.5rem 2.5rem;
   display: flex;
@@ -149,14 +149,14 @@
   border-bottom: 1px solid rgba(45, 50, 53, 0.1);
 }
 
-.gemini-title {
+.kibele-title {
   font-family: var(--font-serif);
   font-size: 1.5rem;
   font-weight: 500;
   color: var(--text-main);
 }
 
-.gemini-chat-box {
+.kibele-chat-box {
   padding: 2.5rem;
   min-height: 300px;
   max-height: 500px;
@@ -167,7 +167,7 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-.chat-message {
+.kibele-message {
   max-width: 85%;
   padding: 1.25rem 1.75rem;
   border-radius: 1.5rem;
@@ -191,7 +191,7 @@
   box-shadow: 0 4px 12px rgba(100, 180, 210, 0.2);
 }
 
-.gemini-chat-input-wrapper {
+.kibele-chat-input-wrapper {
   padding: 2rem 2.5rem;
   background: white;
   border-top: 1px solid rgba(45, 50, 53, 0.05);
@@ -200,7 +200,7 @@
   align-items: center;
 }
 
-.gemini-chat-input-wrapper textarea {
+.kibele-chat-input-wrapper textarea {
   flex: 1;
   padding: 1.25rem;
   border: 1px solid rgba(45, 50, 53, 0.1);
@@ -211,7 +211,7 @@
   transition: all 0.3s ease;
 }
 
-.gemini-chat-input-wrapper textarea:focus {
+.kibele-chat-input-wrapper textarea:focus {
   outline: none;
   border-color: var(--accent-blue);
   background: white;
