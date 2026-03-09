@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { LucideX, LucideLock, LucideUnlock, LucideSparkles } from 'lucide-react';
 import { createRoom } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const CreateRoomModal = ({ isOpen, onClose }) => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [isPrivate, setIsPrivate] = useState(false);
@@ -23,10 +25,10 @@ const CreateRoomModal = ({ isOpen, onClose }) => {
             setName('');
             setDescription('');
             setIsPrivate(false);
-            alert("İlham odan başarıyla kuruldu canım! Artık hazırsın. ✨");
+            showToast("İlham odan başarıyla kuruldu canım! Artık hazırsın. ✨");
         } catch (error) {
             console.error("Error creating room:", error);
-            alert("Oda oluşturulurken bir hata oluştu.");
+            showToast("Oda oluşturulurken bir hata oluştu.", "error");
         } finally {
             setIsSubmitting(false);
         }

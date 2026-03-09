@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { LucideSearch, LucidePlus, LucideLock, LucideUnlock, LucideLayers, LucideUsers, LucideArrowRight } from 'lucide-react';
 import { subscribeToRooms, requestRoomAccess } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import CreateRoomModal from './CreateRoomModal';
 
 const InspirationSystem = () => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [rooms, setRooms] = useState([]);
     const [activeTab, setActiveTab] = useState('explore'); // 'explore' or 'my-rooms'
     const [searchQuery, setSearchQuery] = useState('');
@@ -30,15 +32,15 @@ const InspirationSystem = () => {
 
     const handleJoinRequest = async (room) => {
         if (!user) {
-            alert("İstek göndermek için giriş yapmalısın canım!");
+            showToast("İstek göndermek için giriş yapmalısın canım!", "error");
             return;
         }
         try {
             await requestRoomAccess(room.id, room.name, user, room.creatorId);
-            alert("İsteğin gönderildi canım. It is okey, onay bekliyoruz! ✨");
+            showToast("İsteğin gönderildi canım. It is okey, onay bekliyoruz! ✨");
         } catch (error) {
             console.error("Join request error:", error);
-            alert("Bir hata oluştu, tekrar dene.");
+            showToast("Bir hata oluştu, tekrar dene.", "error");
         }
     };
 
