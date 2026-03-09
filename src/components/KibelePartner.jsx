@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { LucideSparkles, LucideSend, LucideLoader2 } from 'lucide-react';
+import { generateKibeleResponse } from '../services/kibeleApi';
 
 const KibelePartner = () => {
     const [messages, setMessages] = useState([
@@ -34,7 +33,6 @@ const KibelePartner = () => {
         setIsTyping(true);
 
         try {
-            const { generateKibeleResponse } = await import('../services/kibeleApi');
             const aiResponse = await generateKibeleResponse(KIBELE_SECRET_KEY, history, userText);
             setMessages(prev => [...prev, { role: 'ai', text: aiResponse }]);
         } catch (error) {
