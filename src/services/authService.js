@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, getDoc, setDoc, doc, serverTimestamp, increment } from "firebase/firestore";
+import { collection, query, where, getDocs, getDoc, setDoc, updateDoc, doc, serverTimestamp, increment } from "firebase/firestore";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from '../firebase';
 
@@ -38,13 +38,12 @@ export const loginWithEmail = async (email, password) => {
             lastActive: serverTimestamp(),
             loginCount: increment(1),
             isOnline: true,
-            email: user.email,
-            uid: user.uid
+            email: user.email
+            // Redundant UID removed based on user feedback
         };
 
         if (!userSnap.exists()) {
-            // Döküman yoksa oluştur (Sıfırdan tam döküman)
-            console.log("[AuthService] No profile found, creating new one for:", user.uid);
+            console.log("[AuthService] Yeni profil oluşturuluyor:", user.uid);
             await setDoc(userRef, {
                 ...baseData,
                 name: user.displayName || email.split('@')[0],
@@ -52,8 +51,7 @@ export const loginWithEmail = async (email, password) => {
                 createdAt: serverTimestamp()
             });
         } else {
-            // Döküman varsa sadece metrikleri güncelle (Merge role alanını korur)
-            console.log("[AuthService] Existing profile found, merging metrics for:", user.uid);
+            console.log("[AuthService] Mevcut profil güncelleniyor (Role korunuyor):", user.uid);
             await setDoc(userRef, baseData, { merge: true });
         }
 
@@ -65,15 +63,17 @@ export const loginWithEmail = async (email, password) => {
 };
 
 // Online durumunu güncelle (Heartbeat)
+// updateDoc kullanıyoruz ki eğer döküman yoksa (hata varsa) yeni/boş döküman YARATMASIN.
 export const updateOnlineStatus = async (uid, isOnline) => {
     try {
         const userRef = doc(db, "users", uid);
-        await setDoc(userRef, {
+        await updateDoc(userRef, {
             isOnline,
-            lastActive: serverTimestamp() // Sadece son aktiflik, son giriş DEĞİL
-        }, { merge: true });
+            lastActive: serverTimestamp()
+        });
     } catch (error) {
-        console.error("Update Online Status Error:", error);
+        // Dokuman yoksa updateDoc hata verir, bu sayede "golge dokuman" olusmaz
+        console.warn("[AuthService] Online status update skipped: Document may not exist yet.");
     }
 };
 
