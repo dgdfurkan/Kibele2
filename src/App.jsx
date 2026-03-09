@@ -389,38 +389,44 @@ function App() {
                 </div>
             </section>
 
-            <section id="hubs" className="py-32 px-[5%] bg-surface">
-                <div className="max-w-7xl mx-auto relative">
-                    <div className="max-w-2xl mb-20">
-                        <h2 className="text-5xl mb-6">İlham Odaları</h2>
-                        <p className="text-lg text-text-muted">Kendi disiplininize özel eğitilmiş estetik kümelenmeleri keşfedin.</p>
-                    </div>
+            {user ? (
+                <section id="inspiration-rooms" className="py-20 bg-surface">
+                    <InspirationSystem />
+                </section>
+            ) : (
+                <section id="hubs" className="py-32 px-[5%] bg-surface">
+                    <div className="max-w-7xl mx-auto relative">
+                        <div className="max-w-2xl mb-20">
+                            <h2 className="text-5xl mb-6">İlham Odaları</h2>
+                            <p className="text-lg text-text-muted">Kendi disiplininize özel eğitilmiş estetik kümelenmeleri keşfedin.</p>
+                        </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
-                        {rooms.map((room) => (
-                            <div
-                                key={room.id}
-                                onClick={() => handleRoomClick(room)}
-                                className={`p-10 rounded-[2.5rem] transition-all duration-500 group cursor-pointer hover:-translate-y-2 ${room.isPrivate ? 'bg-text-main text-white' : 'bg-background glass-card hover:bg-white'}`}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+                            {rooms.map((room) => (
+                                <div
+                                    key={room.id}
+                                    onClick={() => handleRoomClick(room)}
+                                    className={`p-10 rounded-[2.5rem] transition-all duration-500 group cursor-pointer hover:-translate-y-2 ${room.isPrivate ? 'bg-text-main text-white' : 'bg-background glass-card hover:bg-white'}`}
+                                >
+                                    <div className="text-4xl mb-6">{room.isPrivate ? '🔒' : '✨'}</div>
+                                    <h3 className="text-2xl mb-4 line-clamp-1">{room.name}</h3>
+                                    <p className={room.isPrivate ? 'text-white/60' : 'text-text-muted'}>
+                                        {room.isPrivate ? 'Erişim izni gereklidir.' : 'Açık ilham odası.'}
+                                    </p>
+                                </div>
+                            ))}
+
+                            <button
+                                onClick={() => setIsLoginOpen(true)}
+                                className="p-10 rounded-[2.5rem] border-2 border-dashed border-text-main/20 flex flex-col items-center justify-center gap-4 hover:border-accent-blue hover:text-accent-blue transition-all group cursor-pointer"
                             >
-                                <div className="text-4xl mb-6">{room.isPrivate ? '🔒' : '✨'}</div>
-                                <h3 className="text-2xl mb-4 line-clamp-1">{room.name}</h3>
-                                <p className={room.isPrivate ? 'text-white/60' : 'text-text-muted'}>
-                                    {room.isPrivate ? 'Erişim izni gereklidir.' : 'Açık ilham odası.'}
-                                </p>
-                            </div>
-                        ))}
-
-                        <button
-                            onClick={() => !user ? setIsLoginOpen(true) : null}
-                            className="p-10 rounded-[2.5rem] border-2 border-dashed border-text-main/20 flex flex-col items-center justify-center gap-4 hover:border-accent-blue hover:text-accent-blue transition-all group cursor-pointer"
-                        >
-                            <LucidePlus size={40} className="opacity-20 group-hover:opacity-100" />
-                            <span className="font-serif text-xl">Yeni Oda Aç</span>
-                        </button>
+                                <LucidePlus size={40} className="opacity-20 group-hover:opacity-100" />
+                                <span className="font-serif text-xl">Yeni Oda Aç</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
             <footer className="footer">
                 <div className="footer-content">
