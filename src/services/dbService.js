@@ -53,18 +53,29 @@ export const fetchAllApprovedRequests = async () => {
     }
 };
 
-export const requestRoomAccess = async (roomId, roomName, user, roomOwnerId) => {
+export const requestRoomAccess = async (roomId, roomName, user, roomOwnerId, reason = "") => {
     try {
-        await addDoc(collection(db, "room_requests"), {
+        const requestRef = await addDoc(collection(db, "room_requests"), {
             roomId,
             roomName,
             roomOwnerId,
             uid: user.uid,
             userName: user.displayName || user.email,
             userEmail: user.email,
+            reason,
             status: "pending",
             createdAt: serverTimestamp()
         });
+
+        // Oda sahibine bildirim gönder
+        await sendNotification(roomOwnerId, {
+            type: "room_request",
+            title: "Yeni Oda Katılım İsteği",
+            message: `${user.displayName || user.email}, '${roomName}' odasına katılmak istiyor.`,
+            relatedId: requestRef.id,
+            roomId: roomId
+        });
+
         return { success: true };
     } catch (e) {
         console.error("Error requesting room access: ", e);
@@ -109,6 +120,14 @@ export const approveRoomAccessRequest = async (request) => {
             approvedAt: serverTimestamp()
         }, { merge: true });
 
+        // 3. Kullanıcıya bildirim gönder
+        await sendNotification(request.uid, {
+            type: "request_approved",
+            title: "Oda İsteğin Onaylandı! ✨",
+            message: `'${request.roomName}' odasına giriş iznin verildi. Hadi içeri gir!`,
+            roomId: request.roomId
+        });
+
         return { success: true };
     } catch (e) {
         console.error("Error approving room request:", e);
@@ -116,15 +135,60 @@ export const approveRoomAccessRequest = async (request) => {
     }
 };
 
-export const rejectRoomAccessRequest = async (requestId) => {
+export const rejectRoomAccessRequest = async (request) => {
     try {
-        await setDoc(doc(db, "room_requests", requestId), {
+        await setDoc(doc(db, "room_requests", request.id), {
             status: "rejected",
             rejectedAt: serverTimestamp()
         }, { merge: true });
+
+        // Kullanıcıya bildirim gönder
+        await sendNotification(request.uid, {
+            type: "request_rejected",
+            title: "Oda İsteği Reddedildi",
+            message: `'${request.roomName}' odasına katılım isteğin ne yazık ki onaylanmadı.`,
+            roomId: request.roomId
+        });
+
         return { success: true };
     } catch (e) {
         console.error("Error rejecting room request:", e);
         throw e;
+    }
+};
+
+// --- Notifications System ---
+export const sendNotification = async (userId, data) => {
+    try {
+        await addDoc(collection(db, "notifications"), {
+            userId,
+            ...data,
+            read: false,
+            createdAt: serverTimestamp()
+        });
+    } catch (e) {
+        console.error("Error sending notification:", e);
+    }
+};
+
+export const subscribeToNotifications = (userId, callback) => {
+    const q = query(
+        collection(db, "notifications"),
+        where("userId", "==", userId),
+        orderBy("createdAt", "desc")
+    );
+    return onSnapshot(q, (snapshot) => {
+        const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(notifications);
+    });
+};
+
+export const markNotificationAsRead = async (notificationId) => {
+    try {
+        await setDoc(doc(db, "notifications", notificationId), {
+            read: true
+        }, { merge: true });
+    } catch (e) {
+        console.error("Error marking notification as read:", e);
     }
 };

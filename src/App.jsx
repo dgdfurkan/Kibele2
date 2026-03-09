@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { LucideHome, LucideLayers, LucideMessageSquare, LucideUser, LucidePlus, LucideChevronDown, LucideSearch } from 'lucide-react';
+import { LucideHome, LucideLayers, LucideMessageSquare, LucideUser, LucidePlus, LucideChevronDown, LucideSearch, LucideBell } from 'lucide-react';
 import { fetchAICArtworks } from './services/aicApi';
 import { useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
@@ -10,6 +10,7 @@ import InspirationSystem from './components/InspirationSystem';
 import AdminPanel from './components/AdminPanel';
 import RegisterModal from './components/RegisterModal';
 import LoginModal from './components/LoginModal';
+import NotificationDropdown from './components/NotificationDropdown';
 import { auth, db } from './firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
@@ -155,44 +156,50 @@ function App() {
                 <div className="min-h-screen bg-background text-text-main font-sans selection:bg-accent-blue selection:text-white">
                     <AdminPanel rooms={rooms} openOverride={isDashboardOpen} onOpenChange={setIsDashboardOpen} />
 
-                    <nav className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-4xl">
+                    <nav className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-5xl transition-all duration-500">
                         <div className="glass-card px-8 py-4 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <img src="./logo.svg" alt="Kibele Logo" className="w-8 h-8" />
-                                <div className="font-serif text-2xl font-medium">Kibele.</div>
+                                <img src="./logo.svg" alt="Kibele Logo" className="w-9 h-9" />
+                                <div className="font-serif text-2xl font-bold tracking-tight">Kibele.</div>
                             </div>
-                            <div className="hidden md:flex items-center gap-10 text-sm font-medium text-text-muted">
+                            <div className="hidden lg:flex items-center gap-10 text-xs font-bold uppercase tracking-widest text-text-muted">
                                 <a href="#kesfet" className="hover:text-accent-blue transition-colors">Keşfet</a>
-                                <a href="#nasil-calisir" className="hover:text-accent-blue transition-colors">Nasıl Çalışır</a>
-                                <a href="#hubs" className="hover:text-accent-blue transition-colors">İlham Odaları</a>
+                                <a href="#nasil-calisir" className="hover:text-accent-blue transition-colors">Yöntem</a>
+                                <a href="#inspiration-rooms" className="hover:text-accent-blue transition-colors">İlham Odaları</a>
                             </div>
                             <div className="flex items-center gap-4">
                                 {user ? (
-                                    <div className="flex items-center gap-6">
+                                    <div className="flex items-center gap-4">
                                         {isAdmin && (
                                             <button
                                                 onClick={() => setIsDashboardOpen(true)}
-                                                className="p-2 text-accent-blue hover:bg-accent-blue/5 rounded-full transition-all relative group"
+                                                className="p-2.5 text-accent-blue hover:bg-accent-blue/5 rounded-full transition-all relative group"
                                                 title="Yönetim Paneli"
                                             >
                                                 <LucideLayers size={21} />
-                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-text-main text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Yönetim Paneli</div>
                                             </button>
                                         )}
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-surface-light flex items-center justify-center text-xs font-bold text-accent-blue border border-accent-blue/20">
+
+                                        <NotificationDropdown />
+
+                                        <div className="flex items-center gap-3 pl-4 border-l border-border-light">
+                                            <div className="flex flex-col items-end hidden sm:flex">
+                                                <span className="text-xs font-bold text-text-main leading-tight">
+                                                    {user.displayName || user.email.split('@')[0]}
+                                                </span>
+                                                <button onClick={handleLogout} className="text-[10px] font-bold text-text-muted hover:text-red-500 uppercase tracking-tighter transition-colors">Çıkış Yap</button>
+                                            </div>
+                                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-accent-blue to-accent-blue-hover flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-accent-blue/20 ring-2 ring-white">
                                                 {user.displayName?.charAt(0) || user.email?.charAt(0).toUpperCase()}
                                             </div>
-                                            <span className="text-sm font-medium hidden sm:inline">{user.displayName || user.email}</span>
                                         </div>
-                                        <button onClick={handleLogout} className="text-sm text-text-muted hover:text-red-500 transition-colors">Çıkış</button>
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-4">
-                                        <button onClick={() => setIsLoginOpen(true)} className="text-sm font-medium hover:text-accent-blue transition-colors">Giriş Yap</button>
+                                        <button onClick={() => setIsLoginOpen(true)} className="text-xs font-bold uppercase tracking-widest hover:text-accent-blue transition-colors">Giriş</button>
                                         <button
                                             onClick={() => setIsRegisterOpen(true)}
-                                            className="btn-primary py-2 px-6 text-sm"
+                                            className="bg-text-main text-white py-2.5 px-6 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-accent-blue transition-all"
                                         >Kayıt Ol</button>
                                     </div>
                                 )}

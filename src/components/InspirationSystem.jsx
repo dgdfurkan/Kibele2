@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { LucideSearch, LucidePlus, LucideLock, LucideUnlock, LucideLayers, LucideUsers, LucideArrowRight } from 'lucide-react';
-import { subscribeToRooms, requestRoomAccess } from '../services/dbService';
+import React, { useState, useEffect, useRef } from 'react';
+import { LucideSearch, LucidePlus, LucideLock, LucideUnlock, LucideLayers, LucideUsers, LucideArrowRight, LucideChevronLeft, LucideChevronRight } from 'lucide-react';
+import { subscribeToRooms } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import CreateRoomModal from './CreateRoomModal';
+import RoomDetailModal from './RoomDetailModal';
 
 const InspirationSystem = () => {
     const { user } = useAuth();
@@ -12,6 +13,10 @@ const InspirationSystem = () => {
     const [activeTab, setActiveTab] = useState('explore'); // 'explore' or 'my-rooms'
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [selectedRoom, setSelectedRoom] = useState(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+    const scrollRef = useRef(null);
 
     useEffect(() => {
         const unsubscribe = subscribeToRooms((updatedRooms) => {
@@ -30,18 +35,17 @@ const InspirationSystem = () => {
         return matchesSearch;
     });
 
-    const handleJoinRequest = async (room) => {
-        if (!user) {
-            showToast("İstek göndermek için giriş yapmalısın canım!", "error");
-            return;
+    const scroll = (direction) => {
+        if (scrollRef.current) {
+            const { scrollLeft, clientWidth } = scrollRef.current;
+            const scrollTo = direction === 'left' ? scrollLeft - clientWidth / 2 : scrollLeft + clientWidth / 2;
+            scrollRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' });
         }
-        try {
-            await requestRoomAccess(room.id, room.name, user, room.creatorId);
-            showToast("İsteğin gönderildi canım. It is okey, onay bekliyoruz! ✨");
-        } catch (error) {
-            console.error("Join request error:", error);
-            showToast("Bir hata oluştu, tekrar dene.", "error");
-        }
+    };
+
+    const handleRoomClick = (room) => {
+        setSelectedRoom(room);
+        setIsDetailModalOpen(true);
     };
 
     return (
@@ -92,63 +96,85 @@ const InspirationSystem = () => {
                 </button>
             </div>
 
-            {/* Masonry Grid */}
+            {/* Carousel structure */}
             {filteredRooms.length > 0 ? (
-                <div className="masonry-grid">
-                    {filteredRooms.map((room) => (
-                        <div key={room.id} className="masonry-item group cursor-pointer">
-                            <div className="glass-panel p-6 rounded-3xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-2 rounded-xl bg-accent-blue/10 text-accent-blue">
-                                        {room.isPrivate ? <LucideLock size={20} /> : <LucideUnlock size={20} />}
+                <div className="group relative">
+                    <button
+                        onClick={() => scroll('left')}
+                        className="absolute -left-6 top-1/2 -translate-y-1/2 z-10 p-3 bg-white shadow-xl rounded-full text-text-muted hover:text-accent-blue opacity-0 group-hover:opacity-100 transition-all hidden md:block"
+                    >
+                        <LucideChevronLeft size={24} />
+                    </button>
+
+                    <div
+                        ref={scrollRef}
+                        className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide snap-x"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                        {filteredRooms.map((room) => (
+                            <div
+                                key={room.id}
+                                onClick={() => handleRoomClick(room)}
+                                className="min-w-[320px] md:min-w-[400px] snap-start"
+                            >
+                                <div className="glass-panel p-8 rounded-[2.5rem] transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 cursor-pointer border border-white/50 h-full flex flex-col">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className={`p-3 rounded-2xl ${room.isPrivate ? 'bg-text-main text-white' : 'bg-accent-blue/10 text-accent-blue'}`}>
+                                            {room.isPrivate ? <LucideLock size={22} /> : <LucideUnlock size={22} />}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-xs font-bold px-4 py-1.5 bg-surface-light rounded-full border border-border-light uppercase tracking-wider">
+                                            <LucideUsers size={14} />
+                                            {room.participants?.length || 0} Üye
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-xs font-medium px-3 py-1 bg-surface-light rounded-full border border-border-light">
-                                        <LucideUsers size={14} />
-                                        {room.participants?.length || 0} Üye
+
+                                    <h3 className="text-2xl font-display font-bold mb-3 line-clamp-1">
+                                        {room.name}
+                                    </h3>
+
+                                    <p className="text-text-muted text-sm line-clamp-3 mb-8 italic flex-grow">
+                                        "{room.description || "Bu oda yaratıcı dünyaların keşfedildiği özel bir alandır."}"
+                                    </p>
+
+                                    <div className="flex items-center justify-between pt-6 border-t border-border-light/50">
+                                        <div className="flex -space-x-3">
+                                            {[1, 2, 3].map(i => (
+                                                <div key={i} className="w-9 h-9 rounded-full border-2 border-white bg-gradient-to-br from-surface-light to-border-light flex items-center justify-center text-[10px] font-bold text-text-muted">
+                                                    {i}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <span className="text-accent-blue text-sm font-bold flex items-center gap-2 group/btn">
+                                            İncele <LucideArrowRight size={16} className="transition-transform group-hover/btn:translate-x-1" />
+                                        </span>
                                     </div>
-                                </div>
-
-                                <h3 className="text-xl font-display font-semibold mb-2 group-hover:text-accent-blue transition-colors">
-                                    {room.name}
-                                </h3>
-
-                                <p className="text-text-muted text-sm line-clamp-3 mb-6">
-                                    {room.description || "Bu oda için henüz bir açıklama girilmemiş."}
-                                </p>
-
-                                <div className="flex items-center justify-between mt-auto">
-                                    <div className="flex -space-x-2">
-                                        {[1, 2, 3].map(i => (
-                                            <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-gray-200" />
-                                        ))}
-                                    </div>
-
-                                    {room.participants?.includes(user?.uid) || room.creatorId === user?.uid ? (
-                                        <button className="text-accent-blue text-sm font-semibold flex items-center gap-1">
-                                            İçeri Gir <LucideArrowRight size={14} />
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => handleJoinRequest(room)}
-                                            className="bg-accent-blue/10 text-accent-blue px-4 py-1.5 rounded-xl text-sm font-semibold hover:bg-accent-blue hover:text-white transition-all"
-                                        >
-                                            {room.isPrivate ? 'İstek Gönder' : 'Katıl'}
-                                        </button>
-                                    )}
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
+
+                    <button
+                        onClick={() => scroll('right')}
+                        className="absolute -right-6 top-1/2 -translate-y-1/2 z-10 p-3 bg-white shadow-xl rounded-full text-text-muted hover:text-accent-blue opacity-0 group-hover:opacity-100 transition-all hidden md:block"
+                    >
+                        <LucideChevronRight size={24} />
+                    </button>
                 </div>
             ) : (
-                <div className="text-center py-20 glass-panel rounded-3xl">
-                    <LucideLayers className="mx-auto text-text-muted mb-4" size={48} />
-                    <h3 className="text-xl font-medium mb-1">Henüz buna uygun bir oda yok.</h3>
-                    <p className="text-text-muted">Kendi odanı kurarak ilk adımı sen atabilirsin canım! ✨</p>
+                <div className="text-center py-20 bg-surface-light/30 rounded-[3rem] border-2 border-dashed border-border-light">
+                    <LucideLayers className="mx-auto text-text-muted mb-4 opacity-20" size={64} />
+                    <h3 className="text-2xl font-display font-medium mb-1">Henüz buna uygun bir oda yok.</h3>
+                    <p className="text-text-muted text-lg">Kendi odanı kurarak ilk adımı sen atabilirsin canım! ✨</p>
                 </div>
             )}
 
             <CreateRoomModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+            <RoomDetailModal
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                room={selectedRoom}
+            />
         </div>
     );
 };
