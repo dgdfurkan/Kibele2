@@ -1,3 +1,5 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { LucideSparkles, LucideSend, LucideLoader2 } from 'lucide-react';
 import { generateKibeleResponse } from '../services/kibeleApi';
 
 const KibelePartner = () => {
