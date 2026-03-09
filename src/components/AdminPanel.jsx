@@ -242,6 +242,13 @@ const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
                                         <div className="grid grid-cols-1 gap-4">
                                             {students.map(student => {
                                                 const joinedRooms = getStudentRooms(student.id);
+
+                                                // Dynamic Presence Check: 5 minute threshold (Heartbeat is 4 mins)
+                                                const now = new Date();
+                                                const lastActiveDate = student.lastActive?.toDate ? student.lastActive.toDate() : (student.lastActive?.seconds ? new Date(student.lastActive.seconds * 1000) : null);
+                                                const isRecentlyActive = lastActiveDate && (now - lastActiveDate) < 5 * 60 * 1000;
+                                                const isReallyOnline = student.isOnline && isRecentlyActive;
+
                                                 return (
                                                     <div key={student.id} className="glass-card !bg-white/40 px-6 py-4 border-white/60 hover:border-accent-blue/20 transition-all flex flex-wrap items-center justify-between gap-6 group">
                                                         <div className="flex items-center gap-4 flex-1 min-w-[300px]">
@@ -249,7 +256,7 @@ const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
                                                                 <div className="w-12 h-12 rounded-2xl bg-surface-light flex items-center justify-center text-accent-blue font-bold text-lg shadow-sm border border-white">
                                                                     {student.name?.charAt(0) || '?'}
                                                                 </div>
-                                                                <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${student.isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
+                                                                <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${isReallyOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
                                                             </div>
                                                             <div className="overflow-hidden">
                                                                 <h5 className="font-bold text-text-main text-sm truncate">{student.name || 'İsimsiz'}</h5>
@@ -269,7 +276,7 @@ const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
                                                                 <div className="text-[8px] text-text-muted uppercase tracking-widest font-bold">Giriş</div>
                                                             </div>
                                                             <div className="text-right min-w-[120px]">
-                                                                {student.isOnline ? (
+                                                                {isReallyOnline ? (
                                                                     <div className="bg-green-50 text-green-600 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-green-100 animate-pulse inline-block">
                                                                         ŞU AN AKTİF
                                                                     </div>
@@ -301,7 +308,8 @@ const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
                                                         </div>
                                                     </div>
                                                 );
-                                            })}
+                                            })
+                                            }
                                         </div>
                                     )}
                                 </div>
@@ -312,7 +320,7 @@ const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
                             <p className="text-[10px] uppercase tracking-widest text-text-muted opacity-60">Kibele2 Yönetim Arabirimi © 2026</p>
                         </div>
                     </div>
-                </div>
+                </div >
             )}
         </>
     );
