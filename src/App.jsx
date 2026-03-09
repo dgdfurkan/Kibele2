@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { LucideHome, LucideLayers, LucideMessageSquare, LucideUser, LucidePlus, LucideChevronDown, LucideSearch } from 'lucide-react';
 import { fetchAICArtworks } from './services/aicApi';
 import { useAuth } from './context/AuthContext';
-import KibeleChat from './components/KibeleChat';
+import ChatPartner from './components/ChatPartner';
 import AdminPanel from './components/AdminPanel';
 import RegisterModal from './components/RegisterModal';
 import LoginModal from './components/LoginModal';
@@ -379,9 +379,12 @@ function App() {
                         <div key={i} className={`p-12 rounded-[2rem] border transition-all duration-500 group hover:-translate-y-2 ${step.active ? 'bg-white border-accent-blue/30 shadow-xl shadow-accent-blue/5' : 'bg-surface-light/50 border-transparent hover:bg-white hover:shadow-xl'}`}>
                             <div className={`font-serif text-6xl mb-6 italic transition-colors duration-500 ${step.active ? 'text-accent-blue opacity-100' : 'text-text-muted opacity-20 group-hover:text-accent-blue group-hover:opacity-100'}`}>{step.num}</div>
                             <h3 className="text-2xl mb-4">{step.title}</h3>
-                            <p className="text-text-muted leading-relaxed">{step.desc}</p>
                         </div>
                     ))}
+                </div>
+
+                <div className="mt-20">
+                    <ChatPartner />
                 </div>
             </section>
 
