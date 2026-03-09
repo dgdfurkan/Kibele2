@@ -1,4 +1,4 @@
-const KIBELE_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+const KIBELE_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
 // Alternatif: "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
 const KIBELE_PERSONA = `
@@ -27,7 +27,7 @@ export const generateKibeleResponse = async (apiKey, history, newMessage) => {
 
         // Eğer 404 alırsak Pro modelini deneyelim (Fallback)
         if (response.status === 404) {
-            const FALLBACK_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+            const FALLBACK_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent";
             response = await fetch(`${FALLBACK_URL}?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
