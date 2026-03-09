@@ -35,6 +35,7 @@ export const loginWithEmail = async (email, password) => {
 
         const baseData = {
             lastLogin: serverTimestamp(),
+            lastActive: serverTimestamp(),
             loginCount: increment(1),
             isOnline: true,
             email: user.email,
