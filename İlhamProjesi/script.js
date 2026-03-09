@@ -368,7 +368,7 @@ function initGeminiChat() {
     const sendBtn = document.getElementById('gemini-send-btn');
     const chatBox = document.getElementById('gemini-chat-box');
 
-    const geminiApiKey = 'AIzaSyBbbVYBhmhik8wgLJg9_H2J2URi1cldsOM';
+    const GEMINI_API_KEY = ""; // Removed for security
     let conversationHistory = [
         {
             role: "user",

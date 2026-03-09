@@ -12,7 +12,7 @@ const ChatPartner = () => {
     const [isTyping, setIsTyping] = useState(false);
     const chatBoxRef = useRef(null);
 
-    const GEMINI_API_KEY = 'AIzaSyBbbVYBhmhik8wgLJg9_H2J2URi1cldsOM'; // User's provided key from script.js
+    const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
     useEffect(() => {
         if (chatBoxRef.current) {
