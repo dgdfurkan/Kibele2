@@ -5,6 +5,7 @@ import { LucideHome, LucideLayers, LucideMessageSquare, LucideUser, LucidePlus, 
 import { fetchAICArtworks } from './services/aicApi';
 import { useAuth } from './context/AuthContext';
 import KibelePartner from './components/KibelePartner';
+import InspirationSystem from './components/InspirationSystem';
 import AdminPanel from './components/AdminPanel';
 import RegisterModal from './components/RegisterModal';
 import LoginModal from './components/LoginModal';
