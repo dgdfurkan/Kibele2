@@ -24,40 +24,18 @@ const ChatPartner = () => {
         if (!input.trim() || isTyping) return;
 
         const userText = input.trim();
+        const history = messages.map(msg => ({
+            role: msg.role === 'ai' ? 'model' : 'user',
+            parts: [{ text: msg.text }]
+        }));
+
         setInput('');
         setMessages(prev => [...prev, { role: 'user', text: userText }]);
         setIsTyping(true);
 
         try {
-            const conversationHistory = [
-                {
-                    role: "user",
-                    parts: [{ text: "Sen Kibele adında bir yapay zeka sanat partnerisin. Konuşmalarında samimi ve destekleyici bir ton kullan. 'Canım' ve 'it is okey' gibi kelimeleri veya kalıpları doğal bir şekilde aralara serpiştirerek cevaplar ver. Kullanıcıya her zaman ilham verici, sanat odaklı ve rahatlatıcı bir üslupla yaklaş." }]
-                },
-                {
-                    role: "model",
-                    parts: [{ text: "Anladım canım. It is okey, yaratıcı sürecinde her zaman yanındayım. Hadi ilham verici fikirlerimizi paylaşalım!" }]
-                },
-                ...messages.map(msg => ({
-                    role: msg.role === 'ai' ? 'model' : 'user',
-                    parts: [{ text: msg.text }]
-                })),
-                { role: 'user', parts: [{ text: userText }] }
-            ];
-
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: conversationHistory })
-            });
-
-            if (!response.ok) throw new Error("Kibele şu an biraz yorgun... It is okey, sonra tekrar deneyelim.");
-
-            const data = await response.json();
-            const aiResponse = data.candidates[0].content.parts[0].text;
-
+            const { generateKibeleResponse } = await import('../services/geminiApi');
+            const aiResponse = await generateKibeleResponse(GEMINI_API_KEY, history, userText);
             setMessages(prev => [...prev, { role: 'ai', text: aiResponse }]);
         } catch (error) {
             console.error("Chat Error:", error);
