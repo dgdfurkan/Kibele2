@@ -43,7 +43,6 @@ export const loginWithEmail = async (email, password) => {
         };
 
         if (!userSnap.exists()) {
-            console.log("[AuthService] Yeni profil oluşturuluyor:", user.uid);
             await setDoc(userRef, {
                 ...baseData,
                 name: user.displayName || email.split('@')[0],
@@ -51,7 +50,6 @@ export const loginWithEmail = async (email, password) => {
                 createdAt: serverTimestamp()
             });
         } else {
-            console.log("[AuthService] Mevcut profil güncelleniyor (Role korunuyor):", user.uid);
             await setDoc(userRef, baseData, { merge: true });
         }
 
