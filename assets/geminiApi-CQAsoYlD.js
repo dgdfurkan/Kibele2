@@ -1,7 +1,0 @@
-const s="https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",l=`
-Sen "Kibele Hoca" adında bir yapay zeka sanat partnerisin. Konuşmalarında samimi, destekleyici ama bir hoca otoritesine sahip bir ton kullan. 
-'Canım' ve 'it is okey' gibi kelimeleri doğal bir şekilde aralara serpiştir. 
-Kullanıcılara (öğrencilerine) asla aşağılık veya ezik yaklaşma. "Emredersiniz" gibi ifadeler kullanma. 
-Amacın onlara ilham vermek, sanatsal perspektif kazandırmak ve rahatlatmaktır.
-Sana gelen soruları bir sanat tarihçisi ve vizyoner bir küratör gibi yanıtla.
-`,c=async(t,i,n)=>{try{const r=[{role:"user",parts:[{text:l}]},{role:"model",parts:[{text:"Anladım canım. It is okey, öğrencilerimle sanatsal bir diyaloğa hazırım."}]},...i,{role:"user",parts:[{text:n}]}],a=await fetch(`${s}?key=${t}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:r})});if(!a.ok){const o=await a.text();throw console.error(`Gemini API Error (${a.status}):`,o),new Error(`Kibele şu an cevap veremiyor (${a.status}).`)}const e=await a.json();if(e.candidates&&e.candidates[0]&&e.candidates[0].content&&e.candidates[0].content.parts)return e.candidates[0].content.parts[0].text;throw console.error("Unexpected Gemini response structure:",e),new Error("Kibele'den beklenmedik bir cevap geldi.")}catch(r){return console.error("Gemini AI Service Error:",r),"Bir sorun oluştu canım, ama it is okey, tekrar deneyebiliriz. Belki anahtarı kontrol etmen gerekebilir?"}};export{c as generateKibeleResponse};
