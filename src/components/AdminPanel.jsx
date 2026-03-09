@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { approveRoomAccessRequest, rejectRoomAccessRequest, fetchAllStudents, fetchAllApprovedRequests } from '../services/dbService';
+import { updateOnlineStatus } from '../services/authService';
 import { LucideCheck, LucideX, LucideBell, LucideLoader2, LucideSparkles, LucideMail, LucideLayers, LucideUsers, LucideActivity, LucideClock, LucideCalendar } from 'lucide-react';
 
 const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
@@ -73,6 +74,28 @@ const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
         setApprovedRequests(approvedData);
         setLoadingStudents(false);
     };
+
+    // Self-healing: Arka planda bayat online durumlarını temizle
+    useEffect(() => {
+        if (!loadingStudents && students.length > 0) {
+            const now = new Date();
+            const staleStudents = students.filter(student => {
+                if (!student.isOnline) return false;
+                const lastActiveDate = student.lastActive?.toDate ? student.lastActive.toDate() : (student.lastActive?.seconds ? new Date(student.lastActive.seconds * 1000) : null);
+                if (!lastActiveDate) return true; // Hiç aktiflik yoksa ama online ise temizle
+                return (now - lastActiveDate) > 6 * 60 * 1000; // 6 dakikadan fazla süre geçmişse
+            });
+
+            if (staleStudents.length > 0) {
+                console.log(`[Self-healing] ${staleStudents.length} bayat online durumu temizleniyor...`);
+                staleStudents.forEach(stale => {
+                    updateOnlineStatus(stale.id, false).catch(err => {
+                        console.warn(`[Self-healing] ${stale.id} temizlenirken hata:`, err.message);
+                    });
+                });
+            }
+        }
+    }, [students, loadingStudents]);
 
     const handleApprove = async (request) => {
         if (!confirm(`${request.userName} adlı kullanıcının ${request.roomName} odasına katılım isteğini onaylamak istiyor musunuz?`)) return;
