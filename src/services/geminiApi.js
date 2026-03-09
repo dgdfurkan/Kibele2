@@ -23,10 +23,22 @@ export const generateKibeleResponse = async (apiKey, history, newMessage) => {
             body: JSON.stringify({ contents })
         });
 
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.error(`Gemini API Error (${response.status}):`, errorBody);
+            throw new Error(`Kibele şu an cevap veremiyor (${response.status}).`);
+        }
+
         const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
+
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+            return data.candidates[0].content.parts[0].text;
+        } else {
+            console.error("Unexpected Gemini response structure:", data);
+            throw new Error("Kibele'den beklenmedik bir cevap geldi.");
+        }
     } catch (error) {
-        console.error("Gemini AI Error:", error);
-        return "Bir sorun oluştu canım, ama it is okey, tekrar deneyebiliriz.";
+        console.error("Gemini AI Service Error:", error);
+        return "Bir sorun oluştu canım, ama it is okey, tekrar deneyebiliriz. Belki anahtarı kontrol etmen gerekebilir?";
     }
 };
