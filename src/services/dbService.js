@@ -86,9 +86,17 @@ export const requestRoomAccess = async (roomId, roomName, user, roomOwnerId, rea
 };
 
 export const subscribeToRoomRequests = (callback) => {
-    const q = query(collection(db, "room_requests"), where("status", "==", "pending"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "room_requests"), where("status", "==", "pending"));
     return onSnapshot(q, (snapshot) => {
-        const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Client-side sorting
+        requests.sort((a, b) => {
+            const timeA = a.createdAt?.seconds || 0;
+            const timeB = b.createdAt?.seconds || 0;
+            return timeB - timeA;
+        });
+
         callback(requests);
     }, (error) => {
         console.error("Error subscribing to room requests:", error);
@@ -179,11 +187,19 @@ export const sendNotification = async (userId, data) => {
 export const subscribeToNotifications = (userId, callback) => {
     const q = query(
         collection(db, "notifications"),
-        where("userId", "==", userId),
-        orderBy("createdAt", "desc")
+        where("userId", "==", userId)
+        // orderBy removed to avoid index requirement
     );
     return onSnapshot(q, (snapshot) => {
-        const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Client-side sorting
+        notifications.sort((a, b) => {
+            const timeA = a.createdAt?.seconds || 0;
+            const timeB = b.createdAt?.seconds || 0;
+            return timeB - timeA;
+        });
+
         callback(notifications);
     }, (error) => {
         console.error("Error subscribing to notifications:", error);
@@ -286,21 +302,30 @@ export const subscribeToRoomItems = (roomId, boardType, userId, callback) => {
         q = query(
             collection(db, "room_items"),
             where("roomId", "==", roomId),
-            where("boardType", "==", "shared"),
-            orderBy("createdAt", "desc")
+            where("boardType", "==", "shared")
+            // orderBy removed to avoid composite index requirement
         );
     } else {
         q = query(
             collection(db, "room_items"),
             where("roomId", "==", roomId),
             where("userId", "==", userId),
-            where("boardType", "==", "personal"),
-            orderBy("createdAt", "desc")
+            where("boardType", "==", "personal")
+            // orderBy removed to avoid composite index requirement
         );
     }
 
     return onSnapshot(q, (snapshot) => {
-        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Client-side sorting as a fallback for missing indexes
+        // We sort by createdAt (serverTimestamp) descendently
+        items.sort((a, b) => {
+            const timeA = a.createdAt?.seconds || 0;
+            const timeB = b.createdAt?.seconds || 0;
+            return timeB - timeA;
+        });
+
         callback(items);
     }, (error) => {
         console.error("Error subscribing to room items:", error);
