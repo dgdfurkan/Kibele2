@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { LucideX, LucideLock, LucideUnlock, LucideUsers, LucideSend, LucideInfo } from 'lucide-react';
+import { LucideX, LucideLock, LucideUnlock, LucideUsers, LucideSend, LucideInfo, LucideCalendar, LucideUser, LucideCircle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { requestRoomAccess } from '../services/dbService';
+import { requestRoomAccess, getUsersProfiles, getUserProfile } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
+import { useEffect } from 'react';
 
 const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
     const { user } = useAuth();
@@ -10,12 +10,40 @@ const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
     const [view, setView] = useState('detail'); // 'detail' or 'request'
     const [reason, setReason] = useState('');
     const [loading, setLoading] = useState(false);
+    const [participantsInfo, setParticipantsInfo] = useState([]);
+    const [creatorInfo, setCreatorInfo] = useState(null);
+
+    useEffect(() => {
+        if (isOpen && room) {
+            fetchDetails();
+        }
+    }, [isOpen, room]);
+
+    const fetchDetails = async () => {
+        if (!room.participants) return;
+
+        // Katılımcı bilgilerini çek
+        const profiles = await getUsersProfiles(room.participants);
+        setParticipantsInfo(profiles);
+
+        // Kurucu bilgisini çek (eğer katılımcı listesinde yoksa veya özel bilgi gerekiyorsa)
+        if (room.creatorId) {
+            const creator = await getUserProfile(room.creatorId);
+            setCreatorInfo(creator);
+        }
+    };
 
     if (!isOpen || !room) return null;
 
     const handleEnterRoom = () => {
         onEnterRoom(room);
         onClose();
+    };
+
+    const formatDate = (timestamp) => {
+        if (!timestamp) return "...";
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
     };
 
     const handleSendRequest = async () => {
@@ -70,17 +98,43 @@ const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
                             </div>
 
                             <h2 className="text-3xl font-display font-bold mb-1">{room.name}</h2>
-                            <div className="flex items-center gap-2 mb-6">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6">
                                 <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted/60 flex items-center gap-1">
-                                    Kurucu: <span className="text-text-main">{room.creatorName || "İsimsiz Kurucu"}</span>
+                                    <LucideUser size={10} className="text-accent-blue" />
+                                    Kurucu: <span className="text-text-main">{creatorInfo?.name || room.creatorName || "İsimsiz Kurucu"}</span>
+                                </span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted/60 flex items-center gap-1">
+                                    <LucideCalendar size={10} className="text-accent-blue" />
+                                    Kuruluş: <span className="text-text-main">{formatDate(room.createdAt)}</span>
                                 </span>
                             </div>
 
-                            <div className="bg-surface-light/50 p-6 rounded-[2rem] border border-border-light/30 mb-8">
+                            <div className="bg-surface-light/50 p-6 rounded-[2rem] border border-border-light/30 mb-6">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-accent-blue block mb-2 opacity-50">Oda Açıklaması</span>
                                 <p className="text-text-main leading-relaxed text-sm">
                                     {room.description || "Bu oda yaratıcı süreçlerin paylaşıldığı özel bir alan."}
                                 </p>
+                            </div>
+
+                            {/* Katılımcılar Listesi */}
+                            <div className="mb-8">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-text-muted/40 block mb-3">Katılımcılar ({room.participants?.length || 0})</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {participantsInfo.map((p) => (
+                                        <div key={p.id} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-border-light/50 shadow-sm">
+                                            <div className="relative">
+                                                <LucideUser size={12} className="text-text-muted" />
+                                                {p.isOnline && (
+                                                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full border border-white shadow-sm" />
+                                                )}
+                                            </div>
+                                            <span className="text-[11px] font-medium text-text-main">{p.name || "Kullanıcı"}</span>
+                                        </div>
+                                    ))}
+                                    {participantsInfo.length === 0 && (
+                                        <span className="text-xs text-text-muted italic opacity-50">Katılımcı bilgileri yükleniyor...</span>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="flex gap-4">

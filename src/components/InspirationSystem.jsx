@@ -124,7 +124,7 @@ const InspirationSystem = ({ onEnterRoom }) => {
                                         {room.name}
                                     </h3>
                                     <div className="flex items-center gap-1.5 text-text-muted text-[10px] font-medium opacity-60">
-                                        Kurucu: {room.creatorName?.split(' ')[0] || "Küratör"}
+                                        Kurucu: {room.creatorName ? room.creatorName.split(' ')[0] : "Kibele Küratörü"}
                                     </div>
                                 </div>
 

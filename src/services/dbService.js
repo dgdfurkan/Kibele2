@@ -1,7 +1,5 @@
 import { collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, doc, setDoc, getDoc, getDocs, increment } from "firebase/firestore";
-import { db, firebaseConfig } from "../firebase";
-import { initializeApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import { db } from "../firebase";
 
 // Rooms logic
 export const createRoom = async (name, creatorId, isPrivate = false, password = "", description = "") => {
@@ -212,6 +210,42 @@ export const getRequestById = async (requestId) => {
         return null;
     } catch (e) {
         console.error("Error fetching request by ID:", e);
+        return null;
+    }
+};
+// Birden fazla kullanıcı profilini ID'lere göre getir
+export const getUsersProfiles = async (uids) => {
+    if (!uids || uids.length === 0) return [];
+
+    try {
+        const profiles = [];
+        // Firestore 'in' sorgusu max 10 item alabilir
+        const q = query(collection(db, "users"), where("__name__", "in", uids.slice(0, 10)));
+        const querySnapshot = await getDocs(q);
+
+        querySnapshot.forEach((doc) => {
+            profiles.push({ id: doc.id, ...doc.data() });
+        });
+
+        return profiles;
+    } catch (error) {
+        console.error("Error fetching user profiles:", error);
+        return [];
+    }
+};
+
+// Tek bir kullanıcı profilini getir
+export const getUserProfile = async (uid) => {
+    if (!uid) return null;
+    try {
+        const userRef = doc(db, "users", uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            return { id: userSnap.id, ...userSnap.data() };
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching user profile:", error);
         return null;
     }
 };
