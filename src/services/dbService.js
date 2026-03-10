@@ -4,13 +4,14 @@ import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 
 // Rooms logic
-export const createRoom = async (name, creatorId, isPrivate = false, password = "") => {
+export const createRoom = async (name, creatorId, isPrivate = false, password = "", description = "") => {
     try {
         const docRef = await addDoc(collection(db, "rooms"), {
             name,
             creatorId,
             isPrivate,
             password,
+            description,
             createdAt: serverTimestamp(),
             participants: [creatorId]
         });

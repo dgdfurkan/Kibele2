@@ -46,11 +46,21 @@ const RoomRequestView = ({ room, onBack, onRequestAccess, isPending }) => {
                 {/* Action Section */}
                 {!isPending ? (
                     <div className="w-full max-w-md flex flex-col space-y-4">
-                        <p className="text-sm text-text-muted dark:text-gray-400 px-6">
-                            Bu ilham odasına erişim sağlamak için eğitmeninizin onayına ihtiyacınız var.
-                        </p>
+                        <div className="bg-surface-light px-6 py-4 rounded-2xl border border-border-light/50">
+                            <label className="block text-xs font-bold text-text-muted uppercase tracking-widest mb-2 text-left">
+                                Neden Katılmak İstiyorsun?
+                            </label>
+                            <textarea
+                                id="join-reason"
+                                placeholder="Eğitmenine minik bir not bırak canım... ✨"
+                                className="w-full bg-transparent border-none outline-none text-sm text-text-main placeholder:text-text-muted/40 resize-none min-h-[80px]"
+                            />
+                        </div>
                         <button
-                            onClick={onRequestAccess}
+                            onClick={() => {
+                                const reason = document.getElementById('join-reason').value;
+                                onRequestAccess(reason);
+                            }}
                             className="bg-accent-blue hover:bg-opacity-90 text-white font-medium py-4 px-8 rounded-2xl transition-all shadow-lg hover:shadow-accent-blue/20 flex items-center justify-center space-x-2 group"
                         >
                             <span>İlham Odasına Katılma İsteği Gönder</span>

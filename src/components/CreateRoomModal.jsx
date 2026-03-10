@@ -20,7 +20,7 @@ const CreateRoomModal = ({ isOpen, onClose }) => {
 
         setIsSubmitting(true);
         try {
-            await createRoom(name, user.uid, isPrivate, "");
+            await createRoom(name, user.uid, isPrivate, "", description);
             onClose();
             setName('');
             setDescription('');

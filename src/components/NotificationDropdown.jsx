@@ -2,21 +2,36 @@ import React, { useState, useRef, useEffect } from 'react';
 import { LucideBell, LucideCheck, LucideExternalLink, LucideCircle } from 'lucide-react';
 import { subscribeToNotifications, markNotificationAsRead } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import RequestActionModal from './RequestActionModal';
 
 const NotificationDropdown = () => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
+    const [lastNotifId, setLastNotifId] = useState(null);
     const [selectedRequestId, setSelectedRequestId] = useState(null);
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     useEffect(() => {
         if (!user) return;
-        const unsubscribe = subscribeToNotifications(user.uid, setNotifications);
+        const unsubscribe = subscribeToNotifications(user.uid, (newNotifs) => {
+            setNotifications(newNotifs);
+
+            // Gerçek zamanlı Toast bildirimi
+            const unread = newNotifs.filter(n => !n.read);
+            if (unread.length > 0) {
+                const latest = unread[0];
+                if (latest.id !== lastNotifId) {
+                    showToast(latest.message);
+                    setLastNotifId(latest.id);
+                }
+            }
+        });
         return () => unsubscribe();
-    }, [user]);
+    }, [user, lastNotifId, showToast]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {

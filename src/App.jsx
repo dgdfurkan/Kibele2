@@ -113,11 +113,11 @@ function App() {
         }
     };
 
-    const handleRequestAccess = async () => {
+    const handleRequestAccess = async (reason = "") => {
         if (!user || !selectedRoom) return;
         try {
             const { requestRoomAccess } = await import('./services/dbService');
-            await requestRoomAccess(selectedRoom.id, selectedRoom.name, user, selectedRoom.creatorId);
+            await requestRoomAccess(selectedRoom.id, selectedRoom.name, user, selectedRoom.creatorId, reason);
         } catch (error) {
             alert("İstek gönderilirken bir hata oluştu: " + error.message);
         }
@@ -145,7 +145,7 @@ function App() {
                 <RoomRequestView
                     room={selectedRoom}
                     onBack={() => setCurrentView('hub')}
-                    onRequestAccess={handleRequestAccess}
+                    onRequestAccess={(reason) => handleRequestAccess(reason)}
                     isPending={userRequests.some(r => r.roomId === selectedRoom?.id && r.status === 'pending')}
                 />
             ) : currentView === 'detail' ? (
