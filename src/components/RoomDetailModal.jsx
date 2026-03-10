@@ -2,7 +2,7 @@ import { LucideX, LucideLock, LucideUnlock, LucideUsers, LucideSend, LucideInfo,
 import { useToast } from '../context/ToastContext';
 import { requestRoomAccess, getUsersProfiles, getUserProfile } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
-import { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
     const { user } = useAuth();
