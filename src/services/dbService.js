@@ -249,6 +249,65 @@ export const getUserProfile = async (uid) => {
         return null;
     }
 };
+// --- Room Items (Images, Notes, etc.) ---
+export const addRoomItem = async (roomId, userId, itemData) => {
+    try {
+        const itemRef = await addDoc(collection(db, "room_items"), {
+            roomId,
+            userId,
+            authorName: itemData.authorName || "Kullanıcı",
+            type: itemData.type, // 'image', 'note', 'link'
+            content: itemData.content, // url or text
+            title: itemData.title || "",
+            boardType: itemData.boardType || "personal", // 'personal' or 'shared'
+            createdAt: serverTimestamp()
+        });
+        return itemRef.id;
+    } catch (e) {
+        console.error("Error adding room item: ", e);
+        throw e;
+    }
+};
+
+export const deleteRoomItem = async (itemId) => {
+    try {
+        const { deleteDoc } = await import("firebase/firestore");
+        await deleteDoc(doc(db, "room_items", itemId));
+        return { success: true };
+    } catch (e) {
+        console.error("Error deleting room item: ", e);
+        throw e;
+    }
+};
+
+export const subscribeToRoomItems = (roomId, boardType, userId, callback) => {
+    let q;
+    if (boardType === 'shared') {
+        q = query(
+            collection(db, "room_items"),
+            where("roomId", "==", roomId),
+            where("boardType", "==", "shared"),
+            orderBy("createdAt", "desc")
+        );
+    } else {
+        q = query(
+            collection(db, "room_items"),
+            where("roomId", "==", roomId),
+            where("userId", "==", userId),
+            where("boardType", "==", "personal"),
+            orderBy("createdAt", "desc")
+        );
+    }
+
+    return onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(items);
+    }, (error) => {
+        console.error("Error subscribing to room items:", error);
+        callback([]);
+    });
+};
+
 // Doğrudan odaya katıl (Açık odalar için)
 export const joinRoom = async (roomId, userId) => {
     try {

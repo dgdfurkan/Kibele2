@@ -18,8 +18,7 @@ import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { subscribeToRooms } from './services/dbService';
 
 import RoomRequestView from './views/RoomView/RoomRequestView';
-import RoomDetailView from './views/RoomView/RoomDetailView';
-import SharedBoardView from './views/RoomView/SharedBoardView';
+import InspirationWorkspace from './views/RoomView/InspirationWorkspace';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -33,7 +32,7 @@ function App() {
     const [artworks, setArtworks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [rooms, setRooms] = useState([]);
-    const [currentView, setCurrentView] = useState('hub'); // hub, request, detail, board
+    const [currentView, setCurrentView] = useState('hub'); // hub, request, workspace
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [userRequests, setUserRequests] = useState([]);
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
@@ -112,7 +111,7 @@ function App() {
         if (room.isPrivate && !isParticipant) {
             setCurrentView('request');
         } else {
-            setCurrentView(room.isShared ? 'board' : 'detail');
+            setCurrentView('workspace');
         }
     };
 
@@ -151,10 +150,8 @@ function App() {
                     onRequestAccess={(reason) => handleRequestAccess(reason)}
                     isPending={userRequests.some(r => r.roomId === selectedRoom?.id && r.status === 'pending')}
                 />
-            ) : currentView === 'detail' ? (
-                <RoomDetailView room={selectedRoom} onBack={() => setCurrentView('hub')} />
-            ) : currentView === 'board' ? (
-                <SharedBoardView room={selectedRoom} onBack={() => setCurrentView('hub')} />
+            ) : currentView === 'workspace' ? (
+                <InspirationWorkspace room={selectedRoom} onBack={() => setCurrentView('hub')} />
             ) : (
                 <div className="min-h-screen bg-background text-text-main font-sans selection:bg-accent-blue selection:text-white">
                     <AdminPanel rooms={rooms} openOverride={isDashboardOpen} onOpenChange={setIsDashboardOpen} />

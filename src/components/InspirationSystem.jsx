@@ -159,6 +159,7 @@ const InspirationSystem = ({ onEnterRoom }) => {
                 isOpen={isDetailModalOpen}
                 onClose={() => setIsDetailModalOpen(false)}
                 room={selectedRoom}
+                onEnterRoom={onEnterRoom}
             />
         </div>
     );

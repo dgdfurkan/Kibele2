@@ -50,5 +50,20 @@ service cloud.firestore {
       // Silme yetkisi şimdilik kapalı veya sadece admin
       allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
+
+    // Oda İçerikleri (Notlar, Resimler vb.)
+    match /room_items/{itemId} {
+      // Okuma herkese açık (Oda bazlı kısıtlama ileride eklenebilir)
+      allow read: if true;
+      // Yazma yetkisi giriş yapmış herkese
+      allow create: if request.auth != null;
+      // Sadece kendi ögesini veya admin silebilir
+      allow delete: if request.auth != null && (
+        request.auth.uid == resource.data.userId || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+      // Güncelleme şimdilik kapalı veya sadece sahibi
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
   }
 }

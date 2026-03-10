@@ -1,154 +1,229 @@
-import React, { useState } from 'react';
-import { LucideShare2, LucideMoreHorizontal, LucidePlus, LucideEdit3, LucideFileUp, LucideSparkles, LucideX, LucideSearch, LucideRefreshCcw, LucideFilter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LucideShare2, LucideMoreHorizontal, LucidePlus, LucideEdit3, LucideFileUp, LucideSparkles, LucideX, LucideSearch, LucideRefreshCcw, LucideFilter, LucideSend, LucidePlusCircle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { subscribeToRoomItems, addRoomItem, deleteRoomItem } from '../../services/dbService';
+import { useToast } from '../../context/ToastContext';
+import { fetchAICArtworks } from '../../services/aicApi';
 
-const SharedBoardView = ({ room, onBack }) => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+const SharedBoardView = ({ room, isSidebarOpen, onSidebarToggle }) => {
+    const { user } = useAuth();
+    const { showToast } = useToast();
+    const [items, setItems] = useState([]);
+    const [curationResults, setCurationResults] = useState([]);
+    const [curationLoading, setCurationLoading] = useState(false);
+    const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+    const [newNote, setNewNote] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const [boardItems] = useState([
-        { id: 1, type: 'image', url: 'https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=800', author: 'Ayşe' },
-        { id: 2, type: 'note', text: '"Kapakta kullanılacak serif fontun, metin içindeki sans-serif ile yarattığı kontrast modern bir his vermeli."', author: 'Ali', color: 'bg-[#FFFDF0]' },
-        { id: 3, type: 'image', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800', title: 'Grid Referansı' },
-    ]);
+    useEffect(() => {
+        if (!room?.id) return;
+        const unsubscribe = subscribeToRoomItems(room.id, 'shared', null, setItems);
+        return () => unsubscribe();
+    }, [room?.id]);
+
+    useEffect(() => {
+        if (isSidebarOpen) {
+            handleFetchCuration();
+        }
+    }, [isSidebarOpen]);
+
+    const handleFetchCuration = async () => {
+        setCurationLoading(true);
+        const data = await fetchAICArtworks({ page: 1, filters: { medium: 'painting' } });
+        setCurationResults(data.items || []);
+        setCurationLoading(false);
+    };
+
+    const handleAddNote = async () => {
+        if (!newNote.trim()) return;
+        setLoading(true);
+        try {
+            await addRoomItem(room.id, user.uid, {
+                type: 'note',
+                content: newNote,
+                boardType: 'shared',
+                authorName: user.displayName || user.email.split('@')[0]
+            });
+            setNewNote('');
+            setIsNoteModalOpen(false);
+            showToast("Fikir panoya eklendi! ✨");
+        } catch (error) {
+            showToast("Not eklenirken hata oluştu.", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddCurationItem = async (art) => {
+        try {
+            await addRoomItem(room.id, user.uid, {
+                type: 'image',
+                content: art.image_url || art.thumbnail,
+                title: art.title,
+                boardType: 'shared',
+                authorName: user.displayName || user.email.split('@')[0]
+            });
+            showToast("Sanat eseri ortak panoya taşındı! 🖼️✨");
+        } catch (error) {
+            showToast("Eser eklenemedi.", "error");
+        }
+    };
+
+    const handleDeleteItem = async (itemId) => {
+        try {
+            await deleteRoomItem(itemId);
+            showToast("Öge kaldırıldı.");
+        } catch (error) {
+            showToast("İşlem başarısız.");
+        }
+    };
 
     return (
-        <div className="h-screen overflow-hidden flex flex-col bg-[#FDFBF7] dark:bg-[#1A1A1A] text-text-main dark:text-white transition-colors duration-300">
-            {/* Nav Header */}
-            <header className="h-20 border-b border-black/5 dark:border-white/5 bg-white dark:bg-zinc-900 flex items-center justify-between px-8 flex-shrink-0 z-50 shadow-sm transition-all">
-                <div className="flex items-center gap-6">
-                    <button onClick={onBack} className="font-serif font-bold text-3xl italic tracking-tighter text-accent-blue">Kibele.</button>
-                    <div className="h-8 w-px bg-black/10 dark:bg-white/10"></div>
-                    <div className="flex flex-col">
-                        <span className="text-[10px] text-accent-blue uppercase tracking-[0.2em] font-black">Ortak İlham Odası</span>
-                        <span className="text-sm font-semibold text-text-main dark:text-white">{room?.name || 'VCD Kitap Tasarımı'}</span>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-3 text-xs font-bold text-text-muted dark:text-gray-400">
-                        <div className="flex -space-x-3">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="w-9 h-9 rounded-full border-2 border-white dark:border-zinc-900 bg-soft-peach flex items-center justify-center shadow-lg">
-                                    <span className="text-[10px]">U{i}</span>
-                                </div>
-                            ))}
+        <div className="h-full flex overflow-hidden">
+            <main className="flex-1 overflow-y-auto p-10 pb-32 relative scrollbar-hide">
+                <div className="max-w-7xl mx-auto">
+                    <div className="mb-12">
+                        <div className="flex items-center justify-between mb-4">
+                            <h1 className="font-display text-5xl font-bold italic tracking-tight">Ortak İlham Panosu.</h1>
+                            <div className="flex -space-x-3 items-center">
+                                {room?.participants?.map((p, i) => (
+                                    <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-soft-peach flex items-center justify-center text-[10px] font-bold shadow-lg">
+                                        {i + 1}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <span className="ml-2 font-mono tracking-widest">+2 KATILIMCI</span>
+                        <p className="text-lg text-text-muted leading-relaxed max-w-2xl italic">Ekipten gelen anlık referanslar ve kolektif yaratıcılık alanı canım.</p>
                     </div>
-                    <button className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border border-black/10 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-all text-xs font-bold uppercase tracking-widest shadow-sm">
-                        <LucideShare2 size={16} /> Paylaş
-                    </button>
-                    <button className="w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
-                        <LucideMoreHorizontal size={24} />
-                    </button>
-                </div>
-            </header>
 
-            <main className="flex-1 flex overflow-hidden relative">
-                {/* Board Content */}
-                <div className="flex-1 overflow-y-auto p-10 pb-32 relative scrollbar-hide">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="mb-12">
-                            <h1 className="font-serif text-5xl font-bold mb-3 italic">Ortak İlham Panosu</h1>
-                            <p className="text-lg text-text-muted dark:text-gray-400 max-w-2xl leading-relaxed">Ekip ile toplanan referanslar ve yaratıcı fikirler canım.</p>
-                        </div>
-
-                        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-8 space-y-8">
-                            {boardItems.map(item => (
-                                <div key={item.id} className="break-inside-avoid group relative rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-700 bg-white dark:bg-zinc-800 border border-black/5 dark:border-white/5">
-                                    {item.type === 'image' ? (
-                                        <div className="relative">
-                                            <img src={item.url} alt="Reference" className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-[1.2s]" />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-sm">
-                                                <button className="w-12 h-12 rounded-full bg-white text-zinc-900 flex items-center justify-center hover:bg-zinc-100 shadow-2xl"><LucidePlus size={20} /></button>
-                                            </div>
+                    <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-8 space-y-8">
+                        {items.map(item => (
+                            <div key={item.id} className="break-inside-avoid group relative rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-700 bg-white border border-border-light/40 relative">
+                                {item.type === 'image' ? (
+                                    <div className="relative">
+                                        <img src={item.content} alt="Reference" className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-[1.2s]" />
+                                        <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-start gap-1">
+                                            <p className="text-white text-[10px] font-black uppercase tracking-widest">{item.authorName} EKLEDİ</p>
+                                            <p className="text-white/80 text-xs italic">{item.title}</p>
                                         </div>
-                                    ) : (
-                                        <div className={`${item.color} dark:bg-zinc-800/80 p-8 pt-10`}>
-                                            <LucideEdit3 size={16} className="text-orange-500 mb-6" />
-                                            <p className="font-serif text-xl italic leading-relaxed text-text-main dark:text-white">
-                                                {item.text}
-                                            </p>
-                                            <div className="mt-8 pt-6 border-t border-black/5 dark:border-white/5 flex items-center gap-3">
-                                                <div className="w-6 h-6 rounded-full bg-zinc-200"></div>
-                                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{item.author} ekledi</span>
-                                            </div>
+                                        <div className="absolute top-4 right-4 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
+                                            <button onClick={() => handleDeleteItem(item.id)} className="p-3 bg-white text-red-500 rounded-full shadow-2xl"><LucideX size={18} /></button>
                                         </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-[#FFFDF0] p-10 pt-12 relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => handleDeleteItem(item.id)} className="p-2 text-text-muted hover:text-red-500"><LucideX size={14} /></button>
+                                        </div>
+                                        <LucideEdit3 size={16} className="text-orange-400 mb-8" />
+                                        <p className="font-serif text-xl italic leading-relaxed text-text-main whitespace-pre-line">
+                                            {item.content}
+                                        </p>
+                                        <div className="mt-10 pt-8 border-t border-black/5 flex items-center gap-3">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
+                                            <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">{item.authorName} PAYLAŞTI</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
 
-                    {/* Toolbar */}
-                    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 md:left-auto md:right-[460px] md:translate-x-0 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-3xl border border-white/40 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-[2rem] px-4 py-3 flex items-center gap-2 z-40 animate-in slide-in-from-bottom-5 duration-700">
-                        <button className="flex items-center gap-3 px-6 py-3 rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-widest text-text-main dark:text-white">
-                            <LucideEdit3 size={18} className="text-accent-blue" /> Yazı
+                    {items.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-40 text-center opacity-20">
+                            <LucideSparkles size={80} className="mb-6" />
+                            <p className="text-sm font-black uppercase tracking-[0.3em]">Henüz ortak bir kıvılcım yok.</p>
+                        </div>
+                    )}
+
+                    {/* Quick Toolbar */}
+                    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-white/70 backdrop-blur-3xl border border-white/40 shadow-2xl rounded-[2.5rem] px-6 py-4 flex items-center gap-4 z-[70] animate-in slide-in-from-bottom-8 duration-1000">
+                        <button onClick={() => setIsNoteModalOpen(true)} className="flex items-center gap-3 px-6 py-3 rounded-2xl hover:bg-black/5 transition-all text-[10px] font-black uppercase tracking-widest text-text-main group">
+                            <LucideEdit3 size={20} className="text-accent-blue group-hover:scale-110 transition-transform" /> Fikir Yaz
                         </button>
-                        <div className="w-px h-8 bg-black/10 dark:bg-white/10 mx-1"></div>
-                        <button className="flex items-center gap-3 px-6 py-3 rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-widest text-text-main dark:text-white">
-                            <LucideFileUp size={18} className="text-accent-blue" /> Yükle
-                        </button>
-                        <div className="w-px h-8 bg-black/10 dark:bg-white/10 mx-1"></div>
-                        <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className={`flex items-center gap-3 px-8 py-3 rounded-2xl transition-all text-xs font-bold uppercase tracking-widest shadow-lg ${isSidebarOpen ? 'bg-accent-blue text-white shadow-accent-blue/20' : 'bg-white/50 text-accent-blue hover:bg-accent-blue hover:text-white'}`}
-                        >
-                            <LucideSparkles size={18} /> Derinlikli Kürasyon
+                        <div className="w-px h-8 bg-black/10 mx-2"></div>
+                        <button className="flex items-center gap-3 px-6 py-3 rounded-2xl hover:bg-black/5 transition-all text-[10px] font-black uppercase tracking-widest text-text-main group">
+                            <LucideFileUp size={20} className="text-accent-blue group-hover:scale-110 transition-transform" /> Görsel At
                         </button>
                     </div>
                 </div>
+            </main>
 
-                {/* Sidebar: Deep Curation Tools */}
-                <aside className={`w-[450px] flex-shrink-0 border-l border-black/5 dark:border-white/5 bg-[#FDF8F5] dark:bg-zinc-950 flex flex-col z-50 shadow-2xl transition-all duration-700 ${isSidebarOpen ? 'mr-0' : '-mr-[450px]'}`}>
-                    <div className="p-8 border-b border-black/5 dark:border-white/5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md sticky top-0 z-10">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="font-serif text-3xl font-bold italic text-text-main dark:text-white">Derinlikli Kürasyon</h2>
+            {/* Curation Sidebar */}
+            <aside className={`w-[450px] flex-shrink-0 border-l border-border-light/40 bg-surface-light flex flex-col z-50 shadow-2xl transition-all duration-700 ${isSidebarOpen ? 'mr-0' : '-mr-[450px]'}`}>
+                <div className="p-10 border-b border-border-light/40 bg-white/50 backdrop-blur-md sticky top-0 z-10">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="font-display text-3xl font-bold italic text-text-main leading-tight">Derinlikli <br /> <span className="text-accent-blue">Kürasyon.</span></h2>
+                        <button onClick={onSidebarToggle} className="p-3 hover:bg-black/5 rounded-2xl transition-all"><LucideX size={20} /></button>
+                    </div>
+                    <p className="text-sm text-text-muted italic">Kelimelerle değil, estetik referanslarla keşıf yap canım.</p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-10 space-y-10 scrollbar-hide">
+                    <div className="relative group">
+                        <LucideSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-blue transition-colors" size={20} />
+                        <input
+                            placeholder="Sanat eseri ara..."
+                            className="w-full pl-14 pr-6 py-5 rounded-[2rem] bg-white border-none shadow-sm focus:ring-4 focus:ring-accent-blue/5 transition-all text-sm font-medium"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                        {curationLoading ? (
+                            [1, 2, 3, 4, 5, 6].map(i => <div key={i} className="aspect-[3/4] rounded-3xl bg-surface-light/50 animate-pulse border border-border-light/20"></div>)
+                        ) : curationResults.map((art, i) => (
+                            <div key={i} className="group relative rounded-3xl overflow-hidden aspect-[3/4] shadow-sm hover:shadow-xl transition-all duration-500 bg-white border border-border-light/30">
+                                <img src={art.thumbnail} alt={art.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5 backdrop-blur-[2px]">
+                                    <button
+                                        onClick={() => handleAddCurationItem(art)}
+                                        className="w-full py-4 bg-white text-text-main rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all"
+                                    >
+                                        Panoya Taşı
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <button
+                        onClick={handleFetchCuration}
+                        className="w-full py-6 border-2 border-dashed border-border-light/60 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.2em] text-text-muted hover:text-accent-blue hover:border-accent-blue/40 transition-all flex items-center justify-center gap-3 group"
+                    >
+                        KEŞFETMEYE DEVAM ET <LucideRefreshCcw size={16} className="group-hover:rotate-180 transition-transform duration-700" />
+                    </button>
+                </div>
+            </aside>
+
+            {/* Note Modal */}
+            {isNoteModalOpen && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setIsNoteModalOpen(false)} />
+                    <div className="relative w-full max-w-xl bg-white rounded-[3rem] p-12 shadow-2xl animate-in fade-in zoom-in duration-300 border border-white/20">
+                        <h3 className="text-3xl font-display font-bold mb-2 italic">Kolektif Fikir.</h3>
+                        <p className="text-text-muted text-sm mb-8 italic">Panoya herkesin göreceği bir not bırak canım.</p>
+
+                        <textarea
+                            value={newNote}
+                            onChange={(e) => setNewNote(e.target.value)}
+                            placeholder="Bu teknik hakkında ne düşünüyorsunuz?"
+                            className="w-full h-48 bg-surface-light rounded-[2rem] p-8 border-none focus:ring-4 focus:ring-accent-blue/10 outline-none transition-all resize-none mb-8 text-xl font-serif italic"
+                            autoFocus
+                        />
+
+                        <div className="flex gap-4">
+                            <button onClick={() => setIsNoteModalOpen(false)} className="flex-1 py-4 text-text-muted font-bold uppercase tracking-widest text-[10px]">Vazgeç</button>
                             <button
-                                onClick={() => setIsSidebarOpen(false)}
-                                className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                onClick={handleAddNote}
+                                disabled={loading || !newNote.trim()}
+                                className="flex-[2] bg-accent-blue text-white py-4 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-accent-blue-hover transition-all shadow-xl shadow-accent-blue/20"
                             >
-                                <LucideX size={20} />
+                                {loading ? 'Paylaşılıyor...' : 'Herkesle Paylaş'}
                             </button>
                         </div>
-                        <p className="text-sm text-text-muted dark:text-gray-400">Aradığınızı kelimelerle değil, estetik referanslarla bulun canım.</p>
                     </div>
-
-                    <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide">
-                        {/* Search Bar */}
-                        <div className="relative">
-                            <LucideSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                            <input
-                                placeholder="Sanat eseri ara..."
-                                className="w-full pl-12 pr-6 py-4 rounded-2xl bg-white dark:bg-zinc-800 border-none shadow-sm focus:ring-2 focus:ring-accent-blue/20 transition-all text-sm"
-                            />
-                        </div>
-
-                        {/* Results Grid - Using placeholders for now */}
-                        <div className="grid grid-cols-2 gap-4">
-                            {[1, 2, 3, 4, 5, 6].map(i => (
-                                <div key={i} className="group relative rounded-2xl overflow-hidden aspect-[3/4] bg-zinc-200 dark:bg-zinc-800 animate-pulse">
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                                        <button className="w-full py-3 bg-white text-zinc-900 rounded-xl text-xs font-bold uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
-                                            Panoya Ekle
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        <button className="w-full py-4 border-2 border-dashed border-black/10 dark:border-white/10 rounded-2xl text-xs font-bold uppercase tracking-widest text-text-muted hover:text-accent-blue hover:border-accent-blue/30 transition-all flex items-center justify-center gap-2">
-                            Daha Fazla Gör <LucideRefreshCcw size={14} className="animate-spin-slow" />
-                        </button>
-                    </div>
-
-                    {/* Footer Filters */}
-                    <div className="p-6 bg-white dark:bg-zinc-900 border-t border-black/5 dark:border-white/5">
-                        <button className="w-full flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-accent-blue">
-                            <LucideFilter size={14} /> Filtreleri Yönet
-                        </button>
-                    </div>
-                </aside>
-            </main>
+                </div>
+            )}
         </div>
     );
 };
