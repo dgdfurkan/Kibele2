@@ -11,6 +11,7 @@ import AdminPanel from './components/AdminPanel';
 import RegisterModal from './components/RegisterModal';
 import LoginModal from './components/LoginModal';
 import NotificationDropdown from './components/NotificationDropdown';
+import RequestActionModal from './components/RequestActionModal';
 import { auth, db } from './firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
@@ -36,6 +37,8 @@ function App() {
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [userRequests, setUserRequests] = useState([]);
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+    const [selectedRequestId, setSelectedRequestId] = useState(null);
+    const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
     const [filters, setFilters] = useState({
         query: '',
@@ -180,7 +183,10 @@ function App() {
                                             </button>
                                         )}
 
-                                        <NotificationDropdown />
+                                        <NotificationDropdown onRequestClick={(id) => {
+                                            setSelectedRequestId(id);
+                                            setIsRequestModalOpen(true);
+                                        }} />
 
                                         <div className="flex items-center gap-3 pl-4 border-l border-border-light">
                                             <div className="flex flex-col items-end hidden sm:flex">
@@ -463,6 +469,12 @@ function App() {
                     <LoginModal
                         isOpen={isLoginOpen}
                         onClose={() => setIsLoginOpen(false)}
+                    />
+
+                    <RequestActionModal
+                        requestId={selectedRequestId}
+                        isOpen={isRequestModalOpen}
+                        onClose={() => setIsRequestModalOpen(false)}
                     />
                 </div>
             )}

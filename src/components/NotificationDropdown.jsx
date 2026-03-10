@@ -5,14 +5,12 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import RequestActionModal from './RequestActionModal';
 
-const NotificationDropdown = () => {
+const NotificationDropdown = ({ onRequestClick }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [lastNotifId, setLastNotifId] = useState(null);
-    const [selectedRequestId, setSelectedRequestId] = useState(null);
-    const [isActionModalOpen, setIsActionModalOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     useEffect(() => {
@@ -50,9 +48,8 @@ const NotificationDropdown = () => {
             await markNotificationAsRead(notif.id);
         }
 
-        if (notif.type === 'room_request' && notif.relatedId) {
-            setSelectedRequestId(notif.relatedId);
-            setIsActionModalOpen(true);
+        if (notif.type === 'room_request' && notif.relatedId && onRequestClick) {
+            onRequestClick(notif.relatedId);
         }
 
         setIsOpen(false);
@@ -115,12 +112,6 @@ const NotificationDropdown = () => {
                     )}
                 </div>
             )}
-
-            <RequestActionModal
-                requestId={selectedRequestId}
-                isOpen={isActionModalOpen}
-                onClose={() => setIsActionModalOpen(false)}
-            />
         </div>
     );
 };

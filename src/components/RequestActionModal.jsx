@@ -44,8 +44,8 @@ const RequestActionModal = ({ requestId, isOpen, onClose }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+            <div className="fixed inset-0 bg-black/60 shadow-2xl backdrop-blur-md" onClick={onClose} />
 
             <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="p-8">
