@@ -37,5 +37,15 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
       allow create: if true;
     }
+
+    // Bildirimler (Yeni)
+    match /notifications/{notifId} {
+      // Herkes (sistem/kullanıcı) bildirim oluşturabilir
+      allow create: if request.auth != null;
+      // Sadece bildirimin sahibi okuyabilir ve okundu olarak güncelleyebilir
+      allow read, update: if request.auth != null && request.auth.uid == resource.data.userId;
+      // Silme yetkisi şimdilik kapalı veya sadece admin
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
   }
 }

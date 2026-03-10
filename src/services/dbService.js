@@ -27,6 +27,9 @@ export const subscribeToRooms = (callback) => {
     return onSnapshot(q, (snapshot) => {
         const rooms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         callback(rooms);
+    }, (error) => {
+        console.error("Error subscribing to rooms:", error);
+        callback([]);
     });
 };
 
@@ -89,6 +92,9 @@ export const subscribeToRoomRequests = (callback) => {
     return onSnapshot(q, (snapshot) => {
         const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         callback(requests);
+    }, (error) => {
+        console.error("Error subscribing to room requests:", error);
+        callback([]);
     });
 };
 
@@ -181,6 +187,9 @@ export const subscribeToNotifications = (userId, callback) => {
     return onSnapshot(q, (snapshot) => {
         const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         callback(notifications);
+    }, (error) => {
+        console.error("Error subscribing to notifications:", error);
+        callback([]);
     });
 };
 
