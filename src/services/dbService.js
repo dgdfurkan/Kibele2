@@ -64,7 +64,7 @@ export const requestRoomAccess = async (roomId, roomName, user, roomOwnerId, rea
             roomName,
             roomOwnerId,
             uid: user.uid,
-            userName: user.displayName || "Yaratıcı Kullanıcı",
+            userName: user.displayName || "Kibele Kullanıcısı",
             reason,
             status: "pending",
             createdAt: serverTimestamp()

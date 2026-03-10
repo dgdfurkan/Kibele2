@@ -20,9 +20,11 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
       
-      // Sadece admin onaylayabilir veya reddedebilir
-      allow update: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // Admin veya oda sahibi onaylayabilir/reddedebilir
+      allow update: if request.auth != null && (
+        request.auth.uid == resource.data.roomOwnerId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
     }
     
     // İlham Odaları
