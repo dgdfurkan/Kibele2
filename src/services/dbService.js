@@ -1,4 +1,4 @@
-import { collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, doc, setDoc, getDoc, getDocs, increment } from "firebase/firestore";
+import { collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, doc, setDoc, getDoc, getDocs, increment, arrayUnion } from "firebase/firestore";
 import { db } from "../firebase";
 
 // Rooms logic
@@ -247,5 +247,18 @@ export const getUserProfile = async (uid) => {
     } catch (error) {
         console.error("Error fetching user profile:", error);
         return null;
+    }
+};
+// Doğrudan odaya katıl (Açık odalar için)
+export const joinRoom = async (roomId, userId) => {
+    try {
+        const roomRef = doc(db, "rooms", roomId);
+        await setDoc(roomRef, {
+            participants: arrayUnion(userId)
+        }, { merge: true });
+        return { success: true };
+    } catch (e) {
+        console.error("Error joining room: ", e);
+        throw e;
     }
 };

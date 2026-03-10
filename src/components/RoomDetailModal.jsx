@@ -1,6 +1,6 @@
 import { LucideX, LucideLock, LucideUnlock, LucideUsers, LucideSend, LucideInfo, LucideCalendar, LucideUser, LucideCircle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { requestRoomAccess, getUsersProfiles, getUserProfile } from '../services/dbService';
+import { requestRoomAccess, getUsersProfiles, getUserProfile, joinRoom } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
 import React, { useState, useEffect } from 'react';
 
@@ -44,6 +44,20 @@ const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
         if (!timestamp) return "...";
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
         return new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+    };
+
+    const handleJoinPublicRoom = async () => {
+        setLoading(true);
+        try {
+            await joinRoom(room.id, user.uid);
+            showToast("Odaya başarıyla katıldın! Hoş geldin. ✨");
+            // Detayları yenile
+            fetchDetails();
+        } catch (error) {
+            showToast("Odaya katılırken bir hata oluştu.", "error");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSendRequest = async () => {
@@ -147,10 +161,11 @@ const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
                                     </button>
                                 ) : (
                                     <button
-                                        className="flex-1 bg-accent-blue text-white py-4 rounded-2xl font-semibold hover:bg-accent-blue-hover transition-all shadow-lg shadow-accent-blue/20"
-                                        onClick={() => setView('request')}
+                                        disabled={loading}
+                                        className="flex-1 bg-accent-blue text-white py-4 rounded-2xl font-semibold hover:bg-accent-blue-hover transition-all shadow-lg shadow-accent-blue/20 disabled:opacity-50"
+                                        onClick={() => room.isPrivate ? setView('request') : handleJoinPublicRoom()}
                                     >
-                                        {room.isPrivate ? 'Katılma İsteği At' : 'Odaya Katıl'}
+                                        {loading ? 'İşleniyor...' : (room.isPrivate ? 'Katılma İsteği At' : 'Odaya Katıl')}
                                     </button>
                                 )}
                             </div>
