@@ -108,52 +108,50 @@ const InspirationSystem = ({ onEnterRoom }) => {
 
                     <div
                         ref={scrollRef}
-                        className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide snap-x"
+                        className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide snap-x"
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     >
                         {filteredRooms.map((room) => (
                             <div
                                 key={room.id}
                                 onClick={() => handleRoomClick(room)}
-                                className="min-w-[280px] md:min-w-[320px] snap-start"
+                                className="min-w-[190px] md:min-w-[220px] snap-start"
                             >
-                                <div className="glass-panel p-8 rounded-[2.5rem] transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 cursor-pointer border border-white/50 h-full flex flex-col">
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`p-3 rounded-2xl ${room.isPrivate ? 'bg-text-main text-white' : 'bg-accent-blue/10 text-accent-blue'}`}>
-                                                {room.isPrivate ? <LucideLock size={20} /> : <LucideUnlock size={20} />}
+                                <div className="glass-panel p-4 rounded-2xl transition-all duration-500 hover:shadow-lg hover:-translate-y-1 cursor-pointer border border-white/30 h-full flex flex-col group/card">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <div className="flex items-center gap-1.5">
+                                            <div className={`p-2 rounded-lg ${room.isPrivate ? 'bg-text-main text-white' : 'bg-accent-blue/5 text-accent-blue'}`}>
+                                                {room.isPrivate ? <LucideLock size={14} /> : <LucideUnlock size={14} />}
                                             </div>
                                             {room.creatorId === user?.uid && (
-                                                <span className="text-[10px] font-bold bg-green-500/10 text-green-600 px-3 py-1.5 rounded-xl border border-green-500/20 uppercase tracking-widest">
-                                                    Senin Odan
-                                                </span>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-sm shadow-green-500/50" title="Senin Odan" />
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-1.5 text-xs font-bold px-4 py-1.5 bg-surface-light rounded-full border border-border-light uppercase tracking-wider">
-                                            <LucideUsers size={14} />
-                                            {room.participants?.length || 0} Üye
+                                        <div className="text-[10px] font-bold text-text-muted/60 flex items-center gap-1">
+                                            <LucideUsers size={10} />
+                                            {room.participants?.length || 0}
                                         </div>
                                     </div>
 
-                                    <h3 className="text-2xl font-display font-bold mb-3 line-clamp-1">
+                                    <h3 className="text-base font-display font-bold mb-1 line-clamp-1 group-hover/card:text-accent-blue transition-colors">
                                         {room.name}
                                     </h3>
 
-                                    <p className="text-text-muted text-sm line-clamp-3 mb-8 italic flex-grow">
-                                        "{room.description || "Bu oda yaratıcı dünyaların keşfedildiği özel bir alandır."}"
+                                    <p className="text-text-muted text-[11px] line-clamp-2 mb-4 italic flex-grow opacity-70 leading-relaxed">
+                                        "{room.description || "Yaratıcı bir alan."}"
                                     </p>
 
-                                    <div className="flex items-center justify-between pt-6 border-t border-border-light/50">
-                                        <div className="flex -space-x-3">
-                                            {[1, 2, 3].map(i => (
-                                                <div key={i} className="w-9 h-9 rounded-full border-2 border-white bg-gradient-to-br from-surface-light to-border-light flex items-center justify-center text-[10px] font-bold text-text-muted">
+                                    <div className="flex items-center justify-between pt-3 border-t border-border-light/20">
+                                        <div className="flex -space-x-1.5">
+                                            {[1, 2].map(i => (
+                                                <div key={i} className="w-6 h-6 rounded-full border border-white bg-surface-light flex items-center justify-center text-[8px] font-bold text-text-muted">
                                                     {i}
                                                 </div>
                                             ))}
                                         </div>
 
-                                        <span className="text-accent-blue text-sm font-bold flex items-center gap-2 group/btn">
-                                            İncele <LucideArrowRight size={16} className="transition-transform group-hover/btn:translate-x-1" />
+                                        <span className="text-accent-blue text-[11px] font-bold flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-all transform translate-x-1 group-hover/card:translate-x-0">
+                                            Göz At <LucideArrowRight size={12} />
                                         </span>
                                     </div>
                                 </div>

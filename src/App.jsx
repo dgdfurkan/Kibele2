@@ -402,27 +402,27 @@ function App() {
                                     <p className="text-lg text-text-muted">Kendi disiplininize özel eğitilmiş estetik kümelenmeleri keşfedin.</p>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 relative">
                                     {rooms.map((room) => (
                                         <div
                                             key={room.id}
                                             onClick={() => handleRoomClick(room)}
-                                            className={`p-10 rounded-[2.5rem] transition-all duration-500 group cursor-pointer hover:-translate-y-2 ${room.isPrivate ? 'bg-text-main text-white' : 'bg-background glass-card hover:bg-white'}`}
+                                            className={`p-6 rounded-3xl transition-all duration-500 group cursor-pointer hover:-translate-y-1.5 ${room.isPrivate ? 'bg-text-main text-white shadow-xl shadow-text-main/10' : 'bg-background glass-card hover:bg-white border border-border-light/50'}`}
                                         >
-                                            <div className="text-4xl mb-6">{room.isPrivate ? '🔒' : '✨'}</div>
-                                            <h3 className="text-2xl mb-4 line-clamp-1">{room.name}</h3>
-                                            <p className={room.isPrivate ? 'text-white/60' : 'text-text-muted'}>
-                                                {room.isPrivate ? 'Erişim izni gereklidir.' : 'Açık ilham odası.'}
+                                            <div className="text-2xl mb-4">{room.isPrivate ? '🔒' : '✨'}</div>
+                                            <h3 className="text-lg font-bold mb-2 line-clamp-1">{room.name}</h3>
+                                            <p className={`text-xs ${room.isPrivate ? 'text-white/60' : 'text-text-muted'} line-clamp-2`}>
+                                                {room.isPrivate ? 'Erişim izni gereklidir.' : room.description || 'Açık ilham odası.'}
                                             </p>
                                         </div>
                                     ))}
 
                                     <button
                                         onClick={() => setIsLoginOpen(true)}
-                                        className="p-10 rounded-[2.5rem] border-2 border-dashed border-text-main/20 flex flex-col items-center justify-center gap-4 hover:border-accent-blue hover:text-accent-blue transition-all group cursor-pointer"
+                                        className="p-6 rounded-3xl border-2 border-dashed border-text-main/10 flex flex-col items-center justify-center gap-2 hover:border-accent-blue hover:text-accent-blue transition-all group cursor-pointer bg-surface-light/30"
                                     >
-                                        <LucidePlus size={40} className="opacity-20 group-hover:opacity-100" />
-                                        <span className="font-serif text-xl">Yeni Oda Aç</span>
+                                        <LucidePlus size={24} className="opacity-20 group-hover:opacity-100" />
+                                        <span className="font-serif text-base">Yeni Oda Aç</span>
                                     </button>
                                 </div>
                             </div>
