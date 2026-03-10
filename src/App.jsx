@@ -15,7 +15,7 @@ import RequestActionModal from './components/RequestActionModal';
 import { auth, db } from './firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
-import { subscribeToRooms } from './services/dbService';
+import { subscribeToRooms, requestRoomAccess } from './services/dbService';
 
 import RoomRequestView from './views/RoomView/RoomRequestView';
 import InspirationWorkspace from './views/RoomView/InspirationWorkspace';
@@ -118,7 +118,6 @@ function App() {
     const handleRequestAccess = async (reason = "") => {
         if (!user || !selectedRoom) return;
         try {
-            const { requestRoomAccess } = await import('./services/dbService');
             await requestRoomAccess(selectedRoom.id, selectedRoom.name, user, selectedRoom.creatorId, reason);
         } catch (error) {
             alert("İstek gönderilirken bir hata oluştu: " + error.message);
