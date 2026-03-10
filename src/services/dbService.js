@@ -21,6 +21,17 @@ export const createRoom = async (name, creatorId, isPrivate = false, password = 
     }
 };
 
+export const deleteRoom = async (roomId) => {
+    try {
+        const { deleteDoc } = await import("firebase/firestore");
+        await deleteDoc(doc(db, "rooms", roomId));
+        return { success: true };
+    } catch (e) {
+        console.error("Error deleting room: ", e);
+        throw e;
+    }
+};
+
 export const subscribeToRooms = (callback) => {
     const q = query(collection(db, "rooms"), orderBy("createdAt", "desc"));
     return onSnapshot(q, (snapshot) => {
@@ -235,7 +246,8 @@ export const getUsersProfiles = async (uids) => {
 
     try {
         const profiles = [];
-        // Firestore 'in' sorgusu max 10 item alabilir
+        // Firestore 'in' sorgusu max 10 item alabilir. Eğer daha fazlaysa chunklara bölmek gerekir.
+        // Şimdilik 10 katılımcı sınırı (MVP için) yeterli.
         const q = query(collection(db, "users"), where("__name__", "in", uids.slice(0, 10)));
         const querySnapshot = await getDocs(q);
 

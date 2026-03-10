@@ -4,29 +4,32 @@ import { useAuth } from '../../context/AuthContext';
 import { subscribeToRoomItems, addRoomItem, deleteRoomItem } from '../../services/dbService';
 import { useToast } from '../../context/ToastContext';
 
-const RoomDetailView = ({ room, isSidebarOpen, onSidebarToggle }) => {
-    const { user } = useAuth();
+const RoomDetailView = ({ room, isSidebarOpen, onSidebarToggle, targetUserId }) => {
+    const { user, isAdmin } = useAuth();
     const { showToast } = useToast();
     const [items, setItems] = useState([]);
     const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
     const [newNote, setNewNote] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // Use current user's UID if targetUserId is not provided (students)
+    const effectiveUserId = targetUserId || user?.uid;
+
     useEffect(() => {
-        if (!room?.id || !user?.uid) return;
-        const unsubscribe = subscribeToRoomItems(room.id, 'personal', user.uid, setItems);
+        if (!room?.id || !effectiveUserId) return;
+        const unsubscribe = subscribeToRoomItems(room.id, 'personal', effectiveUserId, setItems);
         return () => unsubscribe();
-    }, [room?.id, user?.uid]);
+    }, [room?.id, effectiveUserId]);
 
     const handleAddNote = async () => {
         if (!newNote.trim()) return;
         setLoading(true);
         try {
-            await addRoomItem(room.id, user.uid, {
+            await addRoomItem(room.id, effectiveUserId, {
                 type: 'note',
                 content: newNote,
                 boardType: 'personal',
-                authorName: user.displayName || user.email.split('@')[0]
+                authorName: user.name || user.displayName || user.email.split('@')[0]
             });
             setNewNote('');
             setIsNoteModalOpen(false);
@@ -55,11 +58,17 @@ const RoomDetailView = ({ room, isSidebarOpen, onSidebarToggle }) => {
                     <div className="mb-12">
                         <div className="flex items-center gap-2 mb-3">
                             <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-accent-blue/5 text-accent-blue rounded-full border border-accent-blue/10">
-                                Bireysel Çalışma Alanı
+                                {isAdmin && effectiveUserId !== user.uid ? "Öğrenci Çalışma Alanı" : "Bireysel Çalışma Alanı"}
                             </span>
+                            {isAdmin && effectiveUserId !== user.uid && (
+                                <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-green-500/10 text-green-600 rounded-full border border-green-500/20">
+                                    Moderatör Erişimi Aktif
+                                </span>
+                            )}
                         </div>
                         <h2 className="text-4xl font-display font-bold italic text-text-main mb-4 leading-tight">
-                            Referanslarım & <br /> <span className="text-text-muted">Fikir Notlarım.</span>
+                            {isAdmin && effectiveUserId !== user.uid ? "Öğrenci Referansları" : "Referanslarım"} & <br />
+                            <span className="text-text-muted">{isAdmin && effectiveUserId !== user.uid ? "Fikir Notları." : "Fikir Notlarım."}</span>
                         </h2>
                     </div>
 

@@ -2,68 +2,64 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // Kullanıcı profilleri
     match /users/{userId} {
       allow read: if true; 
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if isAuthenticated() && request.auth.uid == userId;
     }
     
-    // Oda katılım talepleri (Yeni)
+    // Oda katılım talepleri
     match /room_requests/{reqId} {
-      // Herkes istek oluşturabilir
-      allow create: if request.auth != null;
-      
-      // Kullanıcı kendi isteğini, admin ise her şeyi görebilir
-      allow read: if request.auth != null && (
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.uid || 
         request.auth.uid == resource.data.roomOwnerId ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        isAdmin()
       );
-      
-      // Admin veya oda sahibi onaylayabilir/reddedebilir
-      allow update: if request.auth != null && (
+      allow update: if isAuthenticated() && (
         request.auth.uid == resource.data.roomOwnerId ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        isAdmin()
       );
     }
     
     // İlham Odaları
     match /rooms/{roomId} {
       allow read: if true;
-      // Adminler veya Auth olan kullanıcılar yazabilir (participants listesi için)
-      allow write: if request.auth != null;
+      allow write: if isAuthenticated();
+      allow delete: if isAdmin();
     }
     
-    // Eski erişim talepleri (Geriye dönük uyumluluk)
-    match /access_requests/{reqId} {
-      allow read: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-      allow create: if true;
-    }
-
-    // Bildirimler (Yeni)
+    // Bildirimler
     match /notifications/{notifId} {
-      // Herkes (sistem/kullanıcı) bildirim oluşturabilir
-      allow create: if request.auth != null;
-      // Sadece bildirimin sahibi okuyabilir ve okundu olarak güncelleyebilir
-      allow read, update: if request.auth != null && request.auth.uid == resource.data.userId;
-      // Silme yetkisi şimdilik kapalı veya sadece admin
-      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create: if isAuthenticated();
+      allow read, update: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow delete: if isAdmin();
     }
 
     // Oda İçerikleri (Notlar, Resimler vb.)
     match /room_items/{itemId} {
-      // Okuma herkese açık (Oda bazlı kısıtlama ileride eklenebilir)
-      allow read: if true;
-      // Yazma yetkisi giriş yapmış herkese
-      allow create: if request.auth != null;
-      // Sadece kendi ögesini veya admin silebilir
-      allow delete: if request.auth != null && (
-        request.auth.uid == resource.data.userId || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      // SADECE paylaşılan panoyu, kendi panosunu veya admin ise her şeyi görebilir
+      allow read: if isAuthenticated() && (
+        resource.data.boardType == 'shared' || 
+        resource.data.userId == request.auth.uid || 
+        isAdmin()
       );
-      // Güncelleme şimdilik kapalı veya sadece sahibi
-      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      // Yazma yetkisi giriş yapmış herkese (kendi ID'siyle oluşturması şartıyla)
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Sadece kendi ögesini veya admin silebilir/güncelleyebilir
+      allow update, delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        isAdmin()
+      );
     }
   }
 }
