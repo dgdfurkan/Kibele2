@@ -16,6 +16,7 @@ service cloud.firestore {
       // Kullanıcı kendi isteğini, admin ise her şeyi görebilir
       allow read: if request.auth != null && (
         request.auth.uid == resource.data.uid || 
+        request.auth.uid == resource.data.roomOwnerId ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
       

@@ -216,8 +216,8 @@ const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
                                                         </div>
                                                         <div>
                                                             <h4 className="text-2xl font-medium tracking-tight text-text-main">{req.userName}</h4>
-                                                            <div className="flex items-center gap-1.5 text-text-muted text-xs">
-                                                                <LucideMail size={12} /> {req.userEmail}
+                                                            <div className="flex items-center gap-1.5 text-text-muted text-xs italic">
+                                                                Öğrenci Profili
                                                             </div>
                                                         </div>
                                                     </div>
@@ -284,7 +284,7 @@ const AdminPanel = ({ rooms = [], openOverride, onOpenChange }) => {
                                                             <div className="overflow-hidden">
                                                                 <h5 className="font-bold text-text-main text-sm truncate">{student.name || 'İsimsiz'}</h5>
                                                                 <div className="flex flex-col gap-0.5 mt-0.5">
-                                                                    <p className="text-[10px] text-text-muted truncate">{student.email}</p>
+                                                                    <p className="text-[10px] text-text-muted truncate">Öğrenci</p>
                                                                     <div className="flex items-center gap-1 opacity-60">
                                                                         <LucideCalendar size={8} className="text-text-muted" />
                                                                         <span className="text-[8px] font-bold text-text-muted uppercase tracking-wider">Kayıt: {formatDate(student.createdAt, false)}</span>

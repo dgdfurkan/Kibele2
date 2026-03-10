@@ -69,7 +69,6 @@ const RequestActionModal = ({ requestId, isOpen, onClose }) => {
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-lg leading-snug">{request.userName}</h3>
-                                    <p className="text-xs text-text-muted">{request.userEmail}</p>
                                 </div>
                             </div>
 

@@ -64,8 +64,7 @@ export const requestRoomAccess = async (roomId, roomName, user, roomOwnerId, rea
             roomName,
             roomOwnerId,
             uid: user.uid,
-            userName: user.displayName || user.email,
-            userEmail: user.email,
+            userName: user.displayName || "Yaratıcı Kullanıcı",
             reason,
             status: "pending",
             createdAt: serverTimestamp()
@@ -75,7 +74,7 @@ export const requestRoomAccess = async (roomId, roomName, user, roomOwnerId, rea
         await sendNotification(roomOwnerId, {
             type: "room_request",
             title: "Yeni Oda Katılım İsteği",
-            message: `${user.displayName || user.email}, '${roomName}' odasına katılmak istiyor.`,
+            message: `${user.displayName || 'Bir kullanıcı'}, '${roomName}' odasına katılmak istiyor.`,
             relatedId: requestRef.id,
             roomId: roomId
         });
