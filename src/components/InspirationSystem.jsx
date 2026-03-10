@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LucideSearch, LucidePlus, LucideLock, LucideUnlock, LucideLayers, LucideUsers, LucideArrowRight, LucideChevronLeft, LucideChevronRight } from 'lucide-react';
+import { LucideSearch, LucidePlus, LucideLock, LucideUnlock, LucideLayers, LucideUsers, LucideArrowRight, LucideChevronLeft, LucideChevronRight, LucideCalendar } from 'lucide-react';
 import { subscribeToRooms } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -120,9 +120,14 @@ const InspirationSystem = ({ onEnterRoom }) => {
 
                             <div className="px-5 pb-5 flex flex-col flex-grow -mt-2 relative z-10">
                                 <div className="mb-2">
-                                    <h3 className="text-lg font-display font-bold group-hover/card:text-accent-blue transition-colors duration-300 leading-tight line-clamp-1">
-                                        {room.name}
-                                    </h3>
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                        <h3 className="text-lg font-display font-bold group-hover/card:text-accent-blue transition-colors duration-300 leading-tight line-clamp-1">
+                                            {room.name}
+                                        </h3>
+                                        {room.isActive === false && (
+                                            <span className="text-[8px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded-md flex-shrink-0">PASİF</span>
+                                        )}
+                                    </div>
                                     <div className="flex items-center gap-1.5 text-text-muted text-[10px] font-medium opacity-60">
                                         Kurucu: {room.creatorName ? room.creatorName.split(' ')[0] : "Kibele Küratörü"}
                                     </div>
@@ -131,6 +136,13 @@ const InspirationSystem = ({ onEnterRoom }) => {
                                 <p className="text-text-muted text-[11px] line-clamp-2 mb-4 flex-grow leading-relaxed opacity-80">
                                     {room.description || "Yaratıcı ilham alanı."}
                                 </p>
+
+                                {room.deadline && (
+                                    <div className="mb-4 flex items-center gap-1.5 text-[9px] font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-lg border border-orange-100 w-fit">
+                                        <LucideCalendar size={10} />
+                                        Bitiş: {new Date(room.deadline.toDate ? room.deadline.toDate() : room.deadline).toLocaleDateString('tr-TR')}
+                                    </div>
+                                )}
 
                                 <div className="flex items-center justify-between pt-3 border-t border-border-light/30">
                                     <div className="flex items-center gap-2 text-text-muted text-[10px] font-bold">

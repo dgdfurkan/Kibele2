@@ -1,17 +1,18 @@
 import { LucideX, LucideLock, LucideUnlock, LucideUsers, LucideSend, LucideInfo, LucideCalendar, LucideUser, LucideCircle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { requestRoomAccess, getUsersProfiles, getUserProfile, joinRoom } from '../services/dbService';
+import { requestRoomAccess, getUsersProfiles, getUserProfile, joinRoom, getUserRoomRequestStatus } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
 import React, { useState, useEffect } from 'react';
 
 const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const { showToast } = useToast();
     const [view, setView] = useState('detail'); // 'detail' or 'request'
     const [reason, setReason] = useState('');
     const [loading, setLoading] = useState(false);
     const [participantsInfo, setParticipantsInfo] = useState([]);
     const [creatorInfo, setCreatorInfo] = useState(null);
+    const [requestStatus, setRequestStatus] = useState(null);
 
     useEffect(() => {
         if (isOpen && room) {
@@ -26,10 +27,16 @@ const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
         const profiles = await getUsersProfiles(room.participants);
         setParticipantsInfo(profiles);
 
-        // Kurucu bilgisini çek (eğer katılımcı listesinde yoksa veya özel bilgi gerekiyorsa)
+        // Kurucu bilgisini çek
         if (room.creatorId) {
             const creator = await getUserProfile(room.creatorId);
             setCreatorInfo(creator);
+        }
+
+        // İstek durumunu çek (eğer katılımcı değilse)
+        if (user && !room.participants.includes(user.uid) && room.creatorId !== user.uid) {
+            const status = await getUserRoomRequestStatus(room.id, user.uid);
+            setRequestStatus(status);
         }
     };
 
@@ -105,6 +112,11 @@ const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
                                 <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${room.isPrivate ? 'bg-text-main text-white' : 'bg-accent-blue/10 text-accent-blue'}`}>
                                     {room.isPrivate ? 'Özel Oda' : 'Açık Oda'}
                                 </span>
+                                {room.isActive === false && (
+                                    <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-red-500 text-white">
+                                        Pasif Oda
+                                    </span>
+                                )}
                                 <div className="flex items-center gap-1 text-text-muted text-xs font-medium">
                                     <LucideUsers size={12} />
                                     {room.participants?.length || 0} Katılımcı
@@ -121,6 +133,12 @@ const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
                                     <LucideCalendar size={10} className="text-accent-blue" />
                                     Kuruluş: <span className="text-text-main">{formatDate(room.createdAt)}</span>
                                 </span>
+                                {room.deadline && (
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-orange-500 flex items-center gap-1">
+                                        <LucideCalendar size={10} />
+                                        Bitiş: <span className="font-black">{formatDate(room.deadline)}</span>
+                                    </span>
+                                )}
                             </div>
 
                             <div className="bg-surface-light/50 p-6 rounded-[2rem] border border-border-light/30 mb-6">
@@ -152,12 +170,27 @@ const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
                             </div>
 
                             <div className="flex gap-4">
-                                {room.participants?.includes(user?.uid) || room.creatorId === user?.uid ? (
+                                {room.participants?.includes(user?.uid) || room.creatorId === user?.uid || isAdmin ? (
                                     <button
                                         className="flex-1 bg-accent-blue text-white py-4 rounded-2xl font-semibold hover:bg-accent-blue-hover transition-all shadow-lg shadow-accent-blue/20"
                                         onClick={handleEnterRoom}
                                     >
                                         Odaya Gir
+                                    </button>
+                                ) : requestStatus?.status === 'pending' ? (
+                                    <button
+                                        disabled
+                                        className="flex-1 bg-orange-100 text-orange-600 py-4 rounded-2xl font-semibold border border-orange-200 flex items-center justify-center gap-2"
+                                    >
+                                        <LucideCircle size={16} className="animate-pulse" />
+                                        İsteğin Beklemede
+                                    </button>
+                                ) : room.isActive === false ? (
+                                    <button
+                                        disabled
+                                        className="flex-1 bg-gray-100 text-gray-400 py-4 rounded-2xl font-semibold border border-gray-200"
+                                    >
+                                        Oda Pasif
                                     </button>
                                 ) : (
                                     <button

@@ -2,15 +2,17 @@ import { collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp,
 import { db } from "../firebase";
 
 // Rooms logic
-export const createRoom = async (name, creatorId, isPrivate = false, password = "", description = "") => {
+export const createRoom = async (name, creatorId, isPrivate = false, password = "", description = "", deadline = null, isActive = true) => {
     try {
         const docRef = await addDoc(collection(db, "rooms"), {
             name,
             creatorId,
-            creatorName: description.creatorName || "Bilinmeyen Kurucu", // We'll pass this through or fetch it
+            creatorName: description.creatorName || "Bilinmeyen Kurucu",
             isPrivate,
             password,
             description: typeof description === 'string' ? description : description.text,
+            deadline: deadline, // New field: bitiş tarihi
+            isActive: isActive, // New field: aktiflik durumu
             createdAt: serverTimestamp(),
             participants: [creatorId]
         });
@@ -227,6 +229,27 @@ export const markNotificationAsRead = async (notificationId) => {
         console.error("Error marking notification as read:", e);
     }
 };
+export const getUserRoomRequestStatus = async (roomId, userId) => {
+    try {
+        const q = query(
+            collection(db, "room_requests"),
+            where("roomId", "==", roomId),
+            where("uid", "==", userId)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            // En son isteği döndür (normalde tek olmalı ama garanti olsun)
+            const requests = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            requests.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+            return requests[0];
+        }
+        return null;
+    } catch (e) {
+        console.error("Error fetching request status:", e);
+        return null;
+    }
+};
+
 export const getRequestById = async (requestId) => {
     try {
         const docRef = doc(db, "room_requests", requestId);
