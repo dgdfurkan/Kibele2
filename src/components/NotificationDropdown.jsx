@@ -2,11 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { LucideBell, LucideCheck, LucideExternalLink, LucideCircle } from 'lucide-react';
 import { subscribeToNotifications, markNotificationAsRead } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
+import RequestActionModal from './RequestActionModal';
 
 const NotificationDropdown = () => {
     const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
+    const [selectedRequestId, setSelectedRequestId] = useState(null);
+    const [isActionModalOpen, setIsActionModalOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     useEffect(() => {
@@ -31,7 +34,12 @@ const NotificationDropdown = () => {
         if (!notif.read) {
             await markNotificationAsRead(notif.id);
         }
-        // İleride detaylı yönlendirme eklenebilir
+
+        if (notif.type === 'room_request' && notif.relatedId) {
+            setSelectedRequestId(notif.relatedId);
+            setIsActionModalOpen(true);
+        }
+
         setIsOpen(false);
     };
 
@@ -92,6 +100,12 @@ const NotificationDropdown = () => {
                     )}
                 </div>
             )}
+
+            <RequestActionModal
+                requestId={selectedRequestId}
+                isOpen={isActionModalOpen}
+                onClose={() => setIsActionModalOpen(false)}
+            />
         </div>
     );
 };

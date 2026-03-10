@@ -104,7 +104,7 @@ function App() {
         setSelectedRoom(room);
 
         // Katılım durumunu kontrol et
-        const isParticipant = room.participants?.includes(user.uid) || isAdmin;
+        const isParticipant = room.participants?.includes(user.uid) || isAdmin || room.creatorId === user.uid;
 
         if (room.isPrivate && !isParticipant) {
             setCurrentView('request');
@@ -392,7 +392,7 @@ function App() {
 
                     {user ? (
                         <section id="inspiration-rooms" className="py-20 bg-surface">
-                            <InspirationSystem />
+                            <InspirationSystem onEnterRoom={handleRoomClick} />
                         </section>
                     ) : (
                         <section id="hubs" className="py-32 px-[5%] bg-surface">

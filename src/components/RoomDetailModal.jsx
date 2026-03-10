@@ -4,7 +4,7 @@ import { useToast } from '../context/ToastContext';
 import { requestRoomAccess } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
 
-const RoomDetailModal = ({ room, isOpen, onClose }) => {
+const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
     const [view, setView] = useState('detail'); // 'detail' or 'request'
@@ -12,6 +12,11 @@ const RoomDetailModal = ({ room, isOpen, onClose }) => {
     const [loading, setLoading] = useState(false);
 
     if (!isOpen || !room) return null;
+
+    const handleEnterRoom = () => {
+        onEnterRoom(room);
+        onClose();
+    };
 
     const handleSendRequest = async () => {
         if (!reason.trim()) {
@@ -74,7 +79,7 @@ const RoomDetailModal = ({ room, isOpen, onClose }) => {
                                 {room.participants?.includes(user?.uid) || room.creatorId === user?.uid ? (
                                     <button
                                         className="flex-1 bg-accent-blue text-white py-4 rounded-2xl font-semibold hover:bg-accent-blue-hover transition-all shadow-lg shadow-accent-blue/20"
-                                        onClick={() => showToast("Oda detaylarına yönlendiriliyorsun...")}
+                                        onClick={handleEnterRoom}
                                     >
                                         Odaya Gir
                                     </button>

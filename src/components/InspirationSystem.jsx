@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext';
 import CreateRoomModal from './CreateRoomModal';
 import RoomDetailModal from './RoomDetailModal';
 
-const InspirationSystem = () => {
+const InspirationSystem = ({ onEnterRoom }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
     const [rooms, setRooms] = useState([]);
@@ -81,10 +81,10 @@ const InspirationSystem = () => {
                     <LucideSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
                     <input
                         type="text"
-                        placeholder="İlham odası ara... (örn: VCD, İlüstrasyon)"
+                        placeholder="İlham odası ara... (örn: VCD)"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 rounded-2xl border border-border-light focus:ring-2 focus:ring-accent-blue/20 focus:border-accent-blue outline-none transition-all"
+                        className="w-full pl-12 pr-4 py-3 bg-white/40 backdrop-blur-md rounded-2xl border border-white/50 focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue outline-none transition-all placeholder:text-text-muted/50"
                     />
                 </div>
                 <button
@@ -115,12 +115,19 @@ const InspirationSystem = () => {
                             <div
                                 key={room.id}
                                 onClick={() => handleRoomClick(room)}
-                                className="min-w-[320px] md:min-w-[400px] snap-start"
+                                className="min-w-[280px] md:min-w-[320px] snap-start"
                             >
                                 <div className="glass-panel p-8 rounded-[2.5rem] transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 cursor-pointer border border-white/50 h-full flex flex-col">
                                     <div className="flex justify-between items-start mb-6">
-                                        <div className={`p-3 rounded-2xl ${room.isPrivate ? 'bg-text-main text-white' : 'bg-accent-blue/10 text-accent-blue'}`}>
-                                            {room.isPrivate ? <LucideLock size={22} /> : <LucideUnlock size={22} />}
+                                        <div className="flex items-center gap-2">
+                                            <div className={`p-3 rounded-2xl ${room.isPrivate ? 'bg-text-main text-white' : 'bg-accent-blue/10 text-accent-blue'}`}>
+                                                {room.isPrivate ? <LucideLock size={20} /> : <LucideUnlock size={20} />}
+                                            </div>
+                                            {room.creatorId === user?.uid && (
+                                                <span className="text-[10px] font-bold bg-green-500/10 text-green-600 px-3 py-1.5 rounded-xl border border-green-500/20 uppercase tracking-widest">
+                                                    Senin Odan
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-1.5 text-xs font-bold px-4 py-1.5 bg-surface-light rounded-full border border-border-light uppercase tracking-wider">
                                             <LucideUsers size={14} />

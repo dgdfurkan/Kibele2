@@ -221,3 +221,20 @@
 .btn-send {
   @apply bg-accent-blue text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 hover:bg-accent-blue-hover active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
 }
+/* Scrollbar Hide & Carousel Utilities */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.snap-x {
+    scroll-snap-type: x mandatory;
+}
+
+.snap-start {
+    scroll-snap-align: start;
+}

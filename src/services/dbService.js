@@ -192,3 +192,16 @@ export const markNotificationAsRead = async (notificationId) => {
         console.error("Error marking notification as read:", e);
     }
 };
+export const getRequestById = async (requestId) => {
+    try {
+        const docRef = doc(db, "room_requests", requestId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() };
+        }
+        return null;
+    } catch (e) {
+        console.error("Error fetching request by ID:", e);
+        return null;
+    }
+};
