@@ -69,11 +69,19 @@ const RoomDetailModal = ({ room, isOpen, onClose, onEnterRoom }) => {
                                 </div>
                             </div>
 
-                            <h2 className="text-3xl font-display font-bold mb-4">{room.name}</h2>
+                            <h2 className="text-3xl font-display font-bold mb-1">{room.name}</h2>
+                            <div className="flex items-center gap-2 mb-6">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted/60 flex items-center gap-1">
+                                    Kurucu: <span className="text-text-main">{room.creatorName || "İsimsiz Kurucu"}</span>
+                                </span>
+                            </div>
 
-                            <p className="text-text-muted leading-relaxed mb-8 italic">
-                                "{room.description || "Bu oda yaratıcı süreçlerin paylaşıldığı özel bir alan."}"
-                            </p>
+                            <div className="bg-surface-light/50 p-6 rounded-[2rem] border border-border-light/30 mb-8">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-accent-blue block mb-2 opacity-50">Oda Açıklaması</span>
+                                <p className="text-text-main leading-relaxed text-sm">
+                                    {room.description || "Bu oda yaratıcı süreçlerin paylaşıldığı özel bir alan."}
+                                </p>
+                            </div>
 
                             <div className="flex gap-4">
                                 {room.participants?.includes(user?.uid) || room.creatorId === user?.uid ? (

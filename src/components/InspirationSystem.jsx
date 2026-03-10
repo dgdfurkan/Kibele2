@@ -115,44 +115,55 @@ const InspirationSystem = ({ onEnterRoom }) => {
                             <div
                                 key={room.id}
                                 onClick={() => handleRoomClick(room)}
-                                className="min-w-[190px] md:min-w-[220px] snap-start"
+                                className="min-w-[280px] md:min-w-[320px] snap-start"
                             >
-                                <div className="glass-panel p-4 rounded-2xl transition-all duration-500 hover:shadow-lg hover:-translate-y-1 cursor-pointer border border-white/30 h-full flex flex-col group/card">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <div className="flex items-center gap-1.5">
-                                            <div className={`p-2 rounded-lg ${room.isPrivate ? 'bg-text-main text-white' : 'bg-accent-blue/5 text-accent-blue'}`}>
-                                                {room.isPrivate ? <LucideLock size={14} /> : <LucideUnlock size={14} />}
+                                <div className="group/card relative h-[380px] rounded-[2.5rem] overflow-hidden transition-all duration-700 hover:shadow-[0_20px_50px_rgba(100,180,210,0.15)] hover:-translate-y-2 cursor-pointer bg-white border border-border-light/50 flex flex-col">
+                                    {/* Card Header Background */}
+                                    <div className="h-24 bg-gradient-to-br from-surface-light to-white relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-accent-blue/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover/card:bg-accent-blue/10 transition-all duration-700" />
+
+                                        <div className="absolute top-6 left-6 flex items-center gap-2">
+                                            <div className={`p-2.5 rounded-2xl shadow-sm ${room.isPrivate ? 'bg-text-main text-white' : 'bg-white text-accent-blue border border-border-light'}`}>
+                                                {room.isPrivate ? <LucideLock size={16} /> : <LucideUnlock size={16} />}
                                             </div>
-                                            {room.creatorId === user?.uid && (
-                                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-sm shadow-green-500/50" title="Senin Odan" />
-                                            )}
-                                        </div>
-                                        <div className="text-[10px] font-bold text-text-muted/60 flex items-center gap-1">
-                                            <LucideUsers size={10} />
-                                            {room.participants?.length || 0}
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted/60 bg-surface-light px-2.5 py-1 rounded-full border border-border-light/30">
+                                                {room.isPrivate ? 'Özel' : 'Açık'}
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <h3 className="text-base font-display font-bold mb-1 line-clamp-1 group-hover/card:text-accent-blue transition-colors">
-                                        {room.name}
-                                    </h3>
-
-                                    <p className="text-text-muted text-[11px] line-clamp-2 mb-4 italic flex-grow opacity-70 leading-relaxed">
-                                        "{room.description || "Yaratıcı bir alan."}"
-                                    </p>
-
-                                    <div className="flex items-center justify-between pt-3 border-t border-border-light/20">
-                                        <div className="flex -space-x-1.5">
-                                            {[1, 2].map(i => (
-                                                <div key={i} className="w-6 h-6 rounded-full border border-white bg-surface-light flex items-center justify-center text-[8px] font-bold text-text-muted">
-                                                    {i}
-                                                </div>
-                                            ))}
+                                    <div className="px-8 pb-8 flex flex-col flex-grow -mt-4 relative z-10">
+                                        <div className="mb-4">
+                                            <h3 className="text-2xl font-display font-bold mb-1 group-hover/card:text-accent-blue transition-colors duration-500 leading-tight">
+                                                {room.name}
+                                            </h3>
+                                            <div className="flex items-center gap-2 text-text-muted text-[11px] font-medium italic">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-accent-blue/40" />
+                                                Kurucu: {room.creatorName || "Kibele Küratörü"}
+                                            </div>
                                         </div>
 
-                                        <span className="text-accent-blue text-[11px] font-bold flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-all transform translate-x-1 group-hover/card:translate-x-0">
-                                            Göz At <LucideArrowRight size={12} />
-                                        </span>
+                                        <p className="text-text-muted text-sm line-clamp-3 mb-6 flex-grow leading-relaxed">
+                                            {room.description || "Bu oda, yaratıcı süreçlerin paylaşıldığı ve estetik birikimin toplandığı özel bir ilham alanıdır."}
+                                        </p>
+
+                                        <div className="flex items-center justify-between pt-6 border-t border-border-light/40">
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-1.5 text-text-muted text-xs font-bold">
+                                                    <LucideUsers size={14} className="text-accent-blue" />
+                                                    {room.participants?.length || 0}
+                                                </div>
+                                                {room.creatorId === user?.uid && (
+                                                    <span className="text-[9px] font-black uppercase tracking-tighter text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100">
+                                                        Senin
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <button className="w-10 h-10 rounded-full bg-surface-light flex items-center justify-center text-text-muted group-hover/card:bg-accent-blue group-hover/card:text-white transition-all duration-500 shadow-sm border border-border-light/50">
+                                                <LucideArrowRight size={18} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

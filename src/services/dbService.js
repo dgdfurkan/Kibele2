@@ -9,9 +9,10 @@ export const createRoom = async (name, creatorId, isPrivate = false, password = 
         const docRef = await addDoc(collection(db, "rooms"), {
             name,
             creatorId,
+            creatorName: description.creatorName || "Bilinmeyen Kurucu", // We'll pass this through or fetch it
             isPrivate,
             password,
-            description,
+            description: typeof description === 'string' ? description : description.text,
             createdAt: serverTimestamp(),
             participants: [creatorId]
         });
@@ -64,7 +65,7 @@ export const requestRoomAccess = async (roomId, roomName, user, roomOwnerId, rea
             roomName,
             roomOwnerId,
             uid: user.uid,
-            userName: user.displayName || "Kibele Kullanıcısı",
+            userName: user.name || user.displayName || "Kibele Kullanıcısı",
             reason,
             status: "pending",
             createdAt: serverTimestamp()
@@ -74,7 +75,7 @@ export const requestRoomAccess = async (roomId, roomName, user, roomOwnerId, rea
         await sendNotification(roomOwnerId, {
             type: "room_request",
             title: "Yeni Oda Katılım İsteği",
-            message: `${user.displayName || 'Bir kullanıcı'}, '${roomName}' odasına katılmak istiyor.`,
+            message: `${user.name || user.displayName || 'Bir kullanıcı'}, '${roomName}' odasına katılmak istiyor.`,
             relatedId: requestRef.id,
             roomId: roomId
         });

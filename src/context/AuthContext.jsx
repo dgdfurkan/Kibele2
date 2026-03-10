@@ -61,6 +61,13 @@ export const AuthProvider = ({ children }) => {
 
                     if (userSnap.exists()) {
                         const data = userSnap.data();
+
+                        // Kullanıcı objesine Firestore'daki ismi ve diğer verileri ekle
+                        setUser(prev => ({
+                            ...prev,
+                            ...data
+                        }));
+
                         const rawRole = data.role || "student";
                         const cleanRole = rawRole.toString().toLowerCase().trim();
 
