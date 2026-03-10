@@ -101,7 +101,21 @@ const SharedBoardView = ({ room, isSidebarOpen, onSidebarToggle }) => {
                             <div key={item.id} className="break-inside-avoid group relative rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-700 bg-white border border-border-light/40 relative">
                                 {item.type === 'image' ? (
                                     <div className="relative">
-                                        <img src={item.content} alt="Reference" className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-[1.2s]" />
+                                        <img
+                                            src={item.content}
+                                            alt="Reference"
+                                            className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-[1.2s]"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.parentElement.classList.add('bg-surface-light', 'flex', 'items-center', 'justify-center', 'min-h-[200px]');
+                                                const fallbackImg = "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=800&auto=format&fit=crop";
+                                                if (e.target.src !== fallbackImg) {
+                                                    e.target.src = fallbackImg;
+                                                    e.target.style.display = 'block';
+                                                    e.target.className += " grayscale opacity-30";
+                                                }
+                                            }}
+                                        />
                                         <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-start gap-1">
                                             <p className="text-white text-[10px] font-black uppercase tracking-widest">{item.authorName} EKLEDİ</p>
                                             <p className="text-white/80 text-xs italic">{item.title}</p>
@@ -173,7 +187,21 @@ const SharedBoardView = ({ room, isSidebarOpen, onSidebarToggle }) => {
                             [1, 2, 3, 4, 5, 6].map(i => <div key={i} className="aspect-[3/4] rounded-3xl bg-surface-light/50 animate-pulse border border-border-light/20"></div>)
                         ) : curationResults.map((art, i) => (
                             <div key={i} className="group relative rounded-3xl overflow-hidden aspect-[3/4] shadow-sm hover:shadow-xl transition-all duration-500 bg-white border border-border-light/30">
-                                <img src={art.thumbnail} alt={art.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                <img
+                                    src={art.thumbnail}
+                                    alt={art.title}
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentElement.classList.add('bg-surface-light');
+                                        const fallbackImg = "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=400&auto=format&fit=crop";
+                                        if (e.target.src !== fallbackImg) {
+                                            e.target.src = fallbackImg;
+                                            e.target.style.display = 'block';
+                                            e.target.className += " grayscale opacity-20";
+                                        }
+                                    }}
+                                />
                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5 backdrop-blur-[2px]">
                                     <button
                                         onClick={() => handleAddCurationItem(art)}

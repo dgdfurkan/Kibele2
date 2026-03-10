@@ -8,7 +8,7 @@ export const fetchAICArtworks = async (params = {}) => {
     const { limit = 12, page = 1, query = '', filters = {} } = params;
 
     // AIC API Search Endpoint with public domain filter
-    let url = `${AIC_API_BASE}/artworks/search?limit=${limit}&page=${page}&fields=id,title,image_id,artist_display,medium_display,classification_title,style_title,place_of_origin&query[term][is_public_domain]=true`;
+    let url = `${AIC_API_BASE}/artworks/search?limit=${limit}&page=${page}&fields=id,title,image_id,artist_display,medium_display,classification_title,style_title,place_of_origin,is_public_domain&query[term][is_public_domain]=true`;
 
     // Gelişmiş Filtreleme 
     let searchQuery = query || '';
@@ -32,16 +32,19 @@ export const fetchAICArtworks = async (params = {}) => {
         // Görsel URL'lerini oluşturmak için AIC IIIF base URL'ine ihtiyaç var
         const iiifBaseUrl = data.config?.iiif_url || "https://www.artic.edu/iiif/2";
 
-        const artworks = data.data.map(item => ({
-            id: item.id,
-            title: item.title,
-            artist: item.artist_display,
-            medium: item.medium_display || item.classification_title,
-            style: item.style_title,
-            place: item.place_of_origin,
-            image_url: item.image_id ? `${iiifBaseUrl}/${item.image_id}/full/843,/0/default.jpg` : null,
-            thumbnail: item.image_id ? `${iiifBaseUrl}/${item.image_id}/full/200,/0/default.jpg` : null
-        }));
+        // Filtreleme: Sadece image_id'si olan ve public domain olanları (ek bir güvence) alalım
+        const artworks = data.data
+            .filter(item => item.image_id && item.is_public_domain)
+            .map(item => ({
+                id: item.id,
+                title: item.title,
+                artist: item.artist_display,
+                medium: item.medium_display || item.classification_title,
+                style: item.style_title,
+                place: item.place_of_origin,
+                image_url: `${iiifBaseUrl}/${item.image_id}/full/800,/0/default.jpg`,
+                thumbnail: `${iiifBaseUrl}/${item.image_id}/full/200,/0/default.jpg`
+            }));
 
         return {
             items: artworks,

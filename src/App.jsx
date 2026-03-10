@@ -320,7 +320,7 @@ function App() {
                                                 className="absolute inset-0 w-full h-full object-cover transition-all duration-700"
                                                 onError={(e) => {
                                                     e.target.style.display = 'none';
-                                                    e.target.parentElement.classList.add('bg-surface-light');
+                                                    e.target.parentElement.classList.add('bg-surface-light', 'flex', 'items-center', 'justify-center');
                                                     // Fallback image as last resort
                                                     const fallbackImg = "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=800&auto=format&fit=crop";
                                                     if (e.target.src !== fallbackImg) {

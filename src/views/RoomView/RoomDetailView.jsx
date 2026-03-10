@@ -100,7 +100,21 @@ const RoomDetailView = ({ room, isSidebarOpen, onSidebarToggle }) => {
                                     </div>
                                 ) : (
                                     <div className="rounded-[2.5rem] overflow-hidden bg-white border border-border-light/40 shadow-sm hover:shadow-2xl transition-all duration-700">
-                                        <img src={item.content} alt={item.title} className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-1000" />
+                                        <img
+                                            src={item.content}
+                                            alt={item.title}
+                                            className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-1000"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.parentElement.classList.add('bg-surface-light', 'flex', 'items-center', 'justify-center', 'min-h-[200px]');
+                                                const fallbackImg = "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=800&auto=format&fit=crop";
+                                                if (e.target.src !== fallbackImg) {
+                                                    e.target.src = fallbackImg;
+                                                    e.target.style.display = 'block';
+                                                    e.target.className += " grayscale opacity-30";
+                                                }
+                                            }}
+                                        />
                                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 backdrop-blur-[2px] flex items-center justify-center gap-4">
                                             <button className="p-3 bg-white rounded-full text-text-main shadow-2xl"><LucideZoomIn size={20} /></button>
                                             <button onClick={() => handleDeleteItem(item.id)} className="p-3 bg-white text-red-500 rounded-full shadow-2xl"><LucideX size={20} /></button>
