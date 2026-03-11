@@ -33,7 +33,7 @@ const SharedBoardView = ({ room, isSidebarOpen, onSidebarToggle }) => {
                 type: 'note',
                 content: newNote,
                 boardType: 'shared',
-                authorName: user.displayName || user.email.split('@')[0]
+                authorName: user.name || user.displayName || user.email.split('@')[0]
             });
             setNewNote('');
             setIsNoteModalOpen(false);

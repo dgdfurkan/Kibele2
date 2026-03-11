@@ -25,7 +25,7 @@ const CreateRoomModal = ({ isOpen, onClose }) => {
             console.log("Kibele Bilgi: Oda oluşturma isteği gönderiliyor...", { name, userId: user.uid });
             const roomId = await createRoom(name, user.uid, isPrivate, "", {
                 text: description,
-                creatorName: user.name || user.displayName || "Yaratıcı Kullanıcı"
+                creatorName: user.name || user.displayName || user.email.split('@')[0]
             }, deadline ? new Date(deadline) : null, isActive);
 
             console.log("Kibele Bilgi: Oda başarıyla oluşturuldu, ID:", roomId);

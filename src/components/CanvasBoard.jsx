@@ -130,7 +130,7 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
                 type: 'canvas_activity',
                 activityType: type,
                 userId: user.uid,
-                userName: user.displayName || user.email,
+                userName: user.name || user.displayName || user.email.split('@')[0],
                 detail: detail,
                 timestamp: new Date(),
                 roomId: roomId,

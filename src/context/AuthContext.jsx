@@ -63,10 +63,16 @@ export const AuthProvider = ({ children }) => {
                         const data = userSnap.data();
 
                         // Kullanıcı objesine Firestore'daki ismi ve diğer verileri ekle
-                        setUser(prev => ({
-                            ...prev,
-                            ...data
-                        }));
+                        setUser(prev => {
+                            if (!prev) return authenticatedUser;
+                            // Firestore verisi (name vb.) her zaman baskın olmalı
+                            return {
+                                ...prev,
+                                ...data,
+                                // Eğer Firestore'da name varsa ama prev'de (Auth) farklı bir displayName varsa, name kazansın
+                                name: data.name || prev.displayName || prev.email?.split('@')[0]
+                            };
+                        });
 
                         const rawRole = data.role || "student";
                         const cleanRole = rawRole.toString().toLowerCase().trim();

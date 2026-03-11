@@ -42,8 +42,7 @@ service cloud.firestore {
     // Bildirimler
     match /notifications/{notifId} {
       allow create: if isAuthenticated();
-      allow read, update: if isAuthenticated() && request.auth.uid == resource.data.userId;
-      allow delete: if isAdmin();
+      allow read, update, delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
     }
 
     // Gizlilik Ayarları (isPublic)

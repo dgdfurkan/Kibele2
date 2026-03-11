@@ -52,7 +52,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
         loadParticipants();
     }, [isAdmin, room?.id, room?.participants, user.uid]);
 
-    const activeParticipant = participants.find(p => p.id === selectedParticipantId) || { name: user.displayName || user.email, id: user.uid };
+    const activeParticipant = participants.find(p => p.id === selectedParticipantId) || { name: user.name || user.displayName || user.email.split('@')[0], id: user.uid };
 
     // Tuvale Artsy görseli ekleme mantığı
     const handleAddArtworkToCanvas = async (artwork) => {
@@ -89,7 +89,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
             await setDoc(doc(db, 'rooms', currentCanvasRoomId, 'shapes', shapeId), {
                 shape: shape,
                 updatedBy: user.uid,
-                updatedByName: user.displayName || user.email,
+                updatedByName: user.name || user.displayName || user.email.split('@')[0],
                 updatedAt: new Date(),
                 canvasType: activeTab // shared or personal
             });

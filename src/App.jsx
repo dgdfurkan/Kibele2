@@ -200,12 +200,12 @@ function App() {
                                         <div className="flex items-center gap-3 pl-4 border-l border-border-light">
                                             <div className="flex flex-col items-end hidden sm:flex">
                                                 <span className="text-xs font-bold text-text-main leading-tight">
-                                                    {user.displayName || user.email.split('@')[0]}
+                                                    {user.name || user.displayName || user.email.split('@')[0]}
                                                 </span>
                                                 <button onClick={handleLogout} className="text-[10px] font-bold text-text-muted hover:text-red-500 uppercase tracking-tighter transition-colors">Çıkış Yap</button>
                                             </div>
                                             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-accent-blue to-accent-blue-hover flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-accent-blue/20 ring-2 ring-white">
-                                                {user.displayName?.charAt(0) || user.email?.charAt(0).toUpperCase()}
+                                                {(user.name || user.displayName || user.email)?.charAt(0).toUpperCase()}
                                             </div>
                                         </div>
                                     </div>
