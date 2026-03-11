@@ -116,6 +116,7 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
             <div className="absolute inset-0">
                 <Tldraw
                     store={store}
+                    licenseKey={import.meta.env.VITE_TLDRAW_LICENSE_KEY}
                     readOnly={isReadOnly}
                     showMenu={!isReadOnly}
                     showToolbar={!isReadOnly}
