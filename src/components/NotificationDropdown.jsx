@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { LucideBell, LucideCheck, LucideExternalLink, LucideCircle } from 'lucide-react';
-import { subscribeToNotifications, markNotificationAsRead } from '../services/dbService';
+import { subscribeToNotifications, markNotificationAsRead, clearAllNotifications } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import RequestActionModal from './RequestActionModal';
@@ -55,6 +55,17 @@ const NotificationDropdown = ({ onRequestClick }) => {
         setIsOpen(false);
     };
 
+    const handleClearAll = async () => {
+        if (notifications.length === 0) return;
+        try {
+            await clearAllNotifications(user.uid);
+            showToast("Tüm bildirimler temizlendi canım! 🧹");
+            setIsOpen(false);
+        } catch (error) {
+            showToast("Bildirimler temizlenirken bir hata oluştu.", "error");
+        }
+    };
+
     return (
         <div className="relative" ref={dropdownRef}>
             <button
@@ -104,9 +115,15 @@ const NotificationDropdown = ({ onRequestClick }) => {
                     </div>
 
                     {notifications.length > 0 && (
-                        <div className="p-4 text-center bg-surface-light/30">
-                            <button className="text-[11px] font-bold text-text-muted hover:text-accent-blue transition-colors uppercase tracking-widest">
+                        <div className="p-4 flex items-center justify-between bg-surface-light/30 gap-4 border-t border-border-light">
+                            <button className="text-[10px] font-bold text-text-muted hover:text-accent-blue transition-colors uppercase tracking-widest">
                                 Tümünü Gör
+                            </button>
+                            <button
+                                onClick={handleClearAll}
+                                className="text-[10px] font-bold text-red-500/60 hover:text-red-500 transition-colors uppercase tracking-widest"
+                            >
+                                Bildirimleri Temizle
                             </button>
                         </div>
                     )}

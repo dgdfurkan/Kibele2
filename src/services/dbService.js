@@ -324,6 +324,24 @@ export const markNotificationAsRead = async (notificationId) => {
         console.error("Error marking notification as read:", e);
     }
 };
+
+export const clearAllNotifications = async (userId) => {
+    try {
+        const q = query(collection(db, "notifications"), where("userId", "==", userId));
+        const querySnapshot = await getDocs(q);
+        const batch = writeBatch(db);
+
+        querySnapshot.forEach((doc) => {
+            batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+        return { success: true };
+    } catch (e) {
+        console.error("Error clearing notifications:", e);
+        throw e;
+    }
+};
 export const getUserRoomRequestStatus = async (roomId, userId) => {
     try {
         const q = query(
