@@ -38,8 +38,8 @@ const CreateRoomModal = ({ isOpen, onClose }) => {
             setIsPrivate(false);
             showToast("İlham odan başarıyla kuruldu canım! Artık hazırsın. ✨");
         } catch (error) {
-            console.error("Kibele Hata: Oda oluşturulurken bir sorun çıktı:", error);
-            showToast("Oda oluşturulurken bir hata oluştu. Lütfen tekrar dene.", "error");
+            console.error("Kibele Hata:", error);
+            showToast(error.message || "Oda oluşturulurken bir hata oluştu.", "error");
         } finally {
             setIsSubmitting(false);
         }

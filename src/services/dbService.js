@@ -3,23 +3,35 @@ import { db } from "../firebase";
 
 // Rooms logic
 export const createRoom = async (name, creatorId, isPrivate = false, password = "", description = "", deadline = null, isActive = true) => {
+    // Timeout Promise (10 saniye)
+    const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("İstek zaman aşımına uğradı (Muhtemelen günlük kota doldu)")), 10000)
+    );
+
     try {
-        const docRef = await addDoc(collection(db, "rooms"), {
+        const roomPromise = addDoc(collection(db, "rooms"), {
             name,
             creatorId,
             creatorName: typeof description === 'string' ? "Bilinmeyen Kurucu" : (description.creatorName || "Bilinmeyen Kurucu"),
             isPrivate,
             password,
             description: typeof description === 'string' ? description : (description.text || ""),
-            deadline: deadline, // New field: bitiş tarihi
-            isActive: isActive, // New field: aktiflik durumu
+            deadline: deadline,
+            isActive: isActive,
             createdAt: serverTimestamp(),
             participants: [creatorId]
         });
+
+        // Hangi söz (promise) önce dönerse: Ekleme mi yoksa Timeout mu?
+        const docRef = await Promise.race([roomPromise, timeout]);
         return docRef.id;
     } catch (e) {
+        if (e.message?.includes("quota") || e.code === "resource-exhausted") {
+            console.error("Kibele: Firestore Yazma Kotası Doldu! 🛑");
+            throw new Error("Günlük kullanım limitine ulaşıldı. Lütfen yarın tekrar dene canım! ✨");
+        }
         console.error("Error creating room: ", e);
-        throw e; // FIX: Throw error so the UI can catch it properly
+        throw e;
     }
 };
 
