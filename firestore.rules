@@ -34,7 +34,8 @@ service cloud.firestore {
     // İlham Odaları
     match /rooms/{roomId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (resource.data.creatorId == request.auth.uid || isAdmin());
       allow delete: if isAdmin();
     }
     
@@ -45,21 +46,68 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Gizlilik Ayarları (isPublic)
+    match /room_privacy/{privacyId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (
+        request.auth.uid == userIdFromPrivacyId(privacyId) || 
+        isAdmin()
+      );
+    }
+    
+    function userIdFromPrivacyId(privacyId) {
+      // privacyId formatı: {roomId}_{userId}
+      return privacyId.split('_')[1];
+    }
+
     // Oda İçerikleri (Notlar, Resimler vb.)
     match /room_items/{itemId} {
-      // SADECE paylaşılan panoyu, kendi panosunu veya admin ise her şeyi görebilir
+      // SADECE paylaşılan panoyu, kendi panosunu, admin ise her şeyi 
+      // VEYA panosu "Public" olan başka bir öğrenciyi görebilir.
       allow read: if isAuthenticated() && (
         resource.data.boardType == 'shared' || 
         resource.data.userId == request.auth.uid || 
+        isAdmin() ||
+        get(/databases/$(database)/documents/room_privacy/$(resource.data.roomId + '_' + resource.data.userId)).data.isPublic == true
+      );
+      // Yazma yetkisi (Kendi panosu VEYA Admin ise her panyou editleyebilir)
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid || 
         isAdmin()
       );
-      // Yazma yetkisi giriş yapmış herkese (kendi ID'siyle oluşturması şartıyla)
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      // Sadece kendi ögesini veya admin silebilir/güncelleyebilir
+      // Silme/Güncelleme
       allow update, delete: if isAuthenticated() && (
         resource.data.userId == request.auth.uid || 
         isAdmin()
       );
+    }
+
+    // tldraw Şekilleri (Canvas)
+    match /rooms/{roomId}/shapes/{shapeId} {
+      allow read: if isAuthenticated() && (
+        get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]) ||
+        get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create, update: if isAuthenticated() && (
+        get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]) ||
+        get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin() || (
+        isAuthenticated() && 
+        get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorId == request.auth.uid
+      );
+    }
+
+    // Oda Aktiviteleri (Loglar)
+    match /rooms/{roomId}/activity/{activityId} {
+      allow read, create: if isAuthenticated() && (
+        get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]) ||
+        get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
     }
   }
 }

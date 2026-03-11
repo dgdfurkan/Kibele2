@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LucideLock, LucideSettings, LucidePlus, LucideImage, LucideZoomIn, LucideMoreHorizontal, LucideSchool, LucideSend, LucidePlusCircle, LucideX, LucideLayers } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { subscribeToRoomItems, addRoomItem, deleteRoomItem } from '../../services/dbService';
+import { subscribeToRoomItems, addRoomItem, deleteRoomItem, setRoomParticipantPrivacy, subscribeToParticipantPrivacy } from '../../services/dbService';
 import { useToast } from '../../context/ToastContext';
 
 const RoomDetailView = ({ room, isSidebarOpen, onSidebarToggle, targetUserId }) => {
@@ -11,15 +11,42 @@ const RoomDetailView = ({ room, isSidebarOpen, onSidebarToggle, targetUserId }) 
     const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
     const [newNote, setNewNote] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isPublic, setIsPublic] = useState(false);
 
     // Use current user's UID if targetUserId is not provided (students)
     const effectiveUserId = targetUserId || user?.uid;
 
+    // Archive / Read-only Check
+    const now = new Date();
+    const deadlineDate = room?.deadline?.toDate ? room.deadline.toDate() : (room?.deadline ? new Date(room.deadline) : null);
+    const isArchiveMode = room?.isActive === false || (deadlineDate && now > deadlineDate);
+    const canEdit = (user?.uid === effectiveUserId || isAdmin) && !isArchiveMode;
+
     useEffect(() => {
         if (!room?.id || !effectiveUserId) return;
-        const unsubscribe = subscribeToRoomItems(room.id, 'personal', effectiveUserId, setItems);
-        return () => unsubscribe();
+
+        // Items subscription
+        const unsubscribeItems = subscribeToRoomItems(room.id, 'personal', effectiveUserId, setItems);
+
+        // Privacy subscription
+        const unsubscribePrivacy = subscribeToParticipantPrivacy(room.id, effectiveUserId, setIsPublic);
+
+        return () => {
+            unsubscribeItems();
+            unsubscribePrivacy();
+        };
     }, [room?.id, effectiveUserId]);
+
+    const handleTogglePrivacy = async () => {
+        if (isArchiveMode) return;
+        try {
+            const nextState = !isPublic;
+            await setRoomParticipantPrivacy(room.id, user.uid, nextState);
+            showToast(nextState ? "Panon artık arkadaşlarına açık canım! ✨" : "Panon artık sadece sana ve hocana özel. 🔒");
+        } catch (error) {
+            showToast("Gizlilik ayarı değiştirilemedi.", "error");
+        }
+    };
 
     const handleAddNote = async () => {
         if (!newNote.trim()) return;
@@ -65,11 +92,36 @@ const RoomDetailView = ({ room, isSidebarOpen, onSidebarToggle, targetUserId }) 
                                     Moderatör Erişimi Aktif
                                 </span>
                             )}
+                            {isArchiveMode && (
+                                <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-red-500 text-white rounded-full flex items-center gap-1">
+                                    <LucideLock size={10} /> Arşiv Modu (Salt-Okunur)
+                                </span>
+                            )}
                         </div>
                         <h2 className="text-4xl font-display font-bold italic text-text-main mb-4 leading-tight">
                             {isAdmin && effectiveUserId !== user.uid ? "Öğrenci Referansları" : "Referanslarım"} & <br />
                             <span className="text-text-muted">{isAdmin && effectiveUserId !== user.uid ? "Fikir Notları." : "Fikir Notlarım."}</span>
                         </h2>
+
+                        {/* Privacy Toggle for Owner */}
+                        {user.uid === effectiveUserId && !isAdmin && (
+                            <div className="flex items-center gap-3 bg-surface-light p-4 rounded-2xl border border-border-light/40 w-fit">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isPublic ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                    {isPublic ? <LucideSchool size={16} /> : <LucideLock size={16} />}
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-text-main">Pano Görünürlüğü</p>
+                                    <p className="text-[9px] text-text-muted font-bold italic">{isPublic ? 'Arkadaşların görebilir' : 'Sadece sen ve Kibele Hoca'}</p>
+                                </div>
+                                <button
+                                    onClick={handleTogglePrivacy}
+                                    disabled={isArchiveMode}
+                                    className={`ml-4 w-12 h-6 rounded-full p-1 transition-all duration-300 ${isPublic ? 'bg-accent-blue' : 'bg-gray-200'} ${isArchiveMode ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                >
+                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${isPublic ? 'translate-x-6' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center justify-between mb-8">
@@ -80,11 +132,15 @@ const RoomDetailView = ({ room, isSidebarOpen, onSidebarToggle, targetUserId }) 
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setIsNoteModalOpen(true)}
-                                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white border border-border-light shadow-sm hover:shadow-md transition-all text-xs font-bold uppercase tracking-widest"
+                                disabled={!canEdit}
+                                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white border border-border-light shadow-sm hover:shadow-md transition-all text-xs font-bold uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed"
                             >
-                                <LucidePlus size={16} /> Not Ekle
+                                <LucidePlus size={16} /> {isAdmin && effectiveUserId !== user.uid ? 'Yorum Ekle' : 'Not Ekle'}
                             </button>
-                            <button className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-text-main text-white shadow-lg hover:bg-accent-blue transition-all text-xs font-bold uppercase tracking-widest">
+                            <button
+                                disabled={!canEdit}
+                                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-text-main text-white shadow-lg hover:bg-accent-blue transition-all text-xs font-bold uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
                                 <LucidePlusCircle size={16} /> Görsel Yükle
                             </button>
                         </div>
@@ -126,7 +182,9 @@ const RoomDetailView = ({ room, isSidebarOpen, onSidebarToggle, targetUserId }) 
                                         />
                                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 backdrop-blur-[2px] flex items-center justify-center gap-4">
                                             <button className="p-3 bg-white rounded-full text-text-main shadow-2xl"><LucideZoomIn size={20} /></button>
-                                            <button onClick={() => handleDeleteItem(item.id)} className="p-3 bg-white text-red-500 rounded-full shadow-2xl"><LucideX size={20} /></button>
+                                            {canEdit && (
+                                                <button onClick={() => handleDeleteItem(item.id)} className="p-3 bg-white text-red-500 rounded-full shadow-2xl"><LucideX size={20} /></button>
+                                            )}
                                         </div>
                                     </div>
                                 )}

@@ -124,8 +124,8 @@ const InspirationSystem = ({ onEnterRoom }) => {
                                         <h3 className="text-lg font-display font-bold group-hover/card:text-accent-blue transition-colors duration-300 leading-tight line-clamp-1">
                                             {room.name}
                                         </h3>
-                                        {room.isActive === false && (
-                                            <span className="text-[8px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded-md flex-shrink-0">PASİF</span>
+                                        {(room.isActive === false || (room.deadline && (room.deadline.toDate ? room.deadline.toDate() : new Date(room.deadline)) < new Date())) && (
+                                            <span className="text-[8px] font-black bg-orange-500 text-white px-1.5 py-0.5 rounded-md flex-shrink-0">ARŞİV</span>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-1.5 text-text-muted text-[10px] font-medium opacity-60">

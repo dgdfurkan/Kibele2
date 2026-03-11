@@ -23,6 +23,46 @@ export const createRoom = async (name, creatorId, isPrivate = false, password = 
     }
 };
 
+export const updateRoomSettings = async (roomId, data) => {
+    try {
+        const roomRef = doc(db, "rooms", roomId);
+        await setDoc(roomRef, data, { merge: true });
+        return { success: true };
+    } catch (e) {
+        console.error("Error updating room settings: ", e);
+        throw e;
+    }
+};
+
+export const removeParticipantFromRoom = async (roomId, userId, reason = "") => {
+    try {
+        const roomRef = doc(db, "rooms", roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (roomSnap.exists()) {
+            const data = roomSnap.data();
+            const participants = data.participants || [];
+            const updatedParticipants = participants.filter(id => id !== userId);
+
+            await setDoc(roomRef, { participants: updatedParticipants }, { merge: true });
+
+            // Kullanıcıya bildirim gönder
+            await sendNotification(userId, {
+                type: "kicked_from_room",
+                title: "Odadan Çıkarıldın 🔒",
+                message: `'${data.name}' odasından çıkarıldın. Sebep: ${reason || 'Belirtilmedi'}`,
+                roomId: roomId,
+                isSystem: true
+            });
+
+            return { success: true };
+        }
+        return { success: false, error: "Room not found" };
+    } catch (e) {
+        console.error("Error removing participant: ", e);
+        throw e;
+    }
+};
+
 export const deleteRoom = async (roomId) => {
     try {
         const { deleteDoc } = await import("firebase/firestore");
@@ -43,6 +83,61 @@ export const subscribeToRooms = (callback) => {
         console.error("Error subscribing to rooms:", error);
         callback([]);
     });
+};
+
+// Participant Metadata (Privacy etc.)
+export const setRoomParticipantPrivacy = async (roomId, userId, isPublic) => {
+    try {
+        const docId = `${roomId}_${userId}`;
+        await setDoc(doc(db, "room_privacy", docId), {
+            roomId,
+            userId,
+            isPublic,
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+        return true;
+    } catch (e) {
+        console.error("Error setting privacy:", e);
+        throw e;
+    }
+};
+
+export const getRoomParticipantPrivacy = async (roomId, userId) => {
+    try {
+        const docId = `${roomId}_${userId}`;
+        const docSnap = await getDoc(doc(db, "room_privacy", docId));
+        return docSnap.exists() ? docSnap.data().isPublic : false; // Default to private
+    } catch (e) {
+        console.error("Error getting privacy:", e);
+        return false;
+    }
+};
+
+export const subscribeToParticipantPrivacy = (roomId, userId, callback) => {
+    const docId = `${roomId}_${userId}`;
+    return onSnapshot(doc(db, "room_privacy", docId), (doc) => {
+        if (doc.exists()) {
+            callback(doc.data().isPublic);
+        } else {
+            callback(false);
+        }
+    });
+};
+
+export const fetchRoomPrivacySettings = async (roomId) => {
+    try {
+        const q = query(collection(db, "room_privacy"), where("roomId", "==", roomId));
+        const querySnapshot = await getDocs(q);
+        const settings = {};
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            settings[data.userId] = data.isPublic;
+        });
+        return settings;
+    } catch (e) {
+        console.error("Error fetching room privacy settings:", e);
+        return {};
+    }
 };
 
 // Student Management
@@ -379,5 +474,33 @@ export const joinRoom = async (roomId, userId) => {
     } catch (e) {
         console.error("Error joining room: ", e);
         throw e;
+    }
+};
+
+export const notifyParticipantsOfCanvasUpdate = async (roomId, currentUserId, currentUserName, roomName) => {
+    try {
+        const { getDoc } = await import("firebase/firestore");
+        const roomRef = doc(db, "rooms", roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (roomSnap.exists()) {
+            const data = roomSnap.data();
+            const participants = data.participants || [];
+            const creatorId = data.creatorId;
+
+            // Tüm katılımcılar + kurucu (kendisi hariç)
+            const targets = [...new Set([...participants, creatorId])].filter(id => id !== currentUserId);
+
+            const batch = targets.map(targetId => sendNotification(targetId, {
+                type: "canvas_update",
+                title: "Moodboard Güncellendi! 🎨",
+                message: `${currentUserName}, '${roomName}' odasındaki ortak panoda yeni ilhamlar oluşturdu. bi' bak istersen canım! ✨`,
+                roomId: roomId,
+                isSystem: true
+            }));
+
+            await Promise.all(batch);
+        }
+    } catch (e) {
+        console.error("Error notifying participants: ", e);
     }
 };

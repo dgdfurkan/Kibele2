@@ -1,16 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { LucideChevronLeft, LucideUsers, LucideUser, LucideLayers, LucideSparkles, LucideMessageSquare, LucideUserCheck, LucideSearch } from 'lucide-react';
-import RoomDetailView from './RoomDetailView';
-import SharedBoardView from './SharedBoardView';
+import { LucideChevronLeft, LucideUsers, LucideUser, LucideLayers, LucideSparkles, LucideMessageSquare, LucideUserCheck, LucideSearch, LucideAward, LucideHistory, LucideLock, LucideSettings } from 'lucide-react';
+import FinalWorkView from './FinalWorkView';
+import AuditTrailView from './AuditTrailView';
+import RoomSettingsModal from '../../components/RoomSettingsModal';
+import CanvasBoard from '../../components/CanvasBoard';
 import { useAuth } from '../../context/AuthContext';
-import { getUsersProfiles, deleteRoom } from '../../services/dbService';
+import { getUsersProfiles, deleteRoom, fetchRoomPrivacySettings } from '../../services/dbService';
 import { useToast } from '../../context/ToastContext';
+import ArtsyExplorer from '../../components/ArtsyExplorer';
+import { db } from '../../firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
 
 const InspirationWorkspace = ({ room, onBack }) => {
     const { user, isAdmin } = useAuth();
     const { showToast } = useToast();
-    const [activeTab, setActiveTab] = useState('personal'); // 'personal' or 'shared'
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [activeTab, setActiveTab] = useState('shared'); // Default to shared canvas
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+    // RBAC: Room metadata and status
+    const isCreator = room?.creatorId === user?.uid;
+    const isArchived = room?.isActive === false || (room?.deadline && (room.deadline.toDate ? room.deadline.toDate() : new Date(room.deadline)) < new Date());
 
     // RBAC: Admin state for viewing specific participants
     const [participants, setParticipants] = useState([]);
@@ -18,20 +28,129 @@ const InspirationWorkspace = ({ room, onBack }) => {
     const [isParticipantDrawerOpen, setIsParticipantDrawerOpen] = useState(false);
 
     useEffect(() => {
-        if (isAdmin && room?.participants?.length > 0) {
-            getUsersProfiles(room.participants).then(profiles => {
-                setParticipants(profiles);
-                // Default to current user if they are in participants, or the first participant
-                if (!selectedParticipantId) {
-                    setSelectedParticipantId(user.uid);
-                }
-            });
-        } else {
-            setSelectedParticipantId(user.uid);
-        }
-    }, [isAdmin, room?.participants, user.uid]);
+        if (!room?.id) return;
 
-    const activeParticipant = participants.find(p => p.id === selectedParticipantId) || { name: user.name, id: user.uid };
+        const loadParticipants = async () => {
+            const profiles = await getUsersProfiles(room.participants || []);
+            const privacySettings = await fetchRoomPrivacySettings(room.id);
+
+            const enrichedProfiles = profiles.map(p => ({
+                ...p,
+                isPublic: privacySettings[p.id] || false
+            }));
+
+            const visibleProfiles = enrichedProfiles.filter(p =>
+                isAdmin || p.id === user.uid || p.isPublic
+            );
+
+            setParticipants(visibleProfiles);
+            if (!selectedParticipantId) {
+                setSelectedParticipantId(user.uid);
+            }
+        };
+
+        loadParticipants();
+    }, [isAdmin, room?.id, room?.participants, user.uid]);
+
+    const activeParticipant = participants.find(p => p.id === selectedParticipantId) || { name: user.displayName || user.email, id: user.uid };
+
+    // Tuvale Artsy görseli ekleme mantığı
+    const handleAddArtworkToCanvas = async (artwork) => {
+        if (isArchived) return;
+
+        const currentCanvasRoomId = activeTab === 'shared' ? `${room.id}_shared` : `${room.id}_${selectedParticipantId || user.uid}`;
+        const shapeId = `shape:${Date.now()}`;
+
+        // tldraw image shape structure
+        const shape = {
+            id: shapeId,
+            typeName: 'shape',
+            type: 'image',
+            x: 100, // Varsayılan pozisyon (ileride tuval ortasına göre ayarlanabilir)
+            y: 100,
+            rotation: 0,
+            index: 'a1',
+            opacity: 1,
+            isLocked: false,
+            parentId: 'page:page',
+            props: {
+                w: 400,
+                h: 400 * (artwork.aspect_ratio || 1),
+                rel: 'external',
+                src: artwork.image_url || artwork.thumbnail,
+                name: artwork.title,
+                isAnimated: false,
+                mimeType: 'image/jpeg'
+            }
+        };
+
+        try {
+            await setDoc(doc(db, 'rooms', room.id, 'shapes', shapeId), {
+                shape: shape,
+                updatedBy: user.uid,
+                updatedByName: user.displayName || user.email,
+                updatedAt: new Date(),
+                canvasType: activeTab // shared or personal
+            });
+            showToast("Görsel tuvale eklendi canım! ✨");
+        } catch (error) {
+            console.error("Error adding artwork to canvas:", error);
+            showToast("Görsel eklenirken bir hata oluştu.", "error");
+        }
+    };
+
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case 'shared':
+                return (
+                    <div className="w-full h-full p-4 lg:p-8 flex gap-8">
+                        <div className="flex-1 relative">
+                            <CanvasBoard
+                                roomId={`${room.id}_shared`}
+                                roomName={room.name}
+                                isReadOnly={isArchived}
+                            />
+                        </div>
+                        {isSidebarOpen && (
+                            <div className="w-[400px] h-full flex-shrink-0 animate-in slide-in-from-right-8 duration-500">
+                                <ArtsyExplorer
+                                    onAddArtwork={handleAddArtworkToCanvas}
+                                    onClose={() => setIsSidebarOpen(false)}
+                                    isArchiveMode={isArchived}
+                                />
+                            </div>
+                        )}
+                    </div>
+                );
+            case 'personal':
+                return (
+                    <div className="w-full h-full p-4 lg:p-8 flex gap-8">
+                        <div className="flex-1 relative">
+                            <CanvasBoard
+                                roomId={`${room.id}_${selectedParticipantId || user.uid}`}
+                                roomName={`${room.name} - ${selectedParticipantId ? activeParticipant.name : 'Kişisel Pano'}`}
+                                isReadOnly={isArchived || (selectedParticipantId && selectedParticipantId !== user.uid && !isAdmin)}
+                            />
+                        </div>
+                        {isSidebarOpen && user.uid === (selectedParticipantId || user.uid) && (
+                            <div className="w-[400px] h-full flex-shrink-0 animate-in slide-in-from-right-8 duration-500">
+                                <ArtsyExplorer
+                                    onAddArtwork={handleAddArtworkToCanvas}
+                                    onClose={() => setIsSidebarOpen(false)}
+                                    isArchiveMode={isArchived}
+                                />
+                            </div>
+                        )}
+                    </div>
+                );
+            case 'final':
+                return <FinalWorkView room={room} isArchived={isArchived} />;
+            case 'logs':
+                return <AuditTrailView roomId={room.id} userId={selectedParticipantId || user.uid} />;
+            default:
+                return null;
+        }
+    };
 
     return (
         <div className="h-screen flex flex-col bg-background overflow-hidden selection:bg-accent-blue selection:text-white">
@@ -50,27 +169,17 @@ const InspirationWorkspace = ({ room, onBack }) => {
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-blue">İlham Odası</span>
                             <span className="w-1 h-1 rounded-full bg-text-muted/30"></span>
                             <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{room?.name}</span>
-                            {isAdmin && (
-                                <button
-                                    onClick={async () => {
-                                        if (window.confirm("Bu odayı ve içindeki tüm verileri silmek istediğine emin misin canım? Bu işlem geri alınamaz.")) {
-                                            try {
-                                                await deleteRoom(room.id);
-                                                showToast("Oda başarıyla uçuruldu canım! ✨");
-                                                onBack();
-                                            } catch (error) {
-                                                showToast("Oda silinirken bir hata oluştu.", "error");
-                                            }
-                                        }
-                                    }}
-                                    className="ml-2 px-2 py-0.5 rounded-lg bg-red-50 text-red-500 text-[8px] font-black hover:bg-red-500 hover:text-white transition-all"
-                                >
-                                    ODAYI SIL
-                                </button>
+                            {isArchived && (
+                                <span className="ml-2 px-2 py-0.5 rounded-lg bg-orange-50 text-orange-600 text-[8px] font-black uppercase tracking-widest border border-orange-100 flex items-center gap-1">
+                                    <LucideLock size={8} /> Arşiv
+                                </span>
                             )}
                         </div>
                         <h1 className="text-lg font-display font-bold text-text-main italic -mt-0.5">
-                            {activeTab === 'shared' ? 'Ortak Pano' : `Pano: ${activeParticipant.name || 'Ben'}`}
+                            {activeTab === 'shared' ? 'Ortak Moodboard' :
+                                activeTab === 'final' ? `Final İşi: ${activeParticipant.name || 'Ben'}` :
+                                    activeTab === 'logs' ? `Süreç: ${activeParticipant.name || 'Ben'}` :
+                                        `Pano: ${activeParticipant.name || 'Ben'}`}
                         </h1>
                     </div>
                 </div>
@@ -79,31 +188,69 @@ const InspirationWorkspace = ({ room, onBack }) => {
                 <div className="flex bg-surface-light/50 p-1.5 rounded-2xl border border-border-light/40 shadow-inner">
                     <button
                         onClick={() => setActiveTab('personal')}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'personal'
-                            ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
-                            : 'text-text-muted hover:text-text-main'
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'personal'
+                                ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
+                                : 'text-text-muted hover:text-text-main'
                             }`}
                     >
-                        <LucideUser size={14} /> {isAdmin ? 'Öğrenci Panoları' : 'Bireysel Alan'}
+                        <LucideUser size={14} /> Pano
                     </button>
                     <button
                         onClick={() => setActiveTab('shared')}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'shared'
-                            ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
-                            : 'text-text-muted hover:text-text-main'
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'shared'
+                                ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
+                                : 'text-text-muted hover:text-text-main'
                             }`}
                     >
-                        <LucideUsers size={14} /> Ortak Pano
+                        <LucideUsers size={14} /> Ortak
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('final')}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'final'
+                                ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
+                                : 'text-text-muted hover:text-text-main'
+                            }`}
+                    >
+                        <LucideAward size={14} /> Final
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('logs')}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'logs'
+                                ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
+                                : 'text-text-muted hover:text-text-main'
+                            }`}
+                    >
+                        <LucideHistory size={14} /> Süreç
                     </button>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {isAdmin && activeTab === 'personal' && (
+                    {(isAdmin || isCreator) && (
+                        <button
+                            onClick={() => setIsSettingsModalOpen(true)}
+                            className="p-3 bg-surface-light text-text-muted hover:text-accent-blue rounded-2xl transition-all border border-border-light/40 shadow-sm"
+                            title="Oda Ayarları"
+                        >
+                            <LucideSettings size={20} />
+                        </button>
+                    )}
+
+                    {(isAdmin || isCreator) && (
                         <button
                             onClick={() => setIsParticipantDrawerOpen(!isParticipantDrawerOpen)}
                             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-blue/10 text-accent-blue border border-accent-blue/20 text-[10px] font-black uppercase tracking-widest hover:bg-accent-blue/20 transition-all"
                         >
                             <LucideUsers size={14} /> Katılımcılar ({participants.length})
+                        </button>
+                    )}
+
+                    {(activeTab === 'shared' || (activeTab === 'personal' && !selectedParticipantId)) && (
+                        <button
+                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            className={`p-3 rounded-2xl transition-all ${isSidebarOpen ? 'bg-accent-blue text-white shadow-lg shadow-accent-blue/20' : 'bg-surface-light text-text-muted hover:text-accent-blue'}`}
+                            title="Kürasyon Gezgini"
+                        >
+                            <LucideSparkles size={20} />
                         </button>
                     )}
 
@@ -114,28 +261,18 @@ const InspirationWorkspace = ({ room, onBack }) => {
                             </div>
                         ))}
                     </div>
-                    {activeTab === 'personal' ? (
-                        <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className={`p-3 rounded-2xl transition-all ${isSidebarOpen ? 'bg-accent-blue text-white shadow-lg shadow-accent-blue/20' : 'bg-surface-light text-text-muted hover:text-accent-blue'}`}
-                            title="Kibele Hoca (AI)"
-                        >
-                            <LucideMessageSquare size={20} />
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className={`p-3 rounded-2xl transition-all ${isSidebarOpen ? 'bg-accent-blue text-white shadow-lg shadow-accent-blue/20' : 'bg-surface-light text-text-muted hover:text-accent-blue'}`}
-                            title="Derinlikli Kürasyon"
-                        >
-                            <LucideSparkles size={20} />
-                        </button>
-                    )}
                 </div>
             </nav>
 
+            {/* Modals */}
+            <RoomSettingsModal
+                isOpen={isSettingsModalOpen}
+                onClose={() => setIsSettingsModalOpen(false)}
+                room={room}
+            />
+
             {/* Admin Participant Drawer */}
-            {isAdmin && isParticipantDrawerOpen && (
+            {(isAdmin || isCreator) && isParticipantDrawerOpen && (
                 <div className="absolute top-20 right-8 w-80 bg-white/90 backdrop-blur-2xl border border-border-light/40 shadow-2xl rounded-3xl p-6 z-[100] animate-in fade-in slide-in-from-top-4 duration-300">
                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-text-muted mb-6">Öğrenci Listesi</h3>
                     <div className="space-y-3 max-h-[400px] overflow-y-auto scrollbar-hide">
@@ -165,20 +302,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden">
                 <main className="flex-1 overflow-hidden relative">
-                    {activeTab === 'personal' ? (
-                        <RoomDetailView
-                            room={room}
-                            isSidebarOpen={isSidebarOpen}
-                            onSidebarToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-                            targetUserId={selectedParticipantId}
-                        />
-                    ) : (
-                        <SharedBoardView
-                            room={room}
-                            isSidebarOpen={isSidebarOpen}
-                            onSidebarToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-                        />
-                    )}
+                    {renderTabContent()}
                 </main>
             </div>
         </div>

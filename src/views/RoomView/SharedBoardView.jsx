@@ -1,38 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { LucideShare2, LucideMoreHorizontal, LucidePlus, LucideEdit3, LucideFileUp, LucideSparkles, LucideX, LucideSearch, LucideRefreshCcw, LucideFilter, LucideSend, LucidePlusCircle } from 'lucide-react';
+import { LucideSearch, LucidePlus, LucideImage, LucideZoomIn, LucideMoreHorizontal, LucideLayers, LucideSparkles, LucideX, LucidePlusCircle, LucideSend, LucideInfo } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeToRoomItems, addRoomItem, deleteRoomItem } from '../../services/dbService';
 import { useToast } from '../../context/ToastContext';
-import { fetchAICArtworks } from '../../services/aicApi';
+import ArtsyExplorer from '../../components/ArtsyExplorer';
 
 const SharedBoardView = ({ room, isSidebarOpen, onSidebarToggle }) => {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const { showToast } = useToast();
     const [items, setItems] = useState([]);
-    const [curationResults, setCurationResults] = useState([]);
-    const [curationLoading, setCurationLoading] = useState(false);
     const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
     const [newNote, setNewNote] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Archive Check
+    const now = new Date();
+    const deadlineDate = room?.deadline?.toDate ? room.deadline.toDate() : (room?.deadline ? new Date(room.deadline) : null);
+    const isArchiveMode = room?.isActive === false || (deadlineDate && now > deadlineDate);
+    const canEdit = !isArchiveMode;
 
     useEffect(() => {
         if (!room?.id) return;
         const unsubscribe = subscribeToRoomItems(room.id, 'shared', null, setItems);
         return () => unsubscribe();
     }, [room?.id]);
-
-    useEffect(() => {
-        if (isSidebarOpen) {
-            handleFetchCuration();
-        }
-    }, [isSidebarOpen]);
-
-    const handleFetchCuration = async () => {
-        setCurationLoading(true);
-        const data = await fetchAICArtworks({ page: 1, filters: { medium: 'painting' } });
-        setCurationResults(data.items || []);
-        setCurationLoading(false);
-    };
 
     const handleAddNote = async () => {
         if (!newNote.trim()) return;
@@ -55,13 +46,14 @@ const SharedBoardView = ({ room, isSidebarOpen, onSidebarToggle }) => {
     };
 
     const handleAddCurationItem = async (art) => {
+        if (!canEdit) return;
         try {
             await addRoomItem(room.id, user.uid, {
                 type: 'image',
                 content: art.image_url || art.thumbnail,
                 title: art.title,
                 boardType: 'shared',
-                authorName: user.displayName || user.email.split('@')[0]
+                authorName: user.name || user.displayName || user.email.split('@')[0]
             });
             showToast("Sanat eseri ortak panoya taşındı! 🖼️✨");
         } catch (error) {
@@ -127,7 +119,9 @@ const SharedBoardView = ({ room, isSidebarOpen, onSidebarToggle }) => {
                                 ) : (
                                     <div className="bg-[#FFFDF0] p-10 pt-12 relative overflow-hidden">
                                         <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => handleDeleteItem(item.id)} className="p-2 text-text-muted hover:text-red-500"><LucideX size={14} /></button>
+                                            {canEdit && (
+                                                <button onClick={() => handleDeleteItem(item.id)} className="p-2 text-text-muted hover:text-red-500"><LucideX size={14} /></button>
+                                            )}
                                         </div>
                                         <LucideEdit3 size={16} className="text-orange-400 mb-8" />
                                         <p className="font-serif text-xl italic leading-relaxed text-text-main whitespace-pre-line">
@@ -152,75 +146,32 @@ const SharedBoardView = ({ room, isSidebarOpen, onSidebarToggle }) => {
 
                     {/* Quick Toolbar */}
                     <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-white/70 backdrop-blur-3xl border border-white/40 shadow-2xl rounded-[2.5rem] px-6 py-4 flex items-center gap-4 z-[70] animate-in slide-in-from-bottom-8 duration-1000">
-                        <button onClick={() => setIsNoteModalOpen(true)} className="flex items-center gap-3 px-6 py-3 rounded-2xl hover:bg-black/5 transition-all text-[10px] font-black uppercase tracking-widest text-text-main group">
-                            <LucideEdit3 size={20} className="text-accent-blue group-hover:scale-110 transition-transform" /> Fikir Yaz
-                        </button>
-                        <div className="w-px h-8 bg-black/10 mx-2"></div>
-                        <button className="flex items-center gap-3 px-6 py-3 rounded-2xl hover:bg-black/5 transition-all text-[10px] font-black uppercase tracking-widest text-text-main group">
-                            <LucideFileUp size={20} className="text-accent-blue group-hover:scale-110 transition-transform" /> Görsel At
-                        </button>
+                        {isArchiveMode ? (
+                            <div className="flex items-center gap-2 px-6 py-1 text-[10px] font-black uppercase tracking-widest text-red-500">
+                                <LucideLock size={14} /> Arşiv Modu (Kilitli)
+                            </div>
+                        ) : (
+                            <>
+                                <button onClick={() => setIsNoteModalOpen(true)} className="flex items-center gap-3 px-6 py-3 rounded-2xl hover:bg-black/5 transition-all text-[10px] font-black uppercase tracking-widest text-text-main group">
+                                    <LucideEdit3 size={20} className="text-accent-blue group-hover:scale-110 transition-transform" /> Fikir Yaz
+                                </button>
+                                <div className="w-px h-8 bg-black/10 mx-2"></div>
+                                <button className="flex items-center gap-3 px-6 py-3 rounded-2xl hover:bg-black/5 transition-all text-[10px] font-black uppercase tracking-widest text-text-main group">
+                                    <LucideFileUp size={20} className="text-accent-blue group-hover:scale-110 transition-transform" /> Görsel At
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             </main>
 
             {/* Curation Sidebar */}
-            <aside className={`w-[450px] flex-shrink-0 border-l border-border-light/40 bg-surface-light flex flex-col z-50 shadow-2xl transition-all duration-700 ${isSidebarOpen ? 'mr-0' : '-mr-[450px]'}`}>
-                <div className="p-10 border-b border-border-light/40 bg-white/50 backdrop-blur-md sticky top-0 z-10">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="font-display text-3xl font-bold italic text-text-main leading-tight">Derinlikli <br /> <span className="text-accent-blue">Kürasyon.</span></h2>
-                        <button onClick={onSidebarToggle} className="p-3 hover:bg-black/5 rounded-2xl transition-all"><LucideX size={20} /></button>
-                    </div>
-                    <p className="text-sm text-text-muted italic">Kelimelerle değil, estetik referanslarla keşıf yap canım.</p>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-10 space-y-10 scrollbar-hide">
-                    <div className="relative group">
-                        <LucideSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-blue transition-colors" size={20} />
-                        <input
-                            placeholder="Sanat eseri ara..."
-                            className="w-full pl-14 pr-6 py-5 rounded-[2rem] bg-white border-none shadow-sm focus:ring-4 focus:ring-accent-blue/5 transition-all text-sm font-medium"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-6">
-                        {curationLoading ? (
-                            [1, 2, 3, 4, 5, 6].map(i => <div key={i} className="aspect-[3/4] rounded-3xl bg-surface-light/50 animate-pulse border border-border-light/20"></div>)
-                        ) : curationResults.map((art, i) => (
-                            <div key={i} className="group relative rounded-3xl overflow-hidden aspect-[3/4] shadow-sm hover:shadow-xl transition-all duration-500 bg-white border border-border-light/30">
-                                <img
-                                    src={art.thumbnail}
-                                    alt={art.title}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                                    onError={(e) => {
-                                        e.target.style.display = 'none';
-                                        e.target.parentElement.classList.add('bg-surface-light');
-                                        const fallbackImg = "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=400&auto=format&fit=crop";
-                                        if (e.target.src !== fallbackImg) {
-                                            e.target.src = fallbackImg;
-                                            e.target.style.display = 'block';
-                                            e.target.className += " grayscale opacity-20";
-                                        }
-                                    }}
-                                />
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5 backdrop-blur-[2px]">
-                                    <button
-                                        onClick={() => handleAddCurationItem(art)}
-                                        className="w-full py-4 bg-white text-text-main rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all"
-                                    >
-                                        Panoya Taşı
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <button
-                        onClick={handleFetchCuration}
-                        className="w-full py-6 border-2 border-dashed border-border-light/60 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.2em] text-text-muted hover:text-accent-blue hover:border-accent-blue/40 transition-all flex items-center justify-center gap-3 group"
-                    >
-                        KEŞFETMEYE DEVAM ET <LucideRefreshCcw size={16} className="group-hover:rotate-180 transition-transform duration-700" />
-                    </button>
-                </div>
+            <aside className={`w-[450px] flex-shrink-0 border-l border-border-light/40 flex flex-col z-50 shadow-2xl transition-all duration-700 ${isSidebarOpen ? 'mr-0' : '-mr-[450px]'}`}>
+                <ArtsyExplorer
+                    onClose={onSidebarToggle}
+                    onAddArtwork={handleAddCurationItem}
+                    isArchiveMode={isArchiveMode}
+                />
             </aside>
 
             {/* Note Modal */}

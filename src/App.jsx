@@ -140,17 +140,30 @@ function App() {
     }, []);
 
     // View Navigation Logic
+    const liveSelectedRoom = selectedRoom ? rooms.find(r => r.id === selectedRoom.id) : null;
+
+    // Check if user should be kicked out of the current workspace
+    useEffect(() => {
+        if (currentView === 'workspace' && liveSelectedRoom && user && !isAdmin) {
+            const isParticipant = liveSelectedRoom.participants?.includes(user.uid) || liveSelectedRoom.creatorId === user.uid;
+            if (!isParticipant) {
+                setCurrentView('hub');
+                // Optionally show a toast here via a global context, but App doesn't have useToast yet inside the local scope if it wraps it.
+            }
+        }
+    }, [liveSelectedRoom, user, isAdmin, currentView]);
+
     return (
         <ToastProvider>
             {currentView === 'request' ? (
                 <RoomRequestView
-                    room={selectedRoom}
+                    room={liveSelectedRoom || selectedRoom}
                     onBack={() => setCurrentView('hub')}
                     onRequestAccess={(reason) => handleRequestAccess(reason)}
                     isPending={userRequests.some(r => r.roomId === selectedRoom?.id && r.status === 'pending')}
                 />
             ) : currentView === 'workspace' ? (
-                <InspirationWorkspace room={selectedRoom} onBack={() => setCurrentView('hub')} />
+                <InspirationWorkspace room={liveSelectedRoom || selectedRoom} onBack={() => setCurrentView('hub')} />
             ) : (
                 <div className="min-h-screen bg-background text-text-main font-sans selection:bg-accent-blue selection:text-white">
                     <AdminPanel rooms={rooms} openOverride={isDashboardOpen} onOpenChange={setIsDashboardOpen} />
