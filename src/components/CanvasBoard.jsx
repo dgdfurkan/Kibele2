@@ -11,6 +11,16 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
     const [store] = useState(() => createTLStore({ shapeUtils: defaultShapeUtils }));
     const [isLoaded, setIsLoaded] = useState(false);
 
+    // Debug: tldraw lisans anahtarı kontrolü
+    useEffect(() => {
+        const key = import.meta.env.VITE_TLDRAW_LICENSE_KEY;
+        if (!key) {
+            console.warn("⚠️ Kibele Uyarı: tldraw lisans anahtarı VITE_TLDRAW_LICENSE_KEY üzerinden okunamadı.");
+        } else {
+            console.log("✅ Kibele Bilgi: tldraw lisans anahtarı başarıyla algılandı.");
+        }
+    }, []);
+
     // Senkronizasyon durumu takibi
     const [isSyncing, setIsSyncing] = useState(false);
 

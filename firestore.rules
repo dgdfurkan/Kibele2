@@ -82,29 +82,34 @@ service cloud.firestore {
       );
     }
 
+    function getBaseRoomId(fullId) {
+      // room_id_shared veya room_id_userId formatından asıl room_id'yi çıkar
+      return fullId.split('_')[0];
+    }
+
     // tldraw Şekilleri (Canvas)
     match /rooms/{roomId}/shapes/{shapeId} {
       allow read: if isAuthenticated() && (
-        get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]) ||
-        get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorId == request.auth.uid ||
+        get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.participants.hasAny([request.auth.uid]) ||
+        get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.creatorId == request.auth.uid ||
         isAdmin()
       );
       allow create, update: if isAuthenticated() && (
-        get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]) ||
-        get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorId == request.auth.uid ||
+        get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.participants.hasAny([request.auth.uid]) ||
+        get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.creatorId == request.auth.uid ||
         isAdmin()
       );
       allow delete: if isAdmin() || (
         isAuthenticated() && 
-        get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorId == request.auth.uid
+        get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.creatorId == request.auth.uid
       );
     }
 
     // Oda Aktiviteleri (Loglar)
     match /rooms/{roomId}/activity/{activityId} {
       allow read, create: if isAuthenticated() && (
-        get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]) ||
-        get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorId == request.auth.uid ||
+        get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.participants.hasAny([request.auth.uid]) ||
+        get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.creatorId == request.auth.uid ||
         isAdmin()
       );
       allow delete: if isAdmin();
