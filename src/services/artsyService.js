@@ -9,6 +9,8 @@ export const searchArtsyArtworks = async (params = {}) => {
         mediums = [],
         styles = [],
         colors = [],
+        places = [],
+        topics = [],
         query = '',
         page = 1,
         limit = 20
@@ -22,7 +24,9 @@ export const searchArtsyArtworks = async (params = {}) => {
             filters: {
                 mediums,
                 styles,
-                colors
+                colors,
+                places,
+                topics
             }
         });
 
@@ -50,7 +54,6 @@ export const ARTSY_FILTERS = {
         { id: 'Print', name: 'Baskı' },
         { id: 'Drawing', name: 'Çizim' },
         { id: 'Decorative Arts', name: 'Dekoratif Sanat' },
-        { id: 'Textile', name: 'Tekstil' },
         { id: 'Ceramics', name: 'Seramik' }
     ],
     styles: [
@@ -60,10 +63,25 @@ export const ARTSY_FILTERS = {
         { id: 'Pop Art', name: 'Pop Art' },
         { id: 'Contemporary Art', name: 'Çağdaş Sanat' },
         { id: 'Baroque', name: 'Barok' },
-        { id: 'Renaissance', name: 'Rönesans' },
-        { id: 'Ancient Egyptian', name: 'Antik Mısır' },
-        { id: 'Ancient Greek', name: 'Antik Yunan' },
-        { id: 'Japanese (culture or style)', name: 'Japon Sanatı' }
+        { id: 'Renaissance', name: 'Rönesans' }
+    ],
+    places: [
+        { id: 'France', name: 'Fransa' },
+        { id: 'Japan', name: 'Japonya' },
+        { id: 'United States', name: 'ABD' },
+        { id: 'Italy', name: 'İtalya' },
+        { id: 'China', name: 'Çin' },
+        { id: 'Netherlands', name: 'Hollanda' },
+        { id: 'India', name: 'Hindistan' }
+    ],
+    topics: [
+        { id: 'Nature', name: 'Doğa' },
+        { id: 'Architecture', name: 'Mimari' },
+        { id: 'Portraits', name: 'Portre' },
+        { id: 'Mythology', name: 'Mitoloji' },
+        { id: 'Landscape', name: 'Manzara' },
+        { id: 'Animals', name: 'Hayvanlar' },
+        { id: 'Religion', name: 'Din' }
     ],
     colors: [
         { id: 'red', name: 'Kırmızı', hex: '#EF4444' },

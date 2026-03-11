@@ -44,6 +44,24 @@ export const fetchAICArtworks = async (params = {}) => {
         });
     }
 
+    // Coğrafya Filtresi (Çoklu Seçim)
+    if (filters.places && filters.places.length > 0) {
+        filter.push({
+            terms: {
+                "place_of_origin.keyword": filters.places
+            }
+        });
+    }
+
+    // Tema/Konu Filtresi (Çoklu Seçim)
+    if (filters.topics && filters.topics.length > 0) {
+        filter.push({
+            terms: {
+                "subject_titles.keyword": filters.topics
+            }
+        });
+    }
+
     // Renk Filtresi (HSL Hue aralıkları)
     if (filters.colors && filters.colors.length > 0) {
         const colorQueries = filters.colors.map(color => {
