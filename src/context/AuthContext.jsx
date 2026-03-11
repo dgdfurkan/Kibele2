@@ -42,10 +42,10 @@ export const AuthProvider = ({ children }) => {
         // Perform initial check-in
         updateOnlineStatus(user.uid, true);
 
-        // Update activity every 4 minutes (Firebase free tier friendly)
+        // Update activity every 10 minutes (Firebase free tier friendly)
         const heartbeatInterval = setInterval(() => {
             updateOnlineStatus(user.uid, true);
-        }, 4 * 60 * 1000);
+        }, 10 * 60 * 1000);
 
         return () => clearInterval(heartbeatInterval);
     }, [user, loading]);

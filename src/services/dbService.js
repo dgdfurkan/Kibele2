@@ -328,28 +328,39 @@ export const subscribeToNotifications = (userId, callback) => {
 };
 
 export const markNotificationAsRead = async (notificationId) => {
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000));
     try {
-        await setDoc(doc(db, "notifications", notificationId), {
+        const updatePromise = setDoc(doc(db, "notifications", notificationId), {
             read: true
         }, { merge: true });
+        await Promise.race([updatePromise, timeout]);
     } catch (e) {
-        console.error("Error marking notification as read:", e);
+        if (e.message !== "Timeout") {
+            console.error("Error marking notification as read:", e);
+        }
     }
 };
 
 export const clearAllNotifications = async (userId) => {
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Kota sınırına ulaşıldı veya bağlantı zaman aşımına uğradı.")), 8000));
     try {
         const q = query(collection(db, "notifications"), where("userId", "==", userId));
         const querySnapshot = await getDocs(q);
-        const batch = writeBatch(db);
 
+        if (querySnapshot.empty) return { success: true };
+
+        const batch = writeBatch(db);
         querySnapshot.forEach((doc) => {
             batch.delete(doc.ref);
         });
 
-        await batch.commit();
+        const commitPromise = batch.commit();
+        await Promise.race([commitPromise, timeout]);
         return { success: true };
     } catch (e) {
+        if (e.code === 'resource-exhausted' || e.message?.includes('quota')) {
+            throw new Error("Günlük bildirim temizleme kotası doldu. Lütfen yarın tekrar dene canım! ✨");
+        }
         console.error("Error clearing notifications:", e);
         throw e;
     }
