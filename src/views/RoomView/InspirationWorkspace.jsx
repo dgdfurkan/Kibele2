@@ -85,7 +85,8 @@ const InspirationWorkspace = ({ room, onBack }) => {
         };
 
         try {
-            await setDoc(doc(db, 'rooms', room.id, 'shapes', shapeId), {
+            // FIX: Use currentCanvasRoomId instead of room.id to save shapes to the correct canvas
+            await setDoc(doc(db, 'rooms', currentCanvasRoomId, 'shapes', shapeId), {
                 shape: shape,
                 updatedBy: user.uid,
                 updatedByName: user.displayName || user.email,
@@ -106,6 +107,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                     <div className="w-full h-full p-4 lg:p-8 flex gap-8">
                         <div className="flex-1 relative">
                             <CanvasBoard
+                                key={`${room.id}_shared`}
                                 roomId={`${room.id}_shared`}
                                 roomName={room.name}
                                 isReadOnly={isArchived}
@@ -127,6 +129,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                     <div className="w-full h-full p-4 lg:p-8 flex gap-8">
                         <div className="flex-1 relative">
                             <CanvasBoard
+                                key={`${room.id}_${selectedParticipantId || user.uid}`}
                                 roomId={`${room.id}_${selectedParticipantId || user.uid}`}
                                 roomName={`${room.name} - ${selectedParticipantId ? activeParticipant.name : 'Kişisel Pano'}`}
                                 isReadOnly={isArchived || (selectedParticipantId && selectedParticipantId !== user.uid && !isAdmin)}
@@ -189,8 +192,8 @@ const InspirationWorkspace = ({ room, onBack }) => {
                     <button
                         onClick={() => setActiveTab('personal')}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'personal'
-                                ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
-                                : 'text-text-muted hover:text-text-main'
+                            ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
+                            : 'text-text-muted hover:text-text-main'
                             }`}
                     >
                         <LucideUser size={14} /> Pano
@@ -198,8 +201,8 @@ const InspirationWorkspace = ({ room, onBack }) => {
                     <button
                         onClick={() => setActiveTab('shared')}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'shared'
-                                ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
-                                : 'text-text-muted hover:text-text-main'
+                            ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
+                            : 'text-text-muted hover:text-text-main'
                             }`}
                     >
                         <LucideUsers size={14} /> Ortak
@@ -207,8 +210,8 @@ const InspirationWorkspace = ({ room, onBack }) => {
                     <button
                         onClick={() => setActiveTab('final')}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'final'
-                                ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
-                                : 'text-text-muted hover:text-text-main'
+                            ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
+                            : 'text-text-muted hover:text-text-main'
                             }`}
                     >
                         <LucideAward size={14} /> Final
@@ -216,8 +219,8 @@ const InspirationWorkspace = ({ room, onBack }) => {
                     <button
                         onClick={() => setActiveTab('logs')}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'logs'
-                                ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
-                                : 'text-text-muted hover:text-text-main'
+                            ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
+                            : 'text-text-muted hover:text-text-main'
                             }`}
                     >
                         <LucideHistory size={14} /> Süreç

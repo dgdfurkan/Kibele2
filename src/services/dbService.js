@@ -7,10 +7,10 @@ export const createRoom = async (name, creatorId, isPrivate = false, password = 
         const docRef = await addDoc(collection(db, "rooms"), {
             name,
             creatorId,
-            creatorName: description.creatorName || "Bilinmeyen Kurucu",
+            creatorName: typeof description === 'string' ? "Bilinmeyen Kurucu" : (description.creatorName || "Bilinmeyen Kurucu"),
             isPrivate,
             password,
-            description: typeof description === 'string' ? description : description.text,
+            description: typeof description === 'string' ? description : (description.text || ""),
             deadline: deadline, // New field: bitiş tarihi
             isActive: isActive, // New field: aktiflik durumu
             createdAt: serverTimestamp(),
@@ -19,7 +19,7 @@ export const createRoom = async (name, creatorId, isPrivate = false, password = 
         return docRef.id;
     } catch (e) {
         console.error("Error creating room: ", e);
-        return null;
+        throw e; // FIX: Throw error so the UI can catch it properly
     }
 };
 

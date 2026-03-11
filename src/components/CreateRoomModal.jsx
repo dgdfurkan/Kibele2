@@ -22,10 +22,14 @@ const CreateRoomModal = ({ isOpen, onClose }) => {
 
         setIsSubmitting(true);
         try {
-            await createRoom(name, user.uid, isPrivate, "", {
+            console.log("Kibele Bilgi: Oda oluşturma isteği gönderiliyor...", { name, userId: user.uid });
+            const roomId = await createRoom(name, user.uid, isPrivate, "", {
                 text: description,
                 creatorName: user.name || user.displayName || "Yaratıcı Kullanıcı"
             }, deadline ? new Date(deadline) : null, isActive);
+
+            console.log("Kibele Bilgi: Oda başarıyla oluşturuldu, ID:", roomId);
+
             onClose();
             setName('');
             setDescription('');
@@ -34,8 +38,8 @@ const CreateRoomModal = ({ isOpen, onClose }) => {
             setIsPrivate(false);
             showToast("İlham odan başarıyla kuruldu canım! Artık hazırsın. ✨");
         } catch (error) {
-            console.error("Error creating room:", error);
-            showToast("Oda oluşturulurken bir hata oluştu.", "error");
+            console.error("Kibele Hata: Oda oluşturulurken bir sorun çıktı:", error);
+            showToast("Oda oluşturulurken bir hata oluştu. Lütfen tekrar dene.", "error");
         } finally {
             setIsSubmitting(false);
         }
