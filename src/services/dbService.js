@@ -1,4 +1,4 @@
-import { collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, doc, setDoc, getDoc, getDocs, increment, arrayUnion } from "firebase/firestore";
+import { collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, doc, setDoc, getDoc, getDocs, increment, arrayUnion, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
 
 // Rooms logic
