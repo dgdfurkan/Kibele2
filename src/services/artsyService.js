@@ -2,49 +2,36 @@ import { fetchAICArtworks } from './aicApi';
 
 /**
  * Artsy API Entegrasyonu (Deep Curation)
- * Not: Gerçek Artsy API'ı Client-Side'da bir XAPP-Token gerektirir. 
- * Bu servis, kullanıcıya istediği zengin deneyimi sunmak için AIC API'ı
- * ve gelişmiş filtreleme mantığını Artsy standartlarında sarmalar.
  */
 
 export const searchArtsyArtworks = async (params = {}) => {
     const {
-        medium,
-        period,
-        color,
+        mediums = [],
+        styles = [],
+        colors = [],
         query = '',
         page = 1,
-        limit = 10
+        limit = 20
     } = params;
 
-    // Artsy-style advanced query building
-    let enhancedQuery = query || 'art';
-
-    // Filtreleri sorguya ekle
-    if (medium && medium !== 'all') enhancedQuery += ` ${medium}`;
-    if (period && period !== 'all') enhancedQuery += ` ${period}`;
-    if (color && color !== 'all') enhancedQuery += ` ${color}`;
-
     try {
-        // AIC API'ı daha zengin sonuçlar için kullanıyoruz (Kamu malı filtreli)
         const results = await fetchAICArtworks({
-            query: enhancedQuery,
+            query,
             page,
             limit,
             filters: {
-                medium: medium !== 'all' ? medium : null,
-                style: period !== 'all' ? period : null
+                mediums,
+                styles,
+                colors
             }
         });
 
-        // Artsy metadata formatına dönüştür
         return {
             items: results.items.map(item => ({
                 ...item,
-                source: 'Artsy (Curation)',
+                source: 'Kibele Curation',
                 rarity: 'Unique',
-                price_range: 'Contact Specialist',
-                medium: item.medium || 'Unknown Medium'
+                price_range: 'Public Domain'
             })),
             total: results.total,
             totalPages: results.totalPages
@@ -57,27 +44,36 @@ export const searchArtsyArtworks = async (params = {}) => {
 
 export const ARTSY_FILTERS = {
     mediums: [
-        { id: 'all', name: 'Tüm Teknikler' },
-        { id: 'painting', name: 'Resim' },
-        { id: 'photography', name: 'Fotoğraf' },
-        { id: 'sculpture', name: 'Heykel' },
-        { id: 'print', name: 'Baskı' },
-        { id: 'drawing', name: 'Çizim' }
+        { id: 'Painting', name: 'Resim' },
+        { id: 'Photograph', name: 'Fotoğraf' },
+        { id: 'Sculpture', name: 'Heykel' },
+        { id: 'Print', name: 'Baskı' },
+        { id: 'Drawing', name: 'Çizim' },
+        { id: 'Decorative Arts', name: 'Dekoratif Sanat' },
+        { id: 'Textile', name: 'Tekstil' },
+        { id: 'Ceramics', name: 'Seramik' }
     ],
-    periods: [
-        { id: 'all', name: 'Tüm Dönemler' },
-        { id: 'contemporary', name: 'Çağdaş' },
-        { id: 'modern', name: 'Modern' },
-        { id: 'impressionism', name: 'Empresyonizm' },
-        { id: 'renaissance', name: 'Rönesans' },
-        { id: 'pop-art', name: 'Pop Art' }
+    styles: [
+        { id: 'Modernism', name: 'Modernizm' },
+        { id: 'Impressionism', name: 'Empresyonizm' },
+        { id: 'Surrealism', name: 'Sürrealizm' },
+        { id: 'Pop Art', name: 'Pop Art' },
+        { id: 'Contemporary Art', name: 'Çağdaş Sanat' },
+        { id: 'Baroque', name: 'Barok' },
+        { id: 'Renaissance', name: 'Rönesans' },
+        { id: 'Ancient Egyptian', name: 'Antik Mısır' },
+        { id: 'Ancient Greek', name: 'Antik Yunan' },
+        { id: 'Japanese (culture or style)', name: 'Japon Sanatı' }
     ],
     colors: [
-        { id: 'all', name: 'Tüm Renkler', hex: 'transparent' },
         { id: 'red', name: 'Kırmızı', hex: '#EF4444' },
-        { id: 'blue', name: 'Mavi', hex: '#3B82F6' },
-        { id: 'green', name: 'Yeşil', hex: '#10B981' },
+        { id: 'orange', name: 'Turuncu', hex: '#F97316' },
         { id: 'yellow', name: 'Sarı', hex: '#FBBF24' },
-        { id: 'black', name: 'Siyah', hex: '#000000' }
+        { id: 'green', name: 'Yeşil', hex: '#10B981' },
+        { id: 'blue', name: 'Mavi', hex: '#3B82F6' },
+        { id: 'purple', name: 'Mor', hex: '#A855F7' },
+        { id: 'pink', name: 'Pembe', hex: '#EC4899' },
+        { id: 'black', name: 'Siyah', hex: '#000000' },
+        { id: 'white', name: 'Beyaz', hex: '#FFFFFF' }
     ]
 };
