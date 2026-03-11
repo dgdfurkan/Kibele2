@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Tldraw, createTLStore, defaultShapeUtils } from 'tldraw';
 import 'tldraw/tldraw.css';
 import { db } from '../firebase';
@@ -10,29 +10,28 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
     const { user } = useAuth();
     const [store] = useState(() => createTLStore({ shapeUtils: defaultShapeUtils }));
     const [isLoaded, setIsLoaded] = useState(false);
-    const activityTimeoutRef = React.useRef(null);
-    const pendingUpdatesRef = React.useRef(new Map());
 
-    // Debug: tldraw lisans anahtarı kontrolü
+    // Senkronizasyon Kuyrukları (Refs)
+    const pendingWritesRef = useRef(new Map());
+    const pendingDeletesRef = useRef(new Set());
+    const lastNotifRef = useRef(0);
+
+    // 1. tldraw lisans anahtarı kontrolü
     useEffect(() => {
         const key = import.meta.env.VITE_TLDRAW_LICENSE_KEY;
         if (!key) {
             console.warn("⚠️ Kibele Uyarı: tldraw lisans anahtarı VITE_TLDRAW_LICENSE_KEY üzerinden okunamadı.");
-        } else {
-            console.log("✅ Kibele Bilgi: tldraw lisans anahtarı başarıyla algılandı.");
         }
     }, []);
 
-    // Senkronizasyon durumu takibi
-    const [isSyncing, setIsSyncing] = useState(false);
-
+    // 2. Ana Senkronizasyon Döngüsü
     useEffect(() => {
         if (!roomId || !store) return;
 
-        console.log(`Subscribing to shapes for room: ${roomId}`);
+        console.log(`[Kibele Canvas] Subscribing: ${roomId}`);
         const shapesCol = collection(db, 'rooms', roomId, 'shapes');
 
-        // 1. Firestore'dan Store'a Senkronizasyon (Gelen Değişiklikler)
+        // A. Firestore'dan Store'a (Remote -> Local)
         const unsubscribe = onSnapshot(shapesCol, (snapshot) => {
             snapshot.docChanges().forEach((change) => {
                 const data = change.doc.data();
@@ -41,90 +40,102 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
                 if (change.type === 'removed') {
                     store.remove([id]);
                 } else {
-                    // Yerel değişikliği tetiklememek için "remote" işareti ile ekle
                     store.put([data.shape]);
                 }
             });
             if (!isLoaded) setIsLoaded(true);
+        }, (error) => {
+            console.error("[Kibele Canvas] Firestore Dinleme Hatası:", error);
         });
 
-        // 2. Store'dan Firestore'a Senkronizasyon (Giden Değişiklikler)
+        // B. Store'dan Firestore'a (Local -> Remote - Throttled)
         const cleanup = store.listen((entry) => {
             if (isReadOnly) return;
+            const { added, updated, removed } = entry.changes;
 
-            const updates = entry.changes.updated;
-            const additions = entry.changes.added;
-            const removals = entry.changes.removed;
-
-            // --- EKLEMELER ---
-            Object.values(additions).forEach(async (record) => {
+            // Değişiklikleri kuyruğa al
+            Object.values(added).forEach(record => {
                 if (record.typeName === 'shape') {
-                    await setDoc(doc(db, 'rooms', roomId, 'shapes', record.id), {
-                        shape: record,
-                        updatedBy: user.uid,
-                        updatedByName: user.displayName || user.email,
-                        updatedAt: new Date(),
-                        actionType: 'create'
-                    }, { merge: true });
-
-                    logActivity('shape_add', `${record.type === 'image' ? 'bir görsel referans' : 'yeni bir şekil'} ekledi.`);
+                    pendingWritesRef.current.set(record.id, record);
+                    pendingDeletesRef.current.delete(record.id);
                 }
             });
 
-            // --- GÜNCELLEMELER (Throttled) ---
-            Object.values(updates).forEach(([, record]) => {
+            Object.values(updated).forEach(([, record]) => {
                 if (record.typeName === 'shape') {
-                    pendingUpdatesRef.current.set(record.id, record);
+                    pendingWritesRef.current.set(record.id, record);
+                    pendingDeletesRef.current.delete(record.id);
                 }
             });
 
-            // --- SİLMELER ---
-            Object.values(removals).forEach(async (record) => {
+            Object.values(removed).forEach(record => {
                 if (record.typeName === 'shape') {
-                    await deleteDoc(doc(db, 'rooms', roomId, 'shapes', record.id));
-                    logActivity('shape_remove', 'bir öğeyi tuvalden kaldırdı.');
+                    pendingDeletesRef.current.add(record.id);
+                    pendingWritesRef.current.delete(record.id);
                 }
             });
 
-            // Throttled update trigger
-            if (pendingUpdatesRef.current.size > 0) {
+            if (pendingWritesRef.current.size > 0 || pendingDeletesRef.current.size > 0) {
                 scheduleSync();
             }
 
-            // Bildirim ve Log mekanizması (Smart Throttling)
-            if (Object.keys(additions).length > 0 || Object.keys(updates).length > 0) {
+            // Bildirim tetikleyici (Smart Throttling)
+            if (Object.keys(added).length > 0 || Object.keys(updated).length > 0) {
                 handleSmartNotification();
             }
         }, { source: 'user', scope: 'document' });
 
-        // Yardımcı Fonksiyonlar (Sync & Notification)
+        // Helper: Toplu Yazma
         const scheduleSync = () => {
             if (window[`sync_timer_${roomId}`]) return;
 
             window[`sync_timer_${roomId}`] = setTimeout(async () => {
-                const updatesToPush = Array.from(pendingUpdatesRef.current.values());
-                pendingUpdatesRef.current.clear();
                 window[`sync_timer_${roomId}`] = null;
 
-                if (updatesToPush.length > 0) {
+                const writes = Array.from(pendingWritesRef.current.values());
+                const deletes = Array.from(pendingDeletesRef.current.values());
+
+                pendingWritesRef.current.clear();
+                pendingDeletesRef.current.clear();
+
+                if (writes.length === 0 && deletes.length === 0) return;
+
+                try {
                     const batch = writeBatch(db);
-                    updatesToPush.forEach(record => {
+
+                    writes.forEach(record => {
                         const shapeRef = doc(db, 'rooms', roomId, 'shapes', record.id);
                         batch.set(shapeRef, {
                             shape: record,
                             updatedBy: user.uid,
-                            updatedByName: user.displayName || user.email,
-                            updatedAt: new Date(),
-                            actionType: 'update'
+                            updatedByName: user.name || user.displayName || user.email,
+                            updatedAt: new Date()
                         }, { merge: true });
                     });
+
+                    deletes.forEach(id => {
+                        const shapeRef = doc(db, 'rooms', roomId, 'shapes', id);
+                        batch.delete(shapeRef);
+                    });
+
                     await batch.commit();
-                    console.log(`Synced ${updatesToPush.length} updates to Firestore.`);
+                    console.log(`[Kibele Sync] ${writes.length} yazma, ${deletes.length} silme tamamlandı.`);
+
+                    if (writes.some(w => w.type === 'image')) {
+                        logActivity('shape_update', 'tuvale yeni içerikler ekledi.');
+                    }
+                } catch (error) {
+                    console.error("[Kibele Sync] Hata:", error);
                 }
-            }, 500); // 500ms throttle for updates
+            }, 1500); // Kota koruması için 1.5 saniye throttle
         };
 
         const logActivity = (type, detail) => {
+            const lastLogKey = `last_log_${roomId}_${type}`;
+            const now = Date.now();
+            if (window[lastLogKey] && now - window[lastLogKey] < 15000) return;
+            window[lastLogKey] = now;
+
             const activityRef = doc(collection(db, 'rooms', roomId, 'activity'));
             setDoc(activityRef, {
                 type: 'canvas_activity',
@@ -135,29 +146,25 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
                 timestamp: new Date(),
                 roomId: roomId,
                 roomName: roomName
-            });
+            }).catch(e => console.warn("[Log] Kota hatası olabilir:", e.message));
         };
 
         const handleSmartNotification = () => {
             const now = Date.now();
-            const lastNotif = window[`last_notif_${roomId}`] || 0;
-
-            // 5 dakikada bir "çalışıyor" bildirimi gönder (spam önleme)
-            if (now - lastNotif > 300000) {
-                window[`last_notif_${roomId}`] = now;
-
-                // Odadaki diğerlerine fısılda
+            if (now - lastNotifRef.current > 600000) { // 10 dakikada bir bildirim (Ultra spam koruması)
+                lastNotifRef.current = now;
                 const originalRoomId = roomId.split('_')[0];
-                notifyParticipantsOfCanvasUpdate(originalRoomId, user.uid, user.displayName || user.email, roomName);
-
-                // Süreç loguna genel bir "çalışmaya devam ediyor" ekle
-                logActivity('work_continue', 'tuval üzerinde çalışmaya devam ediyor...');
+                notifyParticipantsOfCanvasUpdate(originalRoomId, user.uid, user.name || user.displayName || user.email, roomName);
             }
         };
 
         return () => {
             unsubscribe();
             cleanup();
+            if (window[`sync_timer_${roomId}`]) {
+                clearTimeout(window[`sync_timer_${roomId}`]);
+                window[`sync_timer_${roomId}`] = null;
+            }
         };
     }, [roomId, store, user, isReadOnly, roomName]);
 
@@ -181,7 +188,6 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
                 />
             </div>
 
-            {/* Canvas Overlay Info */}
             <div className="absolute bottom-6 left-6 z-[10] flex items-center gap-3">
                 <div className="glass-card px-4 py-2 flex items-center gap-2 border border-white/40 shadow-xl">
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />

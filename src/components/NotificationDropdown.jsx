@@ -10,7 +10,7 @@ const NotificationDropdown = ({ onRequestClick }) => {
     const { showToast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
-    const [lastNotifId, setLastNotifId] = useState(null);
+    const lastNotifIdRef = useRef(null);
     const dropdownRef = useRef(null);
 
     useEffect(() => {
@@ -22,14 +22,14 @@ const NotificationDropdown = ({ onRequestClick }) => {
             const unread = newNotifs.filter(n => !n.read);
             if (unread.length > 0) {
                 const latest = unread[0];
-                if (latest.id !== lastNotifId) {
+                if (latest.id !== lastNotifIdRef.current) {
                     showToast(latest.message);
-                    setLastNotifId(latest.id);
+                    lastNotifIdRef.current = latest.id;
                 }
             }
         });
         return () => unsubscribe();
-    }, [user, lastNotifId, showToast]);
+    }, [user, showToast]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
