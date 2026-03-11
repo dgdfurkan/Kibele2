@@ -10,6 +10,8 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
     const { user } = useAuth();
     const [store] = useState(() => createTLStore({ shapeUtils: defaultShapeUtils }));
     const [isLoaded, setIsLoaded] = useState(false);
+    const activityTimeoutRef = React.useRef(null);
+    const pendingUpdatesRef = React.useRef(new Map());
 
     // Debug: tldraw lisans anahtarı kontrolü
     useEffect(() => {
@@ -54,60 +56,104 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
             const additions = entry.changes.added;
             const removals = entry.changes.removed;
 
+            // --- EKLEMELER ---
             Object.values(additions).forEach(async (record) => {
                 if (record.typeName === 'shape') {
                     await setDoc(doc(db, 'rooms', roomId, 'shapes', record.id), {
                         shape: record,
                         updatedBy: user.uid,
                         updatedByName: user.displayName || user.email,
-                        updatedAt: new Date()
+                        updatedAt: new Date(),
+                        actionType: 'create'
                     }, { merge: true });
+
+                    logActivity('shape_add', `${record.type === 'image' ? 'bir görsel referans' : 'yeni bir şekil'} ekledi.`);
                 }
             });
 
-            Object.values(updates).forEach(async ([, record]) => {
+            // --- GÜNCELLEMELER (Throttled) ---
+            Object.values(updates).forEach(([, record]) => {
                 if (record.typeName === 'shape') {
-                    await setDoc(doc(db, 'rooms', roomId, 'shapes', record.id), {
-                        shape: record,
-                        updatedBy: user.uid,
-                        updatedByName: user.displayName || user.email,
-                        updatedAt: new Date()
-                    }, { merge: true });
+                    pendingUpdatesRef.current.set(record.id, record);
                 }
             });
 
+            // --- SİLMELER ---
             Object.values(removals).forEach(async (record) => {
                 if (record.typeName === 'shape') {
                     await deleteDoc(doc(db, 'rooms', roomId, 'shapes', record.id));
+                    logActivity('shape_remove', 'bir öğeyi tuvalden kaldırdı.');
                 }
             });
 
-            // Bildirim ve Log mekanizması
+            // Throttled update trigger
+            if (pendingUpdatesRef.current.size > 0) {
+                scheduleSync();
+            }
+
+            // Bildirim ve Log mekanizması (Smart Throttling)
             if (Object.keys(additions).length > 0 || Object.keys(updates).length > 0) {
-                const now = Date.now();
-                const lastActivity = window[`last_activity_${roomId}`] || 0;
-
-                // 30 saniyede bir bildirim/log gönder (spam önleme)
-                if (now - lastActivity > 30000) {
-                    window[`last_activity_${roomId}`] = now;
-
-                    // Aktivite kaydı oluştur
-                    const activityRef = doc(collection(db, 'rooms', roomId, 'activity'));
-                    setDoc(activityRef, {
-                        type: 'canvas_update',
-                        userId: user.uid,
-                        userName: user.displayName || user.email,
-                        timestamp: new Date(),
-                        roomId: roomId,
-                        roomName: roomName
-                    });
-
-                    // Odadaki diğerlerine bildirim gönder
-                    const originalRoomId = roomId.split('_')[0]; // room_id_shared or room_id_user_id
-                    notifyParticipantsOfCanvasUpdate(originalRoomId, user.uid, user.displayName || user.email, roomName);
-                }
+                handleSmartNotification();
             }
         }, { source: 'user', scope: 'document' });
+
+        // Yardımcı Fonksiyonlar (Sync & Notification)
+        const scheduleSync = () => {
+            if (window[`sync_timer_${roomId}`]) return;
+
+            window[`sync_timer_${roomId}`] = setTimeout(async () => {
+                const updatesToPush = Array.from(pendingUpdatesRef.current.values());
+                pendingUpdatesRef.current.clear();
+                window[`sync_timer_${roomId}`] = null;
+
+                if (updatesToPush.length > 0) {
+                    const batch = writeBatch(db);
+                    updatesToPush.forEach(record => {
+                        const shapeRef = doc(db, 'rooms', roomId, 'shapes', record.id);
+                        batch.set(shapeRef, {
+                            shape: record,
+                            updatedBy: user.uid,
+                            updatedByName: user.displayName || user.email,
+                            updatedAt: new Date(),
+                            actionType: 'update'
+                        }, { merge: true });
+                    });
+                    await batch.commit();
+                    console.log(`Synced ${updatesToPush.length} updates to Firestore.`);
+                }
+            }, 500); // 500ms throttle for updates
+        };
+
+        const logActivity = (type, detail) => {
+            const activityRef = doc(collection(db, 'rooms', roomId, 'activity'));
+            setDoc(activityRef, {
+                type: 'canvas_activity',
+                activityType: type,
+                userId: user.uid,
+                userName: user.displayName || user.email,
+                detail: detail,
+                timestamp: new Date(),
+                roomId: roomId,
+                roomName: roomName
+            });
+        };
+
+        const handleSmartNotification = () => {
+            const now = Date.now();
+            const lastNotif = window[`last_notif_${roomId}`] || 0;
+
+            // 5 dakikada bir "çalışıyor" bildirimi gönder (spam önleme)
+            if (now - lastNotif > 300000) {
+                window[`last_notif_${roomId}`] = now;
+
+                // Odadaki diğerlerine fısılda
+                const originalRoomId = roomId.split('_')[0];
+                notifyParticipantsOfCanvasUpdate(originalRoomId, user.uid, user.displayName || user.email, roomName);
+
+                // Süreç loguna genel bir "çalışmaya devam ediyor" ekle
+                logActivity('work_continue', 'tuval üzerinde çalışmaya devam ediyor...');
+            }
+        };
 
         return () => {
             unsubscribe();

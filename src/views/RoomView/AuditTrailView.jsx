@@ -23,7 +23,7 @@ const AuditTrailView = ({ roomId, userId }) => {
             updateMergedItems(data, 'activity');
         });
 
-        // State merging helper
+        // State merging and grouping helper
         const itemsMap = new Map();
         const updateMergedItems = (newData, source) => {
             newData.forEach(item => {
@@ -33,10 +33,31 @@ const AuditTrailView = ({ roomId, userId }) => {
             const merged = Array.from(itemsMap.values()).sort((a, b) => {
                 const dateA = (a.createdAt || a.timestamp)?.toDate ? (a.createdAt || a.timestamp).toDate() : new Date(a.createdAt || a.timestamp);
                 const dateB = (b.createdAt || b.timestamp)?.toDate ? (b.createdAt || b.timestamp).toDate() : new Date(b.createdAt || b.timestamp);
-                return dateA - dateB;
+                return dateB - dateA; // Newest first for activity feed feel
             });
 
-            setAuditItems(merged);
+            // Grouping logic: Group consecutive activities by same user within 15 mins
+            const grouped = [];
+            merged.forEach((item, idx) => {
+                const prev = grouped[grouped.length - 1];
+                const itemDate = (item.createdAt || item.timestamp)?.toDate ? (item.createdAt || item.timestamp).toDate() : new Date(item.createdAt || item.timestamp);
+                const prevDate = prev ? ((prev.createdAt || prev.timestamp)?.toDate ? (prev.createdAt || prev.timestamp).toDate() : new Date(prev.createdAt || prev.timestamp)) : null;
+
+                const isSameUser = prev && (prev.userId === item.userId || prev.authorName === item.authorName);
+                const isRecent = prevDate && (Math.abs(itemDate - prevDate) < 15 * 60 * 1000); // 15 mins
+                const isSameType = prev && prev.type === item.type && item.type === 'canvas_activity';
+
+                if (isSameUser && isRecent && isSameType) {
+                    // Update previous group with new activity
+                    if (!prev.activities) prev.activities = [prev.detail || prev.content];
+                    prev.activities.push(item.detail || item.content);
+                    prev.timestamp = item.timestamp; // Keep newest time
+                } else {
+                    grouped.push({ ...item });
+                }
+            });
+
+            setAuditItems(grouped);
         };
 
         return () => {
@@ -88,8 +109,8 @@ const AuditTrailView = ({ roomId, userId }) => {
                                         </span>
                                     </div>
                                     <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${item.type === 'note' ? 'bg-orange-50 text-orange-600' :
-                                            item.type === 'canvas_activity' ? 'bg-accent-blue/10 text-accent-blue' :
-                                                'bg-blue-50 text-blue-600'}`}>
+                                        item.type === 'canvas_activity' ? 'bg-accent-blue/10 text-accent-blue' :
+                                            'bg-blue-50 text-blue-600'}`}>
                                         {item.type === 'note' ? 'Fikir/Yorum' :
                                             item.type === 'canvas_activity' ? 'Tuval Güncellemesi' :
                                                 'Görsel Referans'}
@@ -101,9 +122,18 @@ const AuditTrailView = ({ roomId, userId }) => {
                                         <img src={item.content} alt="Process step" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                                     </div>
                                 ) : item.type === 'canvas_activity' ? (
-                                    <div className="flex items-center gap-4 bg-surface-light/30 p-4 rounded-xl border border-border-light/20">
-                                        <LucideSparkles size={20} className="text-accent-blue animate-pulse" />
-                                        <p className="text-sm font-medium text-text-main capitalize">Sonsuz tuvalde yeni ilhamlar oluşturuldu. ✨</p>
+                                    <div className="bg-surface-light/30 p-4 rounded-xl border border-border-light/20">
+                                        <div className="flex items-center gap-4 mb-3">
+                                            <LucideSparkles size={20} className="text-accent-blue animate-pulse" />
+                                            <p className="text-sm font-bold text-text-main">Tuval üzerinde {item.activities?.length || 1} işlem gerçekleştirdi:</p>
+                                        </div>
+                                        <ul className="space-y-2 ml-9">
+                                            {item.activities ? [...new Set(item.activities)].map((act, i) => (
+                                                <li key={i} className="text-xs text-text-muted list-disc italic">{act}</li>
+                                            )) : (
+                                                <li className="text-xs text-text-muted list-disc italic">{item.detail || 'Sonsuz tuvalde değişiklikler yapıldı. ✨'}</li>
+                                            )}
+                                        </ul>
                                     </div>
                                 ) : (
                                     <p className="font-serif italic text-xl text-text-main leading-relaxed mb-4">"{item.content}"</p>
