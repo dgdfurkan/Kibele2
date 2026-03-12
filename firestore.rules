@@ -13,10 +13,10 @@ service cloud.firestore {
 
     // Kullanıcı profilleri
     match /users/{userId} {
-      allow read: if true; 
+      allow read: if isAuthenticated(); 
       allow write: if isAuthenticated() && request.auth.uid == userId;
 
-      match /preferences/{any} {
+      match /preferences/{prefId} {
         allow read, write: if isAuthenticated() && request.auth.uid == userId;
       }
     }

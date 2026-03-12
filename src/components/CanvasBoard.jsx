@@ -366,11 +366,18 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                 const snap = await getDoc(docRef);
                 if (snap.exists() && isActive) {
                     const data = snap.data();
-                    if (data.records && yStore.size === 0) {
+                    if (yStore.size === 0) {
                         ydoc.transact(() => {
-                            Object.entries(data.records).forEach(([id, record]) => {
-                                yStore.set(id, record);
-                            });
+                            if (data.records) {
+                                Object.entries(data.records).forEach(([id, record]) => {
+                                    yStore.set(id, record);
+                                });
+                            } else if (data.shapes) {
+                                // Migration: Legacy 'shapes' field to 'store' records
+                                Object.entries(data.shapes).forEach(([id, shape]) => {
+                                    yStore.set(id, shape);
+                                });
+                            }
                         });
                     }
                 }
@@ -395,7 +402,7 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
             const shape = snapshot.val();
             if (shape && shape.id) {
                 ydoc.transact(() => {
-                    yShapes.set(shape.id, shape);
+                    yStore.set(shape.id, shape);
                 }, 'external');
                 // Remove the message after processing
                 remove(ref(rtdb, `canvas_sync/${roomId}/external_shapes/${snapshot.key}`));
@@ -487,7 +494,9 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                                 if (snap.exists()) {
                                     const prefs = snap.data();
                                     if (prefs.isGridMode !== undefined) {
+                                    if (prefs.isGridMode !== undefined) {
                                         editor.user.updateUserPreferences({ isGridMode: prefs.isGridMode });
+                                    }
                                     }
                                 }
                             } catch (e) {
@@ -519,26 +528,12 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                 </div>
             </div>
 
-            <div className="absolute bottom-6 right-6 z-[10] flex flex-col items-end gap-3">
-                <div className="glass-card px-4 py-2 bg-white/60 backdrop-blur-xl border-white/40 shadow-2xl flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <div className={`w-2.5 h-2.5 rounded-full ${syncStatus === 'syncing' ? 'bg-blue-500 animate-pulse' : 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]'}`} />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
-                            {syncStatus === 'syncing' ? 'Buluta Senkronize Oluyor...' : 'Buluta Kaydedildi'}
-                        </span>
-                    </div>
-                    <div className="h-4 w-[1px] bg-slate-200" />
-                    <button 
-                        onClick={() => {
-                            const current = window.editor.user.getUserPreferences().isGridMode;
-                            window.editor.user.updateUserPreferences({ isGridMode: !current });
-                            // RTDB'ye kişisel ayarı kaydet
-                            setDoc(doc(db, `users/${user.uid}/preferences/canvas`), { isGridMode: !current }, { merge: true });
-                        }}
-                        className="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700 transition-colors"
-                    >
-                        Izgara: {window.editor?.user.getUserPreferences().isGridMode ? 'Açık' : 'Kapalı'}
-                    </button>
+            <div className="absolute bottom-6 right-6 z-[10]">
+                <div className="glass-card px-4 py-2 bg-white/60 backdrop-blur-xl border-white/40 shadow-2xl flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${syncStatus === 'syncing' ? 'bg-blue-500 animate-pulse' : 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]'}`} />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
+                        {syncStatus === 'syncing' ? 'Senkronize Ediliyor...' : 'Buluta Kaydedildi'}
+                    </span>
                 </div>
             </div>
 
