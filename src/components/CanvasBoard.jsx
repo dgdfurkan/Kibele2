@@ -477,6 +477,23 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                     }}
                     onMount={(editor) => {
                         window.editor = editor;
+                        
+                        // Kullanıcı tercihlerini yükle
+                        const loadUserPrefs = async () => {
+                            try {
+                                const prefRef = doc(db, `users/${user.uid}/preferences/canvas`);
+                                const snap = await getDoc(prefRef);
+                                if (snap.exists()) {
+                                    const prefs = snap.data();
+                                    if (prefs.isGridMode !== undefined) {
+                                        editor.setUserPreferences({ isGridMode: prefs.isGridMode });
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn("User prefs load failed:", e);
+                            }
+                        };
+                        loadUserPrefs();
                     }}
                 />
             </div>
