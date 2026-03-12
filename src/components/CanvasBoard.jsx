@@ -117,6 +117,7 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
 
     useEffect(() => {
         if (!roomId || !user) return;
+        let isActive = true;
 
         // Katılımcıları çek (Mention eşleşmesi için)
         const fetchParticipants = async () => {
@@ -208,12 +209,12 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
                     if (record.typeName === 'shape') {
                         // 👤 Attribution: Şekle sahip bilgisini ekle (Eğer yoksa)
                         if (!record.meta?.creatorId) {
-                            record.meta = {
-                                ...record.meta,
-                                creatorId: user.uid,
-                                creatorName: user.name || user.displayName || 'Sanatçı',
-                                createdAt: Date.now()
-                            };
+                        record.meta = {
+                            ...record.meta,
+                            creatorId: user.uid,
+                            creatorName: user.name || user.displayName || 'Sanatçı',
+                            createdAt: Date.now()
+                        };
                         }
                         yShapes.set(record.id, record);
 
@@ -288,7 +289,8 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
         // 5. Listen for External Additions (e.g. from ArtsyExplorer) via RTDB
         const externalRef = ref(rtdb, `canvas_sync/${roomId}/external_shapes`);
         
-        const unlistenExternal = onChildAdded(externalRef, (snapshot) => {
+        // Modular SDK: onChildAdded returns an unsubscribe function
+        const unsubscribeExternal = onChildAdded(externalRef, (snapshot) => {
             const shape = snapshot.val();
             if (shape && shape.id) {
                 ydoc.transact(() => {
@@ -316,9 +318,11 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
         }, 300000); // 5 mins
 
         return () => {
+            isActive = false;
             if (provider) provider.destroy();
             ydoc.destroy();
             unlisten();
+            unsubscribeExternal(); // FIX: Added missing cleanup
             clearInterval(snapshotInterval);
             clearTimeout(safetyTimeout);
             if (syncTimerRef.current) clearTimeout(syncTimerRef.current);

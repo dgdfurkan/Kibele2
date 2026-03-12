@@ -105,7 +105,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                     <div className="w-full h-full p-4 lg:p-8 flex gap-8">
                         <div className="flex-1 relative">
                             <CanvasBoard
-                                key={`${room.id}_shared`}
+                                key={`shared_${room.id}`}
                                 roomId={`${room.id}_shared`}
                                 user={user}
                                 roomName={room.name}
@@ -128,7 +128,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                     <div className="w-full h-full p-4 lg:p-8 flex gap-8">
                         <div className="flex-1 relative">
                             <CanvasBoard
-                                key={`${room.id}_${selectedParticipantId || user.uid}`}
+                                key={`personal_${room.id}_${selectedParticipantId || user.uid}`}
                                 roomId={`${room.id}_${selectedParticipantId || user.uid}`}
                                 user={user}
                                 roomName={`${room.name} - ${selectedParticipantId ? activeParticipant.name : 'Kişisel Pano'}`}

@@ -25,33 +25,40 @@ export class FirebaseRTDBProvider {
         this.awarenessRef = ref(rtdb, `canvas_sync/${roomId}/awareness`);
         
         // 1. Remote updates listener
-        this._listener = onChildAdded(this.updatesRef, (snapshot) => {
+        // Modular SDK: onChildAdded returns an unsubscribe function
+        this._unsubscribeUpdates = onChildAdded(this.updatesRef, (snapshot) => {
             const updateBase64 = snapshot.val();
-            if (updateBase64) {
-                const update = Uint8Array.from(atob(updateBase64), c => c.charCodeAt(0));
-                Y.applyUpdate(this.ydoc, update, this);
+            if (updateBase64 && this.ydoc && !this.ydoc.destroyed) {
+                try {
+                    const update = Uint8Array.from(atob(updateBase64), c => c.charCodeAt(0));
+                    Y.applyUpdate(this.ydoc, update, this);
+                } catch (e) {
+                    console.error("Yjs update error:", e);
+                }
             }
         });
 
         // 2. Local updates sender
-        this.ydoc.on('update', (update, origin) => {
+        this._ydocUpdateListener = (update, origin) => {
             if (origin !== this) {
                 const updateBase64 = btoa(String.fromCharCode(...update));
                 push(this.updatesRef, updateBase64);
             }
-        });
+        };
+        this.ydoc.on('update', this._ydocUpdateListener);
 
         // 3. Awareness (Presence) Sync
-        this.awareness.on('update', ({ added, updated, removed }, origin) => {
+        this._awarenessUpdateListener = ({ added, updated, removed }, origin) => {
             if (origin !== 'remote') {
                 const state = this.awareness.getLocalState();
                 if (state) {
                     set(ref(rtdb, `canvas_sync/${roomId}/awareness/${this.ydoc.clientID}`), state);
                 }
             }
-        });
+        };
+        this.awareness.on('update', this._awarenessUpdateListener);
 
-        this._awarenessListener = onChildAdded(this.awarenessRef, (snapshot) => {
+        this._unsubscribeAwareness = onChildAdded(this.awarenessRef, (snapshot) => {
             const clientID = parseInt(snapshot.key);
             if (clientID !== this.ydoc.clientID) {
                 const state = snapshot.val();
@@ -61,9 +68,8 @@ export class FirebaseRTDBProvider {
 
         // Cleanup on disconnect
         const presenceRef = ref(rtdb, `canvas_sync/${roomId}/awareness/${this.ydoc.clientID}`);
-        onValue(ref(rtdb, '.info/connected'), (snap) => {
+        this._unsubscribeConnected = onValue(ref(rtdb, '.info/connected'), (snap) => {
             if (snap.val() === true) {
-                // Note: Standard RTDB onDisconnect for presence cleanup
                 import('firebase/database').then(({ onDisconnect }) => {
                     onDisconnect(presenceRef).remove();
                 });
@@ -72,9 +78,21 @@ export class FirebaseRTDBProvider {
     }
 
     destroy() {
-        off(this.updatesRef, 'child_added', this._listener);
-        off(this.awarenessRef, 'child_added', this._awarenessListener);
+        // Modular SDK cleanup: call unsubscribe functions
+        if (this._unsubscribeUpdates) this._unsubscribeUpdates();
+        if (this._unsubscribeAwareness) this._unsubscribeAwareness();
+        if (this._unsubscribeConnected) this._unsubscribeConnected();
+        
+        // Remove Yjs/Awareness listeners
+        if (this.ydoc) {
+            this.ydoc.off('update', this._ydocUpdateListener);
+        }
+        if (this.awareness) {
+            this.awareness.off('update', this._awarenessUpdateListener);
+            this.awareness.destroy();
+        }
+
+        // Final presence cleanup
         set(ref(rtdb, `canvas_sync/${this.roomId}/awareness/${this.ydoc.clientID}`), null);
-        this.awareness.destroy();
     }
 }
