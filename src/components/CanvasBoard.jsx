@@ -487,7 +487,7 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                                 if (snap.exists()) {
                                     const prefs = snap.data();
                                     if (prefs.isGridMode !== undefined) {
-                                        editor.setUserPreferences({ isGridMode: prefs.isGridMode });
+                                        editor.user.updateUserPreferences({ isGridMode: prefs.isGridMode });
                                     }
                                 }
                             } catch (e) {
@@ -530,15 +530,14 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                     <div className="h-4 w-[1px] bg-slate-200" />
                     <button 
                         onClick={() => {
-                            const current = window.editor.getUserPreferences().isGridMode;
-                            window.editor.setUserPreferences({ isGridMode: !current });
+                            const current = window.editor.user.getUserPreferences().isGridMode;
+                            window.editor.user.updateUserPreferences({ isGridMode: !current });
                             // RTDB'ye kişisel ayarı kaydet
-                            const prefRef = ref(rtdb, `user_preferences/${user.uid}/canvas_grid`);
                             setDoc(doc(db, `users/${user.uid}/preferences/canvas`), { isGridMode: !current }, { merge: true });
                         }}
                         className="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700 transition-colors"
                     >
-                        Izgara: {window.editor?.getUserPreferences().isGridMode ? 'Açık' : 'Kapalı'}
+                        Izgara: {window.editor?.user.getUserPreferences().isGridMode ? 'Açık' : 'Kapalı'}
                     </button>
                 </div>
             </div>
