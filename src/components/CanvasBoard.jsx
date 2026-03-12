@@ -1,16 +1,110 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { Tldraw, createTLStore, defaultShapeUtils } from 'tldraw';
+import { Tldraw, createTLStore, defaultShapeUtils, track, useEditor, useSelectionEvents } from 'tldraw';
 import 'tldraw/tldraw.css';
 import * as Y from 'yjs';
 import { FirebaseRTDBProvider } from '../lib/y-firebase-rtdb';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { ref, onChildAdded, remove } from 'firebase/database';
 import { db, rtdb } from '../firebase';
+import { sendNotification } from '../services/dbService';
+
+// --- Custom Components for tldraw ---
+
+// Zarif bir şekilde şekil sahibini gösteren bileşen
+const CustomSelectionForeground = track(({ boundShapes }) => {
+    const editor = useEditor();
+    const selectionIds = editor.getSelectedShapeIds();
+    
+    // Sadece tek bir şekil seçiliyse sahibini göster
+    if (selectionIds.length !== 1) return null;
+    
+    const shape = editor.getShape(selectionIds[0]);
+    if (!shape || !shape.meta?.creatorName) return null;
+
+    const bounds = editor.getShapePageBounds(shape);
+    if (!bounds) return null;
+
+    return (
+        <div 
+            style={{
+                position: 'absolute',
+                top: -30,
+                left: 0,
+                padding: '4px 10px',
+                background: 'rgba(99, 102, 241, 0.9)', // Indigo-500
+                backdropFilter: 'blur(4px)',
+                color: 'white',
+                fontSize: '10px',
+                fontWeight: '800',
+                borderRadius: '8px',
+                pointerEvents: 'none',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                zIndex: 100,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+            }}
+        >
+            ✍️ {shape.meta.creatorName}
+        </div>
+    );
+});
+
+const components = {
+    SelectionForeground: CustomSelectionForeground,
+};
+
+// --- Helpers for Mentions ---
+const sentMentions = new Set(); // Spam önleyici: [roomId-name-time]
+
+const handleMentions = async (text, roomId, roomName, currentUser, participants) => {
+    if (!text || !text.includes('@')) return;
+
+    // Regex: @ işaretinden sonra gelen kelimeleri yakala (boşluklara kadar)
+    const mentionRegex = /@(\w+)/g;
+    let match;
+    const mentions = [];
+    
+    while ((match = mentionRegex.exec(text)) !== null) {
+        mentions.push(match[1].toLowerCase());
+    }
+
+    if (mentions.length === 0) return;
+
+    // Katılımcılar arasında eşleşme ara
+    mentions.forEach(async (mentionName) => {
+        const targetUser = participants.find(p => 
+            (p.name || p.displayName || '').toLowerCase().replace(/\s/g, '').includes(mentionName)
+        );
+
+        if (targetUser && targetUser.id !== currentUser.uid) {
+            const mentionKey = `${roomId}-${targetUser.id}-${mentionName}`;
+            
+            // Eğer son 1 dakika içinde bu kişiye bu odada mention atılmadıysa gönder
+            if (!sentMentions.has(mentionKey)) {
+                sentMentions.add(mentionKey);
+                setTimeout(() => sentMentions.delete(mentionKey), 60000); // 1 dk cooldown
+
+                await sendNotification(targetUser.id, {
+                    type: "canvas_mention",
+                    title: "Senden Bahsedildi! 🔔",
+                    message: `${currentUser.name || currentUser.displayName || 'Birisi'}, '${roomName}' odasında senden bahsetti.`,
+                    roomId: roomId,
+                    isSystem: false,
+                    senderName: currentUser.name || currentUser.displayName
+                });
+                console.log(`Mention sent to ${targetUser.id}`);
+            }
+        }
+    });
+};
 
 const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odası" }) => {
     const [isLoaded, setIsLoaded] = useState(false);
     const [syncStatus, setSyncStatus] = useState('synced');
     const [activeUsersCount, setActiveUsersCount] = useState(1);
+    const [participants, setParticipants] = useState([]);
+    const participantsRef = useRef([]); // Listener için güncel liste
     
     // tldraw store
     const store = useMemo(() => createTLStore({ shapeUtils: defaultShapeUtils }), []);
@@ -23,6 +117,23 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
 
     useEffect(() => {
         if (!roomId || !user) return;
+
+        // Katılımcıları çek (Mention eşleşmesi için)
+        const fetchParticipants = async () => {
+            try {
+                const roomRef = doc(db, "rooms", roomId);
+                const roomSnap = await getDoc(roomRef);
+                if (roomSnap.exists()) {
+                    const uids = roomSnap.data().participants || [];
+                    const profiles = await getUsersProfiles(uids);
+                    setParticipants(profiles);
+                    participantsRef.current = profiles;
+                }
+            } catch (err) {
+                console.error("Participants fetch failed:", err);
+            }
+        };
+        fetchParticipants();
 
         const ydoc = new Y.Doc();
         const yShapes = ydoc.getMap('shapes');
@@ -94,10 +205,35 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
             
             ydoc.transact(() => {
                 Object.values(update.changes.added).forEach(record => {
-                    if (record.typeName === 'shape') yShapes.set(record.id, record);
+                    if (record.typeName === 'shape') {
+                        // 👤 Attribution: Şekle sahip bilgisini ekle (Eğer yoksa)
+                        if (!record.meta?.creatorId) {
+                            record.meta = {
+                                ...record.meta,
+                                creatorId: user.uid,
+                                creatorName: user.name || user.displayName || 'Sanatçı',
+                                createdAt: Date.now()
+                            };
+                        }
+                        yShapes.set(record.id, record);
+
+                        // 🔔 Mention Detection for Text Shapes
+                        if (record.type === 'text' && record.props.text?.includes('@')) {
+                            handleMentions(record.props.text, roomId, roomName, user, participantsRef.current);
+                        }
+                    }
                 });
                 Object.values(update.changes.updated).forEach(([oldRecord, newRecord]) => {
-                    if (newRecord.typeName === 'shape') yShapes.set(newRecord.id, newRecord);
+                    if (newRecord.typeName === 'shape') {
+                        yShapes.set(newRecord.id, newRecord);
+
+                        // 🔔 Mention Update Detection
+                        if (newRecord.type === 'text' && 
+                            newRecord.props.text !== oldRecord.props.text && 
+                            newRecord.props.text?.includes('@')) {
+                            handleMentions(newRecord.props.text, roomId, roomName, user, participantsRef.current);
+                        }
+                    }
                 });
                 Object.values(update.changes.removed).forEach(record => {
                     if (record.typeName === 'shape') yShapes.delete(record.id);
@@ -207,6 +343,7 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
                     showToolbar={!isReadOnly}
                     showUI={true}
                     inferDarkMode={false}
+                    components={components}
                 />
             </div>
 
