@@ -99,7 +99,12 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
             }
         }, (error) => {
             console.error("[Kibele Sync Error]", error);
-            if (error.code === 'resource-exhausted') setSyncStatus('error');
+            if (error.code === 'resource-exhausted') {
+                setSyncStatus('quota');
+            } else {
+                setSyncStatus('error');
+            }
+            // Hata olsa bile "Loaded" yap ki en azından yerel yedek (localStorage) görünsün!
             if (!isLoaded) setIsLoaded(true);
         });
 
@@ -179,7 +184,11 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
                     setSyncStatus('synced');
                 } catch (error) {
                     console.error("[Sync Failed]", error);
-                    setSyncStatus('error');
+                    if (error.code === 'resource-exhausted') {
+                        setSyncStatus('quota');
+                    } else {
+                        setSyncStatus('error');
+                    }
                     writes.forEach(w => pendingWritesRef.current.set(w.id, w));
                     deletes.forEach(id => pendingDeletesRef.current.add(id));
                 }
@@ -254,7 +263,15 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
                     <div className="glass-card px-3 py-1.5 flex items-center gap-2 bg-red-50/80 backdrop-blur-md border-red-100 shadow-lg">
                         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                         <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest text-center leading-tight">
-                            Kota Dolu (Yerel Kayıtta)<br/>Veri kaybı yok merak etme ✨
+                            Bağlantı Sorunu / Yetki Yok<br/>Veriler Cihazına Kaydedildi
+                        </span>
+                    </div>
+                )}
+                {syncStatus === 'quota' && (
+                    <div className="glass-card px-3 py-1.5 flex items-center gap-2 bg-orange-50/80 backdrop-blur-md border-orange-100 shadow-lg">
+                        <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                        <span className="text-[9px] font-bold text-orange-600 uppercase tracking-widest text-center leading-tight">
+                            Günlük Kota Doldu<br/>Yerel Kayıt Aktif ✨
                         </span>
                     </div>
                 )}

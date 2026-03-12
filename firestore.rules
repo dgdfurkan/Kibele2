@@ -94,7 +94,13 @@ service cloud.firestore {
 
     // tldraw Şekilleri (Yeni Tek Doküman Modeli)
     match /rooms/{roomId}/canvas/{docId} {
-      allow read, write: if isAuthenticated() && (
+      allow read: if isAuthenticated() && (
+        get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.isPrivate == false ||
+        get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.participants.hasAny([request.auth.uid]) ||
+        get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.creatorId == request.auth.uid ||
+        isAdmin()
+      );
+      allow write: if isAuthenticated() && (
         get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.participants.hasAny([request.auth.uid]) ||
         get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.creatorId == request.auth.uid ||
         isAdmin()
