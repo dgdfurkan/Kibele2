@@ -6,7 +6,7 @@ import { FirebaseRTDBProvider } from '../lib/y-firebase-rtdb';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { ref, onChildAdded, remove } from 'firebase/database';
 import { db, rtdb } from '../firebase';
-import { sendNotification } from '../services/dbService';
+import { sendNotification, getUsersProfiles } from '../services/dbService';
 
 // --- Custom Components for tldraw ---
 
@@ -402,7 +402,8 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
             }
         });
 
-        snapshotInterval = setInterval(async () => {
+        // 4. Periodic Snapshot to Firestore (Once every 5 mins for backup)
+        let snapshotInterval = setInterval(async () => {
             if (isReadOnly || !isActive) return;
             const currentRecords = yStore.toJSON();
             if (Object.keys(currentRecords).length > 0) {
