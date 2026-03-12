@@ -51,7 +51,9 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
         const shapesCol = collection(db, 'rooms', roomId, 'shapes');
 
         // A. Firestore'dan Store'a (Remote -> Local)
+        let isFirstSnapshot = true;
         const unsubscribe = onSnapshot(shapesCol, (snapshot) => {
+            const remoteShapes = [];
             snapshot.docChanges().forEach((change) => {
                 const data = change.doc.data();
                 const id = change.doc.id;
@@ -59,15 +61,28 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
                 if (change.type === 'removed') {
                     if (store.get(id)) store.remove([id]);
                 } else if (change.type === 'added' || change.type === 'modified') {
-                    // Sadece dışarıdan gelen (başka kullanıcı) verisini uygula
-                    if (data.updatedBy !== user.uid) {
-                        store.put([data.shape]);
+                    // İlk yüklemede herkesi al, sonraki güncellemelerde sadece başkalarını al
+                    if (isFirstSnapshot || data.updatedBy !== user.uid) {
+                        remoteShapes.push(data.shape);
                     }
                 }
             });
-            if (!isLoaded) setIsLoaded(true);
+
+            if (remoteShapes.length > 0) {
+                store.put(remoteShapes);
+            }
+
+            if (isFirstSnapshot) {
+                isFirstSnapshot = false;
+                if (!isLoaded) setIsLoaded(true);
+            }
         }, (error) => {
-            if (error.code === 'resource-exhausted') setSyncStatus('error');
+            console.error("[Kibele Sync Error]", error);
+            if (error.code === 'resource-exhausted') {
+                setSyncStatus('error');
+            }
+            // Hata olsa bile "Loaded" yap ki en azından yerel yedek (localStorage) görünsün!
+            if (!isLoaded) setIsLoaded(true);
         });
 
         // B. Store'dan Firestore'a (Local -> Remote - AGGRESSIVE THROTTLING)
