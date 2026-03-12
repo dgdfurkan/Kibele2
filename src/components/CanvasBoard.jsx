@@ -1,229 +1,139 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Tldraw, createTLStore, defaultShapeUtils } from 'tldraw';
 import 'tldraw/tldraw.css';
-import { db } from '../firebase';
-import { onSnapshot, doc, setDoc, updateDoc, deleteField, writeBatch, getDoc } from 'firebase/firestore';
-import { useAuth } from '../context/AuthContext';
-import { notifyParticipantsOfCanvasUpdate } from '../services/dbService';
+import * as Y from 'yjs';
+import { FirebaseRTDBProvider } from '../lib/y-firebase-rtdb';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { ref, onChildAdded, remove } from 'firebase/database';
+import { db, rtdb } from '../firebase';
 
-const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
-    const { user } = useAuth();
-    const [store] = useState(() => createTLStore({ shapeUtils: defaultShapeUtils }));
+const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odası" }) => {
     const [isLoaded, setIsLoaded] = useState(false);
-    const [syncStatus, setSyncStatus] = useState('synced'); // 'synced', 'syncing', 'error'
+    const [syncStatus, setSyncStatus] = useState('synced'); // 'synced', 'syncing', 'error', 'quota'
     
-    // Senkronizasyon Kuyrukları (Refs)
-    const pendingWritesRef = useRef(new Map());
-    const pendingDeletesRef = useRef(new Set());
-    const lastNotifRef = useRef(0);
-    const isInteractingRef = useRef(false);
-    const remoteUpdateBufferRef = useRef(new Map());
+    // tldraw store
+    const store = useMemo(() => createTLStore({ shapeUtils: defaultShapeUtils }), []);
 
-    // 1. LocalStorage Yedekleme (Son Savunma Hattı)
     useEffect(() => {
-        if (!roomId || !isLoaded) return;
-        const backupKey = `kibele_backup_${roomId}`;
-        
-        const backup = localStorage.getItem(backupKey);
-        if (backup && store.allRecords().length <= 1) {
-            try {
-                const data = JSON.parse(backup);
-                store.put(data);
-                console.log("[Kibele] Local storage restore.");
-            } catch (e) { }
-        }
+        if (!roomId || !user) return;
 
-        const backupInterval = setInterval(() => {
-            const allRecords = store.allRecords();
-            if (allRecords.length > 1) {
-                localStorage.setItem(backupKey, JSON.stringify(allRecords));
-            }
-        }, 5000);
+        const ydoc = new Y.Doc();
+        const yShapes = ydoc.getMap('shapes');
+        const provider = new FirebaseRTDBProvider(roomId, ydoc);
 
-        return () => clearInterval(backupInterval);
-    }, [roomId, isLoaded, store]);
+        let isUpdatingRemote = false;
 
-    // 2. Ultra-Düşük Kota & Çatışma Önleme Senkronizasyonu
-    useEffect(() => {
-        if (!roomId || !store) return;
-
-        // TEK DOKÜMAN MODELİ: Her şekil için ayrı read/write yerine, tek bir kanvas dokümanı.
-        // Bu sayede okuma (read) maliyeti 100-500 kat azalır.
-        const canvasDocRef = doc(db, 'rooms', roomId, 'canvas', 'data');
-
-        // A. Firestore'dan Store'a (Remote -> Local)
-        let isFirstSnapshot = true;
-        const unsubscribe = onSnapshot(canvasDocRef, (snapshot) => {
-            if (!snapshot.exists()) {
-                if (isFirstSnapshot) {
-                    isFirstSnapshot = false;
-                    setIsLoaded(true);
-                }
-                return;
-            }
-
-            const data = snapshot.data();
-            const remoteShapesMap = data.shapes || {};
-            const lastUpdatedBy = data.lastUpdatedBy;
-            
-            const toPut = [];
-            const toRemove = [];
-
-            // Tüm mevcut kayıtları kontrol et
-            Object.keys(remoteShapesMap).forEach(id => {
-                const shape = remoteShapesMap[id];
-                // Eğer başkası güncellediyse veya ilk yüklemeyse uygula
-                if (isFirstSnapshot || lastUpdatedBy !== user.uid) {
-                    // EĞER ŞU AN KULLANICI ETKİLEŞİMDEYSE (Çiziyorsa), bu güncellemeyi TAMPONLA (Yarıda kalmayı önler)
-                    if (isInteractingRef.current) {
-                        remoteUpdateBufferRef.current.set(id, shape);
-                    } else {
-                        toPut.push(shape);
+        // 1. Yjs -> tldraw (Remote updates coming in)
+        const handleYjsChange = () => {
+            isUpdatingRemote = true;
+            store.mergeRemoteChanges(() => {
+                // Get all shapes from Yjs
+                const remoteShapesMap = yShapes.toJSON();
+                
+                // Sync to tldraw store
+                Object.values(remoteShapesMap).forEach((shape) => {
+                    const existing = store.get(shape.id);
+                    if (!existing || JSON.stringify(existing) !== JSON.stringify(shape)) {
+                        store.put([shape]);
                     }
-                }
+                });
+
+                // Handle deletions
+                store.allRecords().forEach(record => {
+                    if (record.typeName === 'shape' && !remoteShapesMap[record.id]) {
+                        store.remove([record.id]);
+                    }
+                });
             });
-
-            // Firestore'da silinmiş olanları yerelde de sil
-            store.allRecords().forEach(record => {
-                if (record.typeName === 'shape' && !remoteShapesMap[record.id]) {
-                    toRemove.push(record.id);
-                }
-            });
-
-            if (toPut.length > 0) store.put(toPut);
-            if (toRemove.length > 0) store.remove(toRemove);
-
-            if (isFirstSnapshot) {
-                isFirstSnapshot = false;
-                setIsLoaded(true);
-            }
-        }, (error) => {
-            console.error("[Kibele Sync Error]", error);
-            if (error.code === 'resource-exhausted') {
-                setSyncStatus('quota');
-            } else {
-                setSyncStatus('error');
-            }
-            // Hata olsa bile "Loaded" yap ki en azından yerel yedek (localStorage) görünsün!
+            isUpdatingRemote = false;
+            setSyncStatus('synced');
             if (!isLoaded) setIsLoaded(true);
+        };
+
+        yShapes.observe(handleYjsChange);
+
+        // 2. tldraw -> Yjs (Local updates going out)
+        const unlisten = store.listen((update) => {
+            if (isUpdatingRemote) return;
+            
+            setSyncStatus('syncing');
+            ydoc.transact(() => {
+                Object.values(update.changes.added).forEach(record => {
+                    if (record.typeName === 'shape') yShapes.set(record.id, record);
+                });
+                Object.values(update.changes.updated).forEach(([oldRecord, newRecord]) => {
+                    if (newRecord.typeName === 'shape') yShapes.set(newRecord.id, newRecord);
+                });
+                Object.values(update.changes.removed).forEach(record => {
+                    if (record.typeName === 'shape') yShapes.delete(record.id);
+                });
+            }, 'local');
+            
+            // Debounce syncing status to 'synced'
+            const timer = setTimeout(() => setSyncStatus('synced'), 2000);
+            return () => clearTimeout(timer);
         });
 
-        // B. Store'dan Firestore'a (Local -> Remote)
-        const cleanup = store.listen((entry) => {
-            if (isReadOnly) return;
-            const { added, updated, removed } = entry.changes;
-
-            let hasChanges = false;
-            Object.values(added).forEach(record => {
-                if (record.typeName === 'shape') {
-                    pendingWritesRef.current.set(record.id, record);
-                    pendingDeletesRef.current.delete(record.id);
-                    hasChanges = true;
-                }
-            });
-
-            Object.values(updated).forEach(([, record]) => {
-                if (record.typeName === 'shape') {
-                    pendingWritesRef.current.set(record.id, record);
-                    pendingDeletesRef.current.delete(record.id);
-                    hasChanges = true;
-                }
-            });
-
-            Object.values(removed).forEach(record => {
-                if (record.typeName === 'shape') {
-                    pendingDeletesRef.current.add(record.id);
-                    pendingWritesRef.current.delete(record.id);
-                    hasChanges = true;
-                }
-            });
-
-            if (hasChanges) {
-                setSyncStatus('syncing');
-                // Kullanıcı etkileşimi bittiğinde senkronize et (Yarıda kalmayı önler)
-                if (!isInteractingRef.current) {
-                    scheduleSync();
-                }
-            }
-        }, { source: 'user', scope: 'document' });
-
-        const scheduleSync = async () => {
-            if (window[`timer_${roomId}`]) return;
-
-            window[`timer_${roomId}`] = setTimeout(async () => {
-                window[`timer_${roomId}`] = null;
-                
-                const writes = Array.from(pendingWritesRef.current.values());
-                const deletes = Array.from(pendingDeletesRef.current.values());
-                
-                if (writes.length === 0 && deletes.length === 0) {
-                    setSyncStatus('synced');
-                    return;
-                }
-
-                pendingWritesRef.current.clear();
-                pendingDeletesRef.current.clear();
-
-                try {
-                    // ATOMIC UPDATE: Sadece değişen field'ları güncelle (Dot notation)
-                    const updates = {
-                        lastUpdatedBy: user.uid,
-                        updatedAt: new Date()
-                    };
-
-                    writes.forEach(shape => {
-                        updates[`shapes.${shape.id.replace(/:/g, '_')}`] = shape;
-                    });
-
-                    deletes.forEach(id => {
-                        updates[`shapes.${id.replace(/:/g, '_')}`] = deleteField();
-                    });
-
-                    // Eğer döküman yoksa önce yarat
-                    await setDoc(canvasDocRef, updates, { merge: true });
-                    setSyncStatus('synced');
-                } catch (error) {
-                    console.error("[Sync Failed]", error);
-                    if (error.code === 'resource-exhausted') {
-                        setSyncStatus('quota');
-                    } else {
-                        setSyncStatus('error');
+        // 3. Initial Load from Firestore (Optional Archive/Snapshot)
+        const loadInitialSnapshot = async () => {
+            try {
+                const docRef = doc(db, `rooms/${roomId}/canvas/data`);
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    if (data.shapes && yShapes.size === 0) {
+                        ydoc.transact(() => {
+                            Object.entries(data.shapes).forEach(([id, shape]) => {
+                                yShapes.set(id, shape);
+                            });
+                        });
                     }
-                    writes.forEach(w => pendingWritesRef.current.set(w.id, w));
-                    deletes.forEach(id => pendingDeletesRef.current.add(id));
                 }
-            }, 3000); // 3 saniye dengeleyici aralık
-        };
-
-        const handlePointerUp = () => {
-            isInteractingRef.current = false;
-            
-            // 1. Tamponlanmış dış güncellemeleri uygula
-            if (remoteUpdateBufferRef.current.size > 0) {
-                const shapes = Array.from(remoteUpdateBufferRef.current.values());
-                store.put(shapes);
-                remoteUpdateBufferRef.current.clear();
+            } catch (error) {
+                console.error("Initial load failed:", error);
             }
-
-            // 2. Kendi değişikliklerini gönder
-            scheduleSync();
+            if (!isLoaded) setIsLoaded(true);
         };
 
-        const handlePointerDown = () => {
-            isInteractingRef.current = true;
-        };
+        loadInitialSnapshot();
 
-        window.addEventListener('pointerup', handlePointerUp);
-        window.addEventListener('pointerdown', handlePointerDown);
+        // 5. Listen for External Additions (e.g. from ArtsyExplorer) via RTDB
+        const externalRef = ref(rtdb, `canvas_sync/${roomId}/external_shapes`);
+        
+        const unlistenExternal = onChildAdded(externalRef, (snapshot) => {
+            const shape = snapshot.val();
+            if (shape && shape.id) {
+                ydoc.transact(() => {
+                    yShapes.set(shape.id, shape);
+                }, 'external');
+                // Remove the message after processing
+                remove(ref(rtdb, `canvas_sync/${roomId}/external_shapes/${snapshot.key}`));
+            }
+        });
+
+        // 4. Periodic Snapshot to Firestore (Once every 5 mins for backup)
+        const snapshotInterval = setInterval(async () => {
+            if (isReadOnly) return;
+            const currentShapes = yShapes.toJSON();
+            if (Object.keys(currentShapes).length > 0) {
+                try {
+                    await setDoc(doc(db, `rooms/${roomId}/canvas/data`), {
+                        shapes: currentShapes,
+                        lastSnapshot: new Date().toISOString()
+                    }, { merge: true });
+                } catch (e) {
+                    console.warn("Snapshot backup failed (Quota?)", e);
+                }
+            }
+        }, 300000); // 5 mins
 
         return () => {
-            unsubscribe();
-            cleanup();
-            window.removeEventListener('pointerup', handlePointerUp);
-            window.removeEventListener('pointerdown', handlePointerDown);
-            if (window[`timer_${roomId}`]) clearTimeout(window[`timer_${roomId}`]);
+            provider.destroy();
+            ydoc.destroy();
+            unlisten();
+            clearInterval(snapshotInterval);
         };
-    }, [roomId, store, user, isReadOnly, roomName, isLoaded]);
+    }, [roomId, store, user, isReadOnly]);
 
     return (
         <div className="w-full h-full relative border border-border-light/20 rounded-[2rem] overflow-hidden bg-white shadow-inner">
@@ -256,23 +166,7 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
                 {syncStatus === 'synced' && (
                     <div className="glass-card px-3 py-1.5 flex items-center gap-2 bg-green-50/80 backdrop-blur-md border-green-100 shadow-lg">
                         <div className="w-2 h-2 rounded-full bg-green-500" />
-                        <span className="text-[9px] font-bold text-green-600 uppercase tracking-widest">Buluta Kaydedildi</span>
-                    </div>
-                )}
-                {syncStatus === 'error' && (
-                    <div className="glass-card px-3 py-1.5 flex items-center gap-2 bg-red-50/80 backdrop-blur-md border-red-100 shadow-lg">
-                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                        <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest text-center leading-tight">
-                            Bağlantı Sorunu / Yetki Yok<br/>Veriler Cihazına Kaydedildi
-                        </span>
-                    </div>
-                )}
-                {syncStatus === 'quota' && (
-                    <div className="glass-card px-3 py-1.5 flex items-center gap-2 bg-orange-50/80 backdrop-blur-md border-orange-100 shadow-lg">
-                        <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                        <span className="text-[9px] font-bold text-orange-600 uppercase tracking-widest text-center leading-tight">
-                            Günlük Kota Doldu<br/>Yerel Kayıt Aktif ✨
-                        </span>
+                        <span className="text-[9px] font-bold text-green-600 uppercase tracking-widest">Buluta Kaydedildi (RTDB)</span>
                     </div>
                 )}
             </div>

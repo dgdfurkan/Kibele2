@@ -8,8 +8,9 @@ import { useAuth } from '../../context/AuthContext';
 import { getUsersProfiles, deleteRoom, fetchRoomPrivacySettings } from '../../services/dbService';
 import { useToast } from '../../context/ToastContext';
 import ArtsyExplorer from '../../components/ArtsyExplorer';
-import { db } from '../../firebase';
+import { db, rtdb } from '../../firebase';
 import { collection, doc, setDoc } from 'firebase/firestore';
+import { ref, push } from 'firebase/database';
 
 const InspirationWorkspace = ({ room, onBack }) => {
     const { user, isAdmin } = useAuth();
@@ -85,26 +86,15 @@ const InspirationWorkspace = ({ room, onBack }) => {
         };
 
         try {
-            // Timeout Promise (8 saniye)
-            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 8000));
-
-            // NEW: Single Document Storage Model - Saves hundreds of reads/writes
-            const canvasDocRef = doc(db, 'rooms', currentCanvasRoomId, 'canvas', 'data');
-            const savePromise = setDoc(canvasDocRef, {
-                [`shapes.${shapeId.replace(/:/g, '_')}`]: shape,
-                lastUpdatedBy: user.uid,
-                updatedAt: new Date()
-            }, { merge: true });
-
-            await Promise.race([savePromise, timeout]);
+            // NEW: Realtime Database "External Addition" Model
+            // This bypasses Firestore quota for every small addition and works with Yjs
+            const externalRef = ref(rtdb, `canvas_sync/${currentCanvasRoomId}/external_shapes`);
+            await push(externalRef, shape);
+            
             showToast("Görsel tuvale eklendi canım! ✨");
         } catch (error) {
             console.error("Error adding artwork to canvas:", error);
-            if (error.message === "Timeout" || error.code === 'resource-exhausted') {
-                showToast("Günlük limit doldu, görsel şu an kaydedilemiyor.", "error");
-            } else {
-                showToast("Görsel eklenirken bir hata oluştu.", "error");
-            }
+            showToast("Görsel eklenirken bir hata oluştu.", "error");
         }
     };
 
