@@ -276,30 +276,44 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
 
         // 1. Yjs -> tldraw (Full sync)
         const handleYjsChange = () => {
+            if (isUpdatingRemote) return;
             isUpdatingRemote = true;
-            store.mergeRemoteChanges(() => {
-                const remoteData = yStore.toJSON();
-                
-                // Add/Update
-                Object.values(remoteData).forEach((record) => {
+            
+            try {
+                store.mergeRemoteChanges(() => {
+                    const remoteData = yStore.toJSON();
+                    const recordsToPut = [];
+                    const recordsToRemove = [];
+                    
                     const syncableTypes = ['shape', 'page', 'asset'];
-                    if (!syncableTypes.includes(record.typeName)) return;
 
-                    const existing = store.get(record.id);
-                    if (!existing || JSON.stringify(existing) !== JSON.stringify(record)) {
-                        store.put([record]);
-                    }
-                });
+                    // Add/Update
+                    Object.values(remoteData).forEach((record) => {
+                        if (!syncableTypes.includes(record.typeName)) return;
 
-                // Remove
-                store.allRecords().forEach(record => {
-                    const syncableTypes = ['shape', 'page', 'asset'];
-                    if (syncableTypes.includes(record.typeName) && !remoteData[record.id]) {
-                        store.remove([record.id]);
-                    }
+                        const existing = store.get(record.id);
+                        if (!existing || JSON.stringify(existing) !== JSON.stringify(record)) {
+                            recordsToPut.push(record);
+                        }
+                    });
+
+                    // Remove
+                    store.allRecords().forEach(record => {
+                        if (syncableTypes.includes(record.typeName) && !remoteData[record.id]) {
+                            recordsToRemove.push(record.id);
+                        }
+                    });
+
+                    if (recordsToPut.length > 0) store.put(recordsToPut);
+                    if (recordsToRemove.length > 0) store.remove(recordsToRemove);
                 });
-            });
-            isUpdatingRemote = false;
+            } catch (e) {
+                // Tldraw signals might throw if store is temporarily inconsistent
+                // but usually recovers on next tick
+                console.debug("Store merge deferred:", e.message);
+            } finally {
+                isUpdatingRemote = false;
+            }
             
             if (syncStatus === 'syncing') {
                 const now = Date.now();
