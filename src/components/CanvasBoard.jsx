@@ -14,17 +14,15 @@ import { sendNotification, getUsersProfiles } from '../services/dbService';
 const CustomSelectionForeground = track(({ boundShapes }) => {
     const editor = useEditor();
     
-    // Safety guard: editor or its internal state might be null during store sync
     if (!editor || !editor.getContainer()) return null;
 
     let selectionIds = [];
     try {
         selectionIds = editor.getSelectedShapeIds();
     } catch (e) {
-        return null; // Silent skip if internal state is being wiped
+        return null; 
     }
     
-    // Sadece tek bir şekil seçiliyse sahibini göster
     if (selectionIds.length !== 1) return null;
     
     const shape = editor.getShape(selectionIds[0]);
@@ -38,43 +36,48 @@ const CustomSelectionForeground = track(({ boundShapes }) => {
     }
     if (!bounds) return null;
 
-    // Viewport koordinatlarına dönüştürerek zoom'dan etkilenmemesini sağlayalım
-    const pagePoint = { x: bounds.minX, y: bounds.minY };
-    let viewportPoint;
-    try {
-        viewportPoint = editor.pageToViewport(pagePoint);
-    } catch (e) {
-        return null;
-    }
+    // Viewport yerine Page koordinatlarını kullanarak tldraw'ın kendi katmanında absolute konumlandırma yapacağız
+    const x = bounds.minX;
+    const y = bounds.minY;
 
     return (
         <div 
             style={{
-                position: 'fixed', // tldraw overlay katmanında viewport'a sabitlemek için
-                top: viewportPoint.y - 12,
-                left: viewportPoint.x,
+                position: 'absolute',
+                top: y - 8, // Şeklin hemen üzerinde
+                left: x,
                 transform: 'translateY(-100%)',
-                padding: '4px 12px',
-                background: 'rgba(79, 70, 229, 0.98)', // Indigo-600
-                backdropFilter: 'blur(12px)',
+                padding: '5px 14px',
+                background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.95), rgba(99, 102, 241, 0.95))', // Vibrant Indigo Gradient
+                backdropFilter: 'blur(20px)',
                 color: 'white',
                 fontSize: '11px',
-                fontWeight: '900',
-                borderRadius: '10px',
+                fontWeight: 'bold',
+                borderRadius: '12px 12px 12px 2px', // Asimetrik zarif köşeler
                 pointerEvents: 'none',
                 whiteSpace: 'nowrap',
-                boxShadow: '0 8px 24px rgba(79, 70, 229, 0.3)',
+                boxShadow: '0 10px 30px -10px rgba(79, 70, 229, 0.5)',
                 zIndex: 99999,
-                textTransform: 'none', // AI-like büyük harf yerine doğal
-                letterSpacing: '-0.01em',
-                border: '1px solid rgba(255,255,255,0.3)',
+                border: '1px solid rgba(255,255,255,0.2)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '8px',
+                animation: 'labelIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
         >
-            <span style={{ opacity: 0.8 }}>✍️</span>
-            <span>{shape.meta.creatorName}</span>
+            <style>{`
+                @keyframes labelIn {
+                    from { opacity: 0; transform: translateY(-80%) scale(0.95); }
+                    to { opacity: 1; transform: translateY(-100%) scale(1); }
+                }
+            `}</style>
+            <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            <span style={{ 
+                letterSpacing: '-0.01em',
+                textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+            }}>
+                {shape.meta.creatorName}
+            </span>
         </div>
     );
 });
@@ -104,14 +107,18 @@ const MentionDropdown = track(({ participants, onSelect }) => {
 
     const bounds = editor.getShapePageBounds(shape);
     if (!bounds) return null;
-    const viewportBounds = editor.pageToViewport({ x: bounds.minX, y: bounds.maxY });
+    
+    // Viewport yerine Page koordinatları ile absolute konumlandırma
+    const x = bounds.minX;
+    const y = bounds.maxY;
 
     return (
         <div 
-            className="fixed z-[100000] bg-white/95 backdrop-blur-2xl border border-indigo-100 rounded-2xl shadow-[0_20px_50px_rgba(79,70,229,0.2)] p-1.5 w-52 animate-in fade-in zoom-in-95 duration-200"
+            className="absolute z-[100000] bg-white border border-indigo-100 rounded-2xl shadow-[0_20px_50px_rgba(79,70,229,0.2)] p-1.5 w-52 animate-in fade-in zoom-in-95 duration-200 shadow-2xl"
             style={{
-                top: viewportBounds.y + 12,
-                left: viewportBounds.x
+                top: y + 8,
+                left: x,
+                backdropFilter: 'blur(20px)',
             }}
         >
             <div className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-indigo-500/60 border-b border-indigo-50/50 mb-1.5 flex items-center justify-between">
@@ -288,15 +295,21 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                     const syncableTypes = ['shape', 'page', 'asset'];
 
                     // Add/Update
-                    Object.values(remoteData).forEach((record) => {
-                        if (!syncableTypes.includes(record.typeName)) return;
+                Object.values(remoteData).forEach((record) => {
+                    const syncableTypes = ['shape', 'page', 'asset'];
+                    if (!syncableTypes.includes(record.typeName)) return;
 
-                        const existing = store.get(record.id);
-                        if (!existing || JSON.stringify(existing) !== JSON.stringify(record)) {
-                            recordsToPut.push(record);
+                    const existing = store.get(record.id);
+                    if (!existing || JSON.stringify(existing) !== JSON.stringify(record)) {
+                        store.put([record]);
+                        
+                        // Sayfa ismi değiştiyse veya yeni sayfa geldiyse tldraw'ı haberdar et
+                        if (record.typeName === 'page' && existing && existing.name !== record.name) {
+                            // tldraw'ın dahili reaktif döngüsü bunu merge ile zaten yakalıyor
                         }
-                    });
-
+                    }
+                });
+          
                     // Remove
                     store.allRecords().forEach(record => {
                         if (syncableTypes.includes(record.typeName) && !remoteData[record.id]) {
@@ -355,6 +368,7 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                                 handleMentions(record.props.text, roomId, roomName, user, taggableUsers);
                             }
                         } else {
+                            // Sayfa veya Asset ekleme
                             yStore.set(record.id, record);
                         }
                     }
@@ -521,7 +535,7 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                     onMount={(editor) => {
                         window.editor = editor;
                         
-                        // Kullanıcı tercihlerini yükle
+                        // Kullanıcı tercihlerini yükle (Immediate & Debounced set)
                         const loadUserPrefs = async () => {
                             try {
                                 const prefRef = doc(db, `users/${user.uid}/preferences/canvas`);
@@ -529,7 +543,10 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                                 if (snap.exists()) {
                                     const prefs = snap.data();
                                     if (prefs.isGridMode !== undefined) {
-                                        editor.user.updateUserPreferences({ isGridMode: prefs.isGridMode });
+                                        // tldraw signals can be sensitive during mount
+                                        setTimeout(() => {
+                                            editor.user.updateUserPreferences({ isGridMode: prefs.isGridMode });
+                                        }, 100);
                                     }
                                 }
                             } catch (e) {
@@ -537,6 +554,20 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                             }
                         };
                         loadUserPrefs();
+
+                        // Preferans değişikliklerini kaydet
+                        const unlistenPrefs = editor.user.on('change', () => {
+                            const currentPrefs = editor.user.getUserPreferences();
+                            const prefRef = doc(db, `users/${user.uid}/preferences/canvas`);
+                            setDoc(prefRef, { 
+                                isGridMode: currentPrefs.isGridMode,
+                                updatedAt: new Date().toISOString()
+                            }, { merge: true }).catch(err => console.warn("Prefs save error:", err));
+                        });
+
+                        return () => {
+                            unlistenPrefs();
+                        }
                     }}
                 />
             </div>
