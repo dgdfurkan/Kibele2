@@ -33,10 +33,7 @@ export class FirebaseRTDBProvider {
                     const update = Uint8Array.from(atob(updateBase64), c => c.charCodeAt(0));
                     Y.applyUpdate(this.ydoc, update, this);
                 } catch (e) {
-                    // Only log serious errors, ignore transient signal/store issues that recover
-                    if (!e.message.includes('erasingShapeIds') && !e.message.includes('selectedShapeIds')) {
-                        console.error("Yjs update error:", e);
-                    }
+                    console.error("Yjs update error:", e);
                 }
             }
         });

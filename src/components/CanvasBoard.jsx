@@ -6,78 +6,45 @@ import { FirebaseRTDBProvider } from '../lib/y-firebase-rtdb';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { ref, onChildAdded, remove } from 'firebase/database';
 import { db, rtdb } from '../firebase';
-import { sendNotification, getUsersProfiles } from '../services/dbService';
+import { sendNotification } from '../services/dbService';
 
 // --- Custom Components for tldraw ---
 
 // Zarif bir şekilde şekil sahibini gösteren bileşen
 const CustomSelectionForeground = track(({ boundShapes }) => {
     const editor = useEditor();
+    const selectionIds = editor.getSelectedShapeIds();
     
-    if (!editor || !editor.getContainer()) return null;
-
-    let selectionIds = [];
-    try {
-        selectionIds = editor.getSelectedShapeIds();
-    } catch (e) {
-        return null; 
-    }
-    
+    // Sadece tek bir şekil seçiliyse sahibini göster
     if (selectionIds.length !== 1) return null;
     
     const shape = editor.getShape(selectionIds[0]);
     if (!shape || !shape.meta?.creatorName) return null;
 
-    let bounds;
-    try {
-        bounds = editor.getShapePageBounds(shape);
-    } catch (e) {
-        return null;
-    }
-    if (!bounds) return null;
-
-    // Viewport yerine Page koordinatlarını kullanarak tldraw'ın kendi katmanında absolute konumlandırma yapacağız
-    const x = bounds.minX;
-    const y = bounds.minY;
-
     return (
         <div 
             style={{
                 position: 'absolute',
-                top: y - 8, // Şeklin hemen üzerinde
-                left: x,
-                transform: 'translateY(-100%)',
-                padding: '5px 14px',
-                background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.95), rgba(99, 102, 241, 0.95))', // Vibrant Indigo Gradient
-                backdropFilter: 'blur(20px)',
+                top: -8, // Daha da yakınlaştırdık
+                left: 0,
+                transform: 'translateY(-100%)', // Şeklin tam üzerinde başlamasını sağlar
+                padding: '3px 10px',
+                background: 'rgba(99, 102, 241, 0.98)',
+                backdropFilter: 'blur(8px)',
                 color: 'white',
-                fontSize: '11px',
-                fontWeight: 'bold',
-                borderRadius: '12px 12px 12px 2px', // Asimetrik zarif köşeler
+                fontSize: '10px',
+                fontWeight: '900',
+                borderRadius: '8px',
                 pointerEvents: 'none',
                 whiteSpace: 'nowrap',
-                boxShadow: '0 10px 30px -10px rgba(79, 70, 229, 0.5)',
-                zIndex: 99999,
-                border: '1px solid rgba(255,255,255,0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                animation: 'labelIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                zIndex: 1000,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                border: '1px solid rgba(255,255,255,0.2)'
             }}
         >
-            <style>{`
-                @keyframes labelIn {
-                    from { opacity: 0; transform: translateY(-80%) scale(0.95); }
-                    to { opacity: 1; transform: translateY(-100%) scale(1); }
-                }
-            `}</style>
-            <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-            <span style={{ 
-                letterSpacing: '-0.01em',
-                textShadow: '0 1px 2px rgba(0,0,0,0.1)'
-            }}>
-                {shape.meta.creatorName}
-            </span>
+            ✍️ {shape.meta.creatorName}
         </div>
     );
 });
@@ -92,10 +59,13 @@ const MentionDropdown = track(({ participants, onSelect }) => {
     if (!shape || shape.type !== 'text') return null;
 
     const text = shape.props.text || '';
+    const cursorIndex = editor.getInstanceState().cursor.type === 'text' ? 0 : -1; // Basit yaklaşım
     
+    // @ işaretinden sonra gelen kelimeyi bul
     const lastAtPos = text.lastIndexOf('@');
     if (lastAtPos === -1) return null;
 
+    // Eğer @ işaretinden sonra boşluk varsa gösterme
     const query = text.slice(lastAtPos + 1).toLowerCase();
     if (query.includes(' ')) return null;
 
@@ -107,23 +77,19 @@ const MentionDropdown = track(({ participants, onSelect }) => {
 
     const bounds = editor.getShapePageBounds(shape);
     if (!bounds) return null;
-    
-    // Viewport yerine Page koordinatları ile absolute konumlandırma
-    const x = bounds.minX;
-    const y = bounds.maxY;
+
+    const { x, y, w, h } = editor.viewportToPage(editor.getSelectionPageBounds() || bounds);
 
     return (
         <div 
-            className="absolute z-[100000] bg-white border border-indigo-100 rounded-2xl shadow-[0_20px_50px_rgba(79,70,229,0.2)] p-1.5 w-52 animate-in fade-in zoom-in-95 duration-200 shadow-2xl"
+            className="absolute z-[1000] bg-white/90 backdrop-blur-xl border border-indigo-100 rounded-xl shadow-2xl p-1 w-48 animate-in fade-in zoom-in-95 duration-200"
             style={{
-                top: y + 8,
-                left: x,
-                backdropFilter: 'blur(20px)',
+                top: bounds.maxY + 10,
+                left: bounds.minX
             }}
         >
-            <div className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-indigo-500/60 border-b border-indigo-50/50 mb-1.5 flex items-center justify-between">
-                <span>Etiketle ✨</span>
-                <span className="text-[8px] bg-indigo-50 px-1.5 py-0.5 rounded-full text-indigo-400">{filtered.length} Kişi</span>
+            <div className="px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-indigo-400 border-b border-indigo-50 mb-1">
+                Kimi Etiketleyeceksin? ✨
             </div>
             {filtered.map(p => (
                 <button
@@ -132,14 +98,14 @@ const MentionDropdown = track(({ participants, onSelect }) => {
                         e.preventDefault();
                         onSelect(p);
                     }}
-                    className="w-full flex items-center gap-3 px-2.5 py-2.5 hover:bg-indigo-50/80 rounded-xl transition-all text-left group"
+                    className="w-full flex items-center gap-2 px-2 py-2 hover:bg-indigo-50 rounded-lg transition-all text-left group"
                 >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-100 to-white text-indigo-600 flex items-center justify-center text-xs font-black shadow-sm border border-indigo-50">
-                        {p.name?.charAt(0).toUpperCase() || '👤'}
+                    <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold">
+                        {p.name?.charAt(0) || '👤'}
                     </div>
                     <div>
-                        <div className="text-[12px] font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{p.name}</div>
-                        <div className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">{p.role === 'hoca' ? '🎓 Hoca' : '🎨 Sanatçı'}</div>
+                        <div className="text-[11px] font-bold text-gray-700 group-hover:text-indigo-600">{p.name}</div>
+                        <div className="text-[8px] text-gray-400 uppercase font-bold tracking-tighter">{p.role || 'Öğrenci'}</div>
                     </div>
                 </button>
             ))}
@@ -200,10 +166,10 @@ const handleMentions = async (text, roomId, roomName, currentUser, participants)
 const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = "İlham Odası", roomCreatorId, boardType = "shared", selectedParticipantId }) => {
     const [isLoaded, setIsLoaded] = useState(false);
     const [syncStatus, setSyncStatus] = useState('synced');
-    const [activeUsers, setActiveUsers] = useState([]); // Array of { id, name, color }
+    const [activeUsersCount, setActiveUsersCount] = useState(1);
     const [participants, setParticipants] = useState([]);
-    const participantsRef = useRef([]); 
-    const [taggableUsers, setTaggableUsers] = useState([]); 
+    const participantsRef = useRef([]); // Listener için güncel liste
+    const [taggableUsers, setTaggableUsers] = useState([]); // Mention atılabilecekler
     
     // tldraw store
     const store = useMemo(() => createTLStore({ shapeUtils: defaultShapeUtils }), []);
@@ -255,9 +221,10 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
         fetchParticipants();
 
         const ydoc = new Y.Doc();
-        const yStore = ydoc.getMap('store'); // Full store sync (shapes, pages, assets)
+        const yShapes = ydoc.getMap('shapes');
         
         let provider = null;
+        // Sadece RTDB URL'si varsa provider'ı başlat
         if (import.meta.env.VITE_FIREBASE_DATABASE_URL) {
             provider = new FirebaseRTDBProvider(roomId, ydoc, {
                 name: user.name || user.displayName || 'Anonim',
@@ -265,14 +232,10 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                 color: user.color || `#${Math.floor(Math.random()*16777215).toString(16)}`
             });
 
+            // Awareness listener sadece provider varsa
             const handleAwarenessChange = () => {
                 const states = provider.awareness.getStates();
-                const onlineUsers = Array.from(states.values()).map(s => ({
-                    id: s.user?.id,
-                    name: s.user?.name,
-                    color: s.user?.color
-                })).filter(u => u.id); // Valid users only
-                setActiveUsers(onlineUsers);
+                setActiveUsersCount(states.size);
             };
             provider.awareness.on('change', handleAwarenessChange);
         } else {
@@ -281,67 +244,43 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
 
         let isUpdatingRemote = false;
 
-        // 1. Yjs -> tldraw (Full sync)
+        // 1. Yjs -> tldraw (Remote updates coming in)
         const handleYjsChange = () => {
-            if (isUpdatingRemote) return;
             isUpdatingRemote = true;
-            
-            try {
-                store.mergeRemoteChanges(() => {
-                    const remoteData = yStore.toJSON();
-                    const recordsToPut = [];
-                    const recordsToRemove = [];
-                    
-                    const syncableTypes = ['shape', 'page', 'asset'];
-
-                    // Add/Update
-                Object.values(remoteData).forEach((record) => {
-                    const syncableTypes = ['shape', 'page', 'asset'];
-                    if (!syncableTypes.includes(record.typeName)) return;
-
-                    const existing = store.get(record.id);
-                    if (!existing || JSON.stringify(existing) !== JSON.stringify(record)) {
-                        store.put([record]);
-                        
-                        // Sayfa ismi değiştiyse veya yeni sayfa geldiyse tldraw'ı haberdar et
-                        if (record.typeName === 'page' && existing && existing.name !== record.name) {
-                            // tldraw'ın dahili reaktif döngüsü bunu merge ile zaten yakalıyor
-                        }
+            store.mergeRemoteChanges(() => {
+                const remoteShapesMap = yShapes.toJSON();
+                Object.values(remoteShapesMap).forEach((shape) => {
+                    const existing = store.get(shape.id);
+                    if (!existing || JSON.stringify(existing) !== JSON.stringify(shape)) {
+                        store.put([shape]);
                     }
                 });
-          
-                    // Remove
-                    store.allRecords().forEach(record => {
-                        if (syncableTypes.includes(record.typeName) && !remoteData[record.id]) {
-                            recordsToRemove.push(record.id);
-                        }
-                    });
-
-                    if (recordsToPut.length > 0) store.put(recordsToPut);
-                    if (recordsToRemove.length > 0) store.remove(recordsToRemove);
+                store.allRecords().forEach(record => {
+                    if (record.typeName === 'shape' && !remoteShapesMap[record.id]) {
+                        store.remove([record.id]);
+                    }
                 });
-            } catch (e) {
-                // Tldraw signals might throw if store is temporarily inconsistent
-                // but usually recovers on next tick
-                console.debug("Store merge deferred:", e.message);
-            } finally {
-                isUpdatingRemote = false;
-            }
+            });
+            isUpdatingRemote = false;
             
+            // Remote güncellemeler gelince hemen 'synced' deme, akışı bozma
             if (syncStatus === 'syncing') {
                 const now = Date.now();
                 const diff = now - lastSyncStartTimeRef.current;
-                if (diff > MIN_SYNC_DISPLAY_TIME) setSyncStatus('synced');
+                if (diff > MIN_SYNC_DISPLAY_TIME) {
+                    setSyncStatus('synced');
+                }
             }
             setIsLoaded(true);
         };
 
-        yStore.observe(handleYjsChange);
+        yShapes.observe(handleYjsChange);
 
-        // 2. tldraw -> Yjs (Full sync)
+        // 2. tldraw -> Yjs (Local updates going out)
         const unlisten = store.listen((update) => {
             if (isUpdatingRemote) return;
             
+            // Debounced Sync Status
             if (syncStatus !== 'syncing') {
                 setSyncStatus('syncing');
                 lastSyncStartTimeRef.current = Date.now();
@@ -350,90 +289,82 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
             if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
             
             ydoc.transact(() => {
-                const syncableTypes = ['shape', 'page', 'asset'];
-
-                // ADDED
                 Object.values(update.changes.added).forEach(record => {
-                    if (syncableTypes.includes(record.typeName)) {
-                        if (record.typeName === 'shape' && !record.meta?.creatorId) {
+                    if (record.typeName === 'shape') {
+                        // 👤 Attribution: Sadece gerçekten yeni olan (meta'sı olmayan) şekillere ekle
+                        if (!record.meta?.creatorId) {
                             const meta = {
                                 ...record.meta,
                                 creatorId: user.uid,
                                 creatorName: user.name || user.displayName || 'Sanatçı',
                                 createdAt: Date.now()
                             };
-                            yStore.set(record.id, { ...record, meta });
+                            const shapeToSync = { ...record, meta };
+                            yShapes.set(record.id, shapeToSync);
 
                             if (record.type === 'text' && record.props.text?.includes('@')) {
                                 handleMentions(record.props.text, roomId, roomName, user, taggableUsers);
                             }
                         } else {
-                            // Sayfa veya Asset ekleme
-                            yStore.set(record.id, record);
+                            yShapes.set(record.id, record);
                         }
                     }
                 });
-
-                // UPDATED
                 Object.values(update.changes.updated).forEach(([oldRecord, newRecord]) => {
-                    if (syncableTypes.includes(newRecord.typeName)) {
-                        let finalRecord = newRecord;
-                        if (newRecord.typeName === 'shape') {
-                            const meta = newRecord.meta?.creatorId ? newRecord.meta : oldRecord.meta;
-                            finalRecord = { ...newRecord, meta };
-                            
-                            if (newRecord.type === 'text' && 
-                                newRecord.props.text !== oldRecord.props.text && 
-                                newRecord.props.text?.includes('@')) {
-                                handleMentions(newRecord.props.text, roomId, roomName, user, taggableUsers);
-                            }
+                    if (newRecord.typeName === 'shape') {
+                        // FIX: Meta'nın korunmasını garanti edelim
+                        const meta = newRecord.meta?.creatorId ? newRecord.meta : oldRecord.meta;
+                        const shapeToSync = { ...newRecord, meta };
+                        yShapes.set(newRecord.id, shapeToSync);
+
+                        if (newRecord.type === 'text' && 
+                            newRecord.props.text !== oldRecord.props.text && 
+                            newRecord.props.text?.includes('@')) {
+                            handleMentions(newRecord.props.text, roomId, roomName, user, taggableUsers);
                         }
-                        yStore.set(newRecord.id, finalRecord);
                     }
                 });
-
-                // REMOVED
                 Object.values(update.changes.removed).forEach(record => {
-                    if (syncableTypes.includes(record.typeName)) {
-                        yStore.delete(record.id);
-                    }
+                    if (record.typeName === 'shape') yShapes.delete(record.id);
                 });
             }, 'local');
             
+            // Transition back to 'synced' after activity stops
             syncTimerRef.current = setTimeout(() => {
                 const now = Date.now();
                 const timeInSync = now - lastSyncStartTimeRef.current;
-                if (timeInSync >= MIN_SYNC_DISPLAY_TIME) setSyncStatus('synced');
-                else syncTimerRef.current = setTimeout(() => setSyncStatus('synced'), MIN_SYNC_DISPLAY_TIME - timeInSync);
+                
+                // Minimum süre kontrolü - titremeyi engeller
+                if (timeInSync >= MIN_SYNC_DISPLAY_TIME) {
+                    setSyncStatus('synced');
+                } else {
+                    // Eğer minimum süreden önce bittiyse, kalanı bekle
+                    syncTimerRef.current = setTimeout(() => {
+                        setSyncStatus('synced');
+                    }, MIN_SYNC_DISPLAY_TIME - timeInSync);
+                }
             }, SYNC_SETTLE_TIME);
         });
 
+        // 3. Initial Load from Firestore (Optional Archive/Snapshot)
         const loadInitialSnapshot = async () => {
-            if (!isActive) return;
             try {
                 const docRef = doc(db, `rooms/${roomId}/canvas/data`);
                 const snap = await getDoc(docRef);
-                if (snap.exists() && isActive) {
+                if (snap.exists()) {
                     const data = snap.data();
-                    if (yStore.size === 0) {
+                    if (data.shapes && yShapes.size === 0) {
                         ydoc.transact(() => {
-                            if (data.records) {
-                                Object.entries(data.records).forEach(([id, record]) => {
-                                    yStore.set(id, record);
-                                });
-                            } else if (data.shapes) {
-                                // Migration: Legacy 'shapes' field to 'store' records
-                                Object.entries(data.shapes).forEach(([id, shape]) => {
-                                    yStore.set(id, shape);
-                                });
-                            }
+                            Object.entries(data.shapes).forEach(([id, shape]) => {
+                                yShapes.set(id, shape);
+                            });
                         });
                     }
                 }
             } catch (error) {
                 console.error("Initial load failed:", error);
             }
-            if (isActive) setIsLoaded(true);
+            setIsLoaded(true);
         };
 
         loadInitialSnapshot();
@@ -451,7 +382,7 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
             const shape = snapshot.val();
             if (shape && shape.id) {
                 ydoc.transact(() => {
-                    yStore.set(shape.id, shape);
+                    yShapes.set(shape.id, shape);
                 }, 'external');
                 // Remove the message after processing
                 remove(ref(rtdb, `canvas_sync/${roomId}/external_shapes/${snapshot.key}`));
@@ -459,17 +390,17 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
         });
 
         // 4. Periodic Snapshot to Firestore (Once every 5 mins for backup)
-        let snapshotInterval = setInterval(async () => {
-            if (isReadOnly || !isActive) return;
-            const currentRecords = yStore.toJSON();
-            if (Object.keys(currentRecords).length > 0) {
+        const snapshotInterval = setInterval(async () => {
+            if (isReadOnly) return;
+            const currentShapes = yShapes.toJSON();
+            if (Object.keys(currentShapes).length > 0) {
                 try {
                     await setDoc(doc(db, `rooms/${roomId}/canvas/data`), {
-                        records: currentRecords,
+                        shapes: currentShapes,
                         lastSnapshot: new Date().toISOString()
                     }, { merge: true });
                 } catch (e) {
-                    console.warn("Snapshot backup failed", e);
+                    console.warn("Snapshot backup failed (Quota?)", e);
                 }
             }
         }, 300000); // 5 mins
@@ -534,71 +465,33 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                     }}
                     onMount={(editor) => {
                         window.editor = editor;
-                        
-                        // Kullanıcı tercihlerini yükle (Immediate & Debounced set)
-                        const loadUserPrefs = async () => {
-                            try {
-                                const prefRef = doc(db, `users/${user.uid}/preferences/canvas`);
-                                const snap = await getDoc(prefRef);
-                                if (snap.exists()) {
-                                    const prefs = snap.data();
-                                    if (prefs.isGridMode !== undefined) {
-                                        // tldraw signals can be sensitive during mount
-                                        setTimeout(() => {
-                                            editor.user.updateUserPreferences({ isGridMode: prefs.isGridMode });
-                                        }, 100);
-                                    }
-                                }
-                            } catch (e) {
-                                console.warn("User prefs load failed:", e);
-                            }
-                        };
-                        loadUserPrefs();
-
-                        // Preferans değişikliklerini kaydet
-                        const unlistenPrefs = editor.user.on('change', () => {
-                            const currentPrefs = editor.user.getUserPreferences();
-                            const prefRef = doc(db, `users/${user.uid}/preferences/canvas`);
-                            setDoc(prefRef, { 
-                                isGridMode: currentPrefs.isGridMode,
-                                updatedAt: new Date().toISOString()
-                            }, { merge: true }).catch(err => console.warn("Prefs save error:", err));
-                        });
-
-                        return () => {
-                            unlistenPrefs();
-                        }
                     }}
                 />
             </div>
 
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[100] pointer-events-none">
-                <div className="flex -space-x-3 overflow-hidden pointer-events-auto hover:space-x-1 transition-all">
-                    {activeUsers.map((u, i) => (
-                        <div 
-                            key={`${u.id}-${i}`}
-                            className="w-10 h-10 rounded-full border-4 border-white shadow-xl flex items-center justify-center text-[11px] font-black uppercase tracking-tighter cursor-pointer hover:-translate-y-2 transition-transform"
-                            style={{ background: u.color || '#6366f1', color: 'white' }}
-                            title={u.name}
-                        >
-                            {u.name?.charAt(0).toUpperCase()}
+            <div className="absolute bottom-6 right-6 z-[10] flex flex-col items-end gap-2">
+                {activeUsersCount > 1 && (
+                    <div className="glass-card px-3 py-1.5 flex items-center gap-2 bg-indigo-50/80 backdrop-blur-md border-indigo-100 shadow-lg">
+                        <div className="flex -space-x-1.5">
+                            {[...Array(Math.min(activeUsersCount, 3))].map((_, i) => (
+                                <div key={i} className="w-2.5 h-2.5 rounded-full border border-white bg-indigo-400" />
+                            ))}
                         </div>
-                    ))}
-                    {activeUsers.length > 5 && (
-                        <div className="w-10 h-10 rounded-full border-4 border-white bg-slate-100 flex items-center justify-center text-[10px] font-extrabold text-slate-400">
-                            +{activeUsers.length - 5}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="absolute bottom-6 right-6 z-[10]">
-                <div className="glass-card px-4 py-2 bg-white/60 backdrop-blur-xl border-white/40 shadow-2xl flex items-center gap-2">
-                    <div className={`w-2.5 h-2.5 rounded-full ${syncStatus === 'syncing' ? 'bg-blue-500 animate-pulse' : 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]'}`} />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
-                        {syncStatus === 'syncing' ? 'Senkronize Ediliyor...' : 'Buluta Kaydedildi'}
-                    </span>
-                </div>
+                        <span className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest">{activeUsersCount} Sanatçı Aktif</span>
+                    </div>
+                )}
+                {syncStatus === 'syncing' && (
+                    <div className="glass-card px-3 py-1.5 flex items-center gap-2 bg-blue-50/80 backdrop-blur-md border-blue-100 shadow-lg">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
+                        <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">Senkronize Ediliyor...</span>
+                    </div>
+                )}
+                {syncStatus === 'synced' && (
+                    <div className="glass-card px-3 py-1.5 flex items-center gap-2 bg-green-50/80 backdrop-blur-md border-green-100 shadow-lg">
+                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                        <span className="text-[9px] font-bold text-green-600 uppercase tracking-widest">Buluta Kaydedildi (RTDB)</span>
+                    </div>
+                )}
             </div>
 
             <div className="absolute bottom-6 left-6 z-[10]">

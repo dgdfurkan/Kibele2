@@ -13,12 +13,8 @@ service cloud.firestore {
 
     // Kullanıcı profilleri
     match /users/{userId} {
-      allow read: if isAuthenticated(); 
+      allow read: if true; 
       allow write: if isAuthenticated() && request.auth.uid == userId;
-
-      match /preferences/{prefId} {
-        allow read, write: if isAuthenticated() && request.auth.uid == userId;
-      }
     }
     
     // Oda katılım talepleri
