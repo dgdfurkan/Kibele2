@@ -67,13 +67,18 @@ const InspirationWorkspace = ({ room, onBack }) => {
             id: shapeId,
             typeName: 'shape',
             type: 'image',
-            x: 100, // Varsayılan pozisyon (ileride tuval ortasına göre ayarlanabilir)
+            x: 100, // Varsayılan pozisyon
             y: 100,
             rotation: 0,
             index: 'a1',
             opacity: 1,
             isLocked: false,
             parentId: 'page:page',
+            meta: {
+                creatorId: user.uid,
+                creatorName: user.name || user.displayName || 'Sanatçı',
+                createdAt: Date.now()
+            },
             props: {
                 w: 400,
                 h: 400 * (artwork.aspect_ratio || 1),
@@ -87,7 +92,6 @@ const InspirationWorkspace = ({ room, onBack }) => {
 
         try {
             // NEW: Realtime Database "External Addition" Model
-            // This bypasses Firestore quota for every small addition and works with Yjs
             const externalRef = ref(rtdb, `canvas_sync/${currentCanvasRoomId}/external_shapes`);
             await push(externalRef, shape);
             
@@ -110,6 +114,8 @@ const InspirationWorkspace = ({ room, onBack }) => {
                                 user={user}
                                 roomName={room.name}
                                 isReadOnly={isArchived}
+                                roomCreatorId={room.creatorId}
+                                boardType="shared"
                             />
                         </div>
                         {isSidebarOpen && (
@@ -133,6 +139,9 @@ const InspirationWorkspace = ({ room, onBack }) => {
                                 user={user}
                                 roomName={`${room.name} - ${selectedParticipantId ? activeParticipant.name : 'Kişisel Pano'}`}
                                 isReadOnly={isArchived || (selectedParticipantId && selectedParticipantId !== user.uid && !isAdmin)}
+                                roomCreatorId={room.creatorId}
+                                selectedParticipantId={selectedParticipantId || user.uid}
+                                boardType="personal"
                             />
                         </div>
                         {isSidebarOpen && user.uid === (selectedParticipantId || user.uid) && (

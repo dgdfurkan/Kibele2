@@ -28,18 +28,18 @@ const CustomSelectionForeground = track(({ boundShapes }) => {
         <div 
             style={{
                 position: 'absolute',
-                top: -30,
+                top: -16, // FIX: Daha yakın yapıldı
                 left: 0,
-                padding: '4px 10px',
-                background: 'rgba(99, 102, 241, 0.9)', // Indigo-500
+                padding: '2px 8px',
+                background: 'rgba(99, 102, 241, 0.95)',
                 backdropFilter: 'blur(4px)',
                 color: 'white',
-                fontSize: '10px',
+                fontSize: '9px', // Biraz küçültüldü
                 fontWeight: '800',
-                borderRadius: '8px',
+                borderRadius: '6px',
                 pointerEvents: 'none',
                 whiteSpace: 'nowrap',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                 zIndex: 100,
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em'
@@ -50,8 +50,73 @@ const CustomSelectionForeground = track(({ boundShapes }) => {
     );
 });
 
+// @ Mention Dropdown Bileşeni
+const MentionDropdown = track(({ participants, onSelect }) => {
+    const editor = useEditor();
+    const editingShapeId = editor.getEditingShapeId();
+    if (!editingShapeId) return null;
+
+    const shape = editor.getShape(editingShapeId);
+    if (!shape || shape.type !== 'text') return null;
+
+    const text = shape.props.text || '';
+    const cursorIndex = editor.getInstanceState().cursor.type === 'text' ? 0 : -1; // Basit yaklaşım
+    
+    // @ işaretinden sonra gelen kelimeyi bul
+    const lastAtPos = text.lastIndexOf('@');
+    if (lastAtPos === -1) return null;
+
+    // Eğer @ işaretinden sonra boşluk varsa gösterme
+    const query = text.slice(lastAtPos + 1).toLowerCase();
+    if (query.includes(' ')) return null;
+
+    const filtered = participants.filter(p => 
+        (p.name || p.displayName || '').toLowerCase().includes(query)
+    ).slice(0, 5);
+
+    if (filtered.length === 0) return null;
+
+    const bounds = editor.getShapePageBounds(shape);
+    if (!bounds) return null;
+
+    const { x, y, w, h } = editor.viewportToPage(editor.getSelectionPageBounds() || bounds);
+
+    return (
+        <div 
+            className="absolute z-[1000] bg-white/90 backdrop-blur-xl border border-indigo-100 rounded-xl shadow-2xl p-1 w-48 animate-in fade-in zoom-in-95 duration-200"
+            style={{
+                top: bounds.maxY + 10,
+                left: bounds.minX
+            }}
+        >
+            <div className="px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-indigo-400 border-b border-indigo-50 mb-1">
+                Kimi Etiketleyeceksin? ✨
+            </div>
+            {filtered.map(p => (
+                <button
+                    key={p.id}
+                    onMouseDown={(e) => {
+                        e.preventDefault();
+                        onSelect(p);
+                    }}
+                    className="w-full flex items-center gap-2 px-2 py-2 hover:bg-indigo-50 rounded-lg transition-all text-left group"
+                >
+                    <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold">
+                        {p.name?.charAt(0) || '👤'}
+                    </div>
+                    <div>
+                        <div className="text-[11px] font-bold text-gray-700 group-hover:text-indigo-600">{p.name}</div>
+                        <div className="text-[8px] text-gray-400 uppercase font-bold tracking-tighter">{p.role || 'Öğrenci'}</div>
+                    </div>
+                </button>
+            ))}
+        </div>
+    );
+});
+
 const components = {
     SelectionForeground: CustomSelectionForeground,
+    OnTheCanvas: ({ children }) => children, // Placeholder for our custom wrapper
 };
 
 // --- Helpers for Mentions ---
@@ -99,12 +164,13 @@ const handleMentions = async (text, roomId, roomName, currentUser, participants)
     });
 };
 
-const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odası" }) => {
+const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odası", roomCreatorId, boardType = "shared", selectedParticipantId }) => {
     const [isLoaded, setIsLoaded] = useState(false);
     const [syncStatus, setSyncStatus] = useState('synced');
     const [activeUsersCount, setActiveUsersCount] = useState(1);
     const [participants, setParticipants] = useState([]);
     const participantsRef = useRef([]); // Listener için güncel liste
+    const [taggableUsers, setTaggableUsers] = useState([]); // Mention atılabilecekler
     
     // tldraw store
     const store = useMemo(() => createTLStore({ shapeUtils: defaultShapeUtils }), []);
@@ -129,6 +195,24 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
                     const profiles = await getUsersProfiles(uids);
                     setParticipants(profiles);
                     participantsRef.current = profiles;
+
+                    // 🛡️ Bağlamsal Mention Filtreleme
+                    if (boardType === 'shared') {
+                        // Ortak oda: Herkes herkesi görebilir (kendisi hariç)
+                        setTaggableUsers(profiles.filter(p => p.id !== user.uid));
+                    } else {
+                        // Bireysel oda: Öğrenci sadece Hocayı, Hoca sadece o Öğrenciyi görür
+                        const creator = profiles.find(p => p.id === roomCreatorId);
+                        const student = profiles.find(p => p.id === selectedParticipantId);
+                        
+                        if (user.uid === roomCreatorId) {
+                            // Ben hocayım: Sadece o öğrenciyi etiketleyebilirim
+                            setTaggableUsers(student ? [student] : []);
+                        } else {
+                            // Ben öğrenciyim: Sadece hocayı etiketleyebilirim
+                            setTaggableUsers(creator ? [creator] : []);
+                        }
+                    }
                 }
             } catch (err) {
                 console.error("Participants fetch failed:", err);
@@ -207,32 +291,36 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
             ydoc.transact(() => {
                 Object.values(update.changes.added).forEach(record => {
                     if (record.typeName === 'shape') {
-                        // 👤 Attribution: Şekle sahip bilgisini ekle (Eğer yoksa)
+                        // 👤 Attribution: Sadece gerçekten yeni olan (meta'sı olmayan) şekillere ekle
                         if (!record.meta?.creatorId) {
-                        record.meta = {
-                            ...record.meta,
-                            creatorId: user.uid,
-                            creatorName: user.name || user.displayName || 'Sanatçı',
-                            createdAt: Date.now()
-                        };
-                        }
-                        yShapes.set(record.id, record);
+                            const meta = {
+                                ...record.meta,
+                                creatorId: user.uid,
+                                creatorName: user.name || user.displayName || 'Sanatçı',
+                                createdAt: Date.now()
+                            };
+                            const shapeToSync = { ...record, meta };
+                            yShapes.set(record.id, shapeToSync);
 
-                        // 🔔 Mention Detection for Text Shapes
-                        if (record.type === 'text' && record.props.text?.includes('@')) {
-                            handleMentions(record.props.text, roomId, roomName, user, participantsRef.current);
+                            if (record.type === 'text' && record.props.text?.includes('@')) {
+                                handleMentions(record.props.text, roomId, roomName, user, taggableUsers);
+                            }
+                        } else {
+                            yShapes.set(record.id, record);
                         }
                     }
                 });
                 Object.values(update.changes.updated).forEach(([oldRecord, newRecord]) => {
                     if (newRecord.typeName === 'shape') {
-                        yShapes.set(newRecord.id, newRecord);
+                        // FIX: Meta'nın korunmasını garanti edelim
+                        const meta = newRecord.meta?.creatorId ? newRecord.meta : oldRecord.meta;
+                        const shapeToSync = { ...newRecord, meta };
+                        yShapes.set(newRecord.id, shapeToSync);
 
-                        // 🔔 Mention Update Detection
                         if (newRecord.type === 'text' && 
                             newRecord.props.text !== oldRecord.props.text && 
                             newRecord.props.text?.includes('@')) {
-                            handleMentions(newRecord.props.text, roomId, roomName, user, participantsRef.current);
+                            handleMentions(newRecord.props.text, roomId, roomName, user, taggableUsers);
                         }
                     }
                 });
@@ -322,12 +410,12 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
             if (provider) provider.destroy();
             ydoc.destroy();
             unlisten();
-            unsubscribeExternal(); // FIX: Added missing cleanup
+            unsubscribeExternal(); 
             clearInterval(snapshotInterval);
             clearTimeout(safetyTimeout);
             if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
         };
-    }, [roomId, store, user, isReadOnly]);
+    }, [roomId, store, user, isReadOnly, taggableUsers]); // taggableUsers eklendi
 
     return (
         <div className="w-full h-full relative border border-border-light/20 rounded-[2rem] overflow-hidden bg-white shadow-inner">
@@ -347,7 +435,37 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
                     showToolbar={!isReadOnly}
                     showUI={true}
                     inferDarkMode={false}
-                    components={components}
+                    components={{
+                        ...components,
+                        OnTheCanvas: ({ children }) => (
+                            <>
+                                {children}
+                                {!isReadOnly && (
+                                    <MentionDropdown 
+                                        participants={taggableUsers}
+                                        onSelect={(targetUser) => {
+                                            const editingId = editor.getEditingShapeId();
+                                            if (editingId) {
+                                                const shape = editor.getShape(editingId);
+                                                const text = shape.props.text || '';
+                                                const lastAtPos = text.lastIndexOf('@');
+                                                const newText = text.slice(0, lastAtPos) + `@${targetUser.name} `;
+                                                
+                                                editor.updateShape({
+                                                    id: editingId,
+                                                    type: 'text',
+                                                    props: { text: newText }
+                                                });
+                                            }
+                                        }}
+                                    />
+                                )}
+                            </>
+                        )
+                    }}
+                    onMount={(editor) => {
+                        window.editor = editor;
+                    }}
                 />
             </div>
 
