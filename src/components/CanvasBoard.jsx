@@ -21,28 +21,27 @@ const CustomSelectionForeground = track(({ boundShapes }) => {
     const shape = editor.getShape(selectionIds[0]);
     if (!shape || !shape.meta?.creatorName) return null;
 
-    const bounds = editor.getShapePageBounds(shape);
-    if (!bounds) return null;
-
     return (
         <div 
             style={{
                 position: 'absolute',
-                top: -16, // FIX: Daha yakın yapıldı
+                top: -8, // Daha da yakınlaştırdık
                 left: 0,
-                padding: '2px 8px',
-                background: 'rgba(99, 102, 241, 0.95)',
-                backdropFilter: 'blur(4px)',
+                transform: 'translateY(-100%)', // Şeklin tam üzerinde başlamasını sağlar
+                padding: '3px 10px',
+                background: 'rgba(99, 102, 241, 0.98)',
+                backdropFilter: 'blur(8px)',
                 color: 'white',
-                fontSize: '9px', // Biraz küçültüldü
-                fontWeight: '800',
-                borderRadius: '6px',
+                fontSize: '10px',
+                fontWeight: '900',
+                borderRadius: '8px',
                 pointerEvents: 'none',
                 whiteSpace: 'nowrap',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                zIndex: 100,
+                boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                zIndex: 1000,
                 textTransform: 'uppercase',
-                letterSpacing: '0.05em'
+                letterSpacing: '0.08em',
+                border: '1px solid rgba(255,255,255,0.2)'
             }}
         >
             ✍️ {shape.meta.creatorName}
@@ -164,7 +163,7 @@ const handleMentions = async (text, roomId, roomName, currentUser, participants)
     });
 };
 
-const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odası", roomCreatorId, boardType = "shared", selectedParticipantId }) => {
+const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = "İlham Odası", roomCreatorId, boardType = "shared", selectedParticipantId }) => {
     const [isLoaded, setIsLoaded] = useState(false);
     const [syncStatus, setSyncStatus] = useState('synced');
     const [activeUsersCount, setActiveUsersCount] = useState(1);
@@ -188,7 +187,8 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
         // Katılımcıları çek (Mention eşleşmesi için)
         const fetchParticipants = async () => {
             try {
-                const roomRef = doc(db, "rooms", roomId);
+                // FIX: shared odalarda da ana oda dökümanını kullanmak için baseRoomId kullanımı
+                const roomRef = doc(db, "rooms", baseRoomId || roomId.split('_')[0]);
                 const roomSnap = await getDoc(roomRef);
                 if (roomSnap.exists()) {
                     const uids = roomSnap.data().participants || [];

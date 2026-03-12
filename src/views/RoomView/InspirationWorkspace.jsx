@@ -111,6 +111,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                             <CanvasBoard
                                 key={`shared_${room.id}`}
                                 roomId={`${room.id}_shared`}
+                                baseRoomId={room.id} // NEW: Firestore'daki asıl oda ID'si
                                 user={user}
                                 roomName={room.name}
                                 isReadOnly={isArchived}
@@ -136,6 +137,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                             <CanvasBoard
                                 key={`personal_${room.id}_${selectedParticipantId || user.uid}`}
                                 roomId={`${room.id}_${selectedParticipantId || user.uid}`}
+                                baseRoomId={room.id} // NEW
                                 user={user}
                                 roomName={`${room.name} - ${selectedParticipantId ? activeParticipant.name : 'Kişisel Pano'}`}
                                 isReadOnly={isArchived || (selectedParticipantId && selectedParticipantId !== user.uid && !isAdmin)}
