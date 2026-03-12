@@ -2,38 +2,37 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Tldraw, createTLStore, defaultShapeUtils } from 'tldraw';
 import 'tldraw/tldraw.css';
 import { db } from '../firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { onSnapshot, doc, setDoc, updateDoc, deleteField, writeBatch, getDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import { sendNotification, notifyParticipantsOfCanvasUpdate } from '../services/dbService';
+import { notifyParticipantsOfCanvasUpdate } from '../services/dbService';
 
 const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
     const { user } = useAuth();
     const [store] = useState(() => createTLStore({ shapeUtils: defaultShapeUtils }));
     const [isLoaded, setIsLoaded] = useState(false);
     const [syncStatus, setSyncStatus] = useState('synced'); // 'synced', 'syncing', 'error'
-
+    
     // Senkronizasyon Kuyrukları (Refs)
     const pendingWritesRef = useRef(new Map());
     const pendingDeletesRef = useRef(new Set());
     const lastNotifRef = useRef(0);
-    const isDrawingRef = useRef(false);
+    const isInteractingRef = useRef(false);
+    const remoteUpdateBufferRef = useRef(new Map());
 
-    // 1. LocalStorage Yedekleme (Kota dostu veri koruma)
+    // 1. LocalStorage Yedekleme (Son Savunma Hattı)
     useEffect(() => {
         if (!roomId || !isLoaded) return;
         const backupKey = `kibele_backup_${roomId}`;
-
-        // İlk yüklemede yedeği kontrol et
+        
         const backup = localStorage.getItem(backupKey);
         if (backup && store.allRecords().length <= 1) {
             try {
                 const data = JSON.parse(backup);
                 store.put(data);
-                console.log("[Kibele] Yerel yedek yüklendi.");
+                console.log("[Kibele] Local storage restore.");
             } catch (e) { }
         }
 
-        // Periyodik yedekle (Her 5 saniyede bir yerel hafızaya at - Kotayla alakası yok, bedava)
         const backupInterval = setInterval(() => {
             const allRecords = store.allRecords();
             if (allRecords.length > 1) {
@@ -44,48 +43,67 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
         return () => clearInterval(backupInterval);
     }, [roomId, isLoaded, store]);
 
-    // 2. Ana Senkronizasyon Döngüsü
+    // 2. Ultra-Düşük Kota & Çatışma Önleme Senkronizasyonu
     useEffect(() => {
         if (!roomId || !store) return;
 
-        const shapesCol = collection(db, 'rooms', roomId, 'shapes');
+        // TEK DOKÜMAN MODELİ: Her şekil için ayrı read/write yerine, tek bir kanvas dokümanı.
+        // Bu sayede okuma (read) maliyeti 100-500 kat azalır.
+        const canvasDocRef = doc(db, 'rooms', roomId, 'canvas', 'data');
 
         // A. Firestore'dan Store'a (Remote -> Local)
         let isFirstSnapshot = true;
-        const unsubscribe = onSnapshot(shapesCol, (snapshot) => {
-            const remoteShapes = [];
-            snapshot.docChanges().forEach((change) => {
-                const data = change.doc.data();
-                const id = change.doc.id;
+        const unsubscribe = onSnapshot(canvasDocRef, (snapshot) => {
+            if (!snapshot.exists()) {
+                if (isFirstSnapshot) {
+                    isFirstSnapshot = false;
+                    setIsLoaded(true);
+                }
+                return;
+            }
 
-                if (change.type === 'removed') {
-                    if (store.get(id)) store.remove([id]);
-                } else if (change.type === 'added' || change.type === 'modified') {
-                    // İlk yüklemede herkesi al, sonraki güncellemelerde sadece başkalarını al
-                    if (isFirstSnapshot || data.updatedBy !== user.uid) {
-                        remoteShapes.push(data.shape);
+            const data = snapshot.data();
+            const remoteShapesMap = data.shapes || {};
+            const lastUpdatedBy = data.lastUpdatedBy;
+            
+            const toPut = [];
+            const toRemove = [];
+
+            // Tüm mevcut kayıtları kontrol et
+            Object.keys(remoteShapesMap).forEach(id => {
+                const shape = remoteShapesMap[id];
+                // Eğer başkası güncellediyse veya ilk yüklemeyse uygula
+                if (isFirstSnapshot || lastUpdatedBy !== user.uid) {
+                    // EĞER ŞU AN KULLANICI ETKİLEŞİMDEYSE (Çiziyorsa), bu güncellemeyi TAMPONLA (Yarıda kalmayı önler)
+                    if (isInteractingRef.current) {
+                        remoteUpdateBufferRef.current.set(id, shape);
+                    } else {
+                        toPut.push(shape);
                     }
                 }
             });
 
-            if (remoteShapes.length > 0) {
-                store.put(remoteShapes);
-            }
+            // Firestore'da silinmiş olanları yerelde de sil
+            store.allRecords().forEach(record => {
+                if (record.typeName === 'shape' && !remoteShapesMap[record.id]) {
+                    toRemove.push(record.id);
+                }
+            });
+
+            if (toPut.length > 0) store.put(toPut);
+            if (toRemove.length > 0) store.remove(toRemove);
 
             if (isFirstSnapshot) {
                 isFirstSnapshot = false;
-                if (!isLoaded) setIsLoaded(true);
+                setIsLoaded(true);
             }
         }, (error) => {
             console.error("[Kibele Sync Error]", error);
-            if (error.code === 'resource-exhausted') {
-                setSyncStatus('error');
-            }
-            // Hata olsa bile "Loaded" yap ki en azından yerel yedek (localStorage) görünsün!
+            if (error.code === 'resource-exhausted') setSyncStatus('error');
             if (!isLoaded) setIsLoaded(true);
         });
 
-        // B. Store'dan Firestore'a (Local -> Remote - AGGRESSIVE THROTTLING)
+        // B. Store'dan Firestore'a (Local -> Remote)
         const cleanup = store.listen((entry) => {
             if (isReadOnly) return;
             const { added, updated, removed } = entry.changes;
@@ -117,23 +135,22 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
 
             if (hasChanges) {
                 setSyncStatus('syncing');
-                // Sadece kalem havadayken veya belirli aralıklarla yaz
-                if (!isDrawingRef.current) {
+                // Kullanıcı etkileşimi bittiğinde senkronize et (Yarıda kalmayı önler)
+                if (!isInteractingRef.current) {
                     scheduleSync();
                 }
             }
         }, { source: 'user', scope: 'document' });
 
-        const scheduleSync = () => {
+        const scheduleSync = async () => {
             if (window[`timer_${roomId}`]) return;
 
-            // Yazma sıklığını 5 saniyeye çıkardık (Kota için en kritik adım)
             window[`timer_${roomId}`] = setTimeout(async () => {
                 window[`timer_${roomId}`] = null;
-
+                
                 const writes = Array.from(pendingWritesRef.current.values());
                 const deletes = Array.from(pendingDeletesRef.current.values());
-
+                
                 if (writes.length === 0 && deletes.length === 0) {
                     setSyncStatus('synced');
                     return;
@@ -143,40 +160,48 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
                 pendingDeletesRef.current.clear();
 
                 try {
-                    const batch = writeBatch(db);
-                    writes.forEach(record => {
-                        const shapeRef = doc(db, 'rooms', roomId, 'shapes', record.id);
-                        batch.set(shapeRef, {
-                            shape: record,
-                            updatedBy: user.uid,
-                            updatedAt: new Date()
-                        }, { merge: true });
+                    // ATOMIC UPDATE: Sadece değişen field'ları güncelle (Dot notation)
+                    const updates = {
+                        lastUpdatedBy: user.uid,
+                        updatedAt: new Date()
+                    };
+
+                    writes.forEach(shape => {
+                        updates[`shapes.${shape.id.replace(/:/g, '_')}`] = shape;
                     });
 
                     deletes.forEach(id => {
-                        const shapeRef = doc(db, 'rooms', roomId, 'shapes', id);
-                        batch.delete(shapeRef);
+                        updates[`shapes.${id.replace(/:/g, '_')}`] = deleteField();
                     });
 
-                    await batch.commit();
+                    // Eğer döküman yoksa önce yarat
+                    await setDoc(canvasDocRef, updates, { merge: true });
                     setSyncStatus('synced');
-                    console.log(`[Kibele Quota] ${writes.length + deletes.length} işlem tek seferde kaydedildi. Yazma kotasından tasarruf sağlandı. 📉`);
                 } catch (error) {
+                    console.error("[Sync Failed]", error);
                     setSyncStatus('error');
-                    // Hata durumunda bekleyenleri geri koy
                     writes.forEach(w => pendingWritesRef.current.set(w.id, w));
-                    deletes.forEach(d => pendingDeletesRef.current.add(d));
+                    deletes.forEach(id => pendingDeletesRef.current.add(id));
                 }
-            }, 5000);
+            }, 3000); // 3 saniye dengeleyici aralık
         };
 
-        // Pointer takibi: Çizim sırasında senkronizasyonu durdurup kalem kalkınca tetikler
         const handlePointerUp = () => {
-            isDrawingRef.current = false;
+            isInteractingRef.current = false;
+            
+            // 1. Tamponlanmış dış güncellemeleri uygula
+            if (remoteUpdateBufferRef.current.size > 0) {
+                const shapes = Array.from(remoteUpdateBufferRef.current.values());
+                store.put(shapes);
+                remoteUpdateBufferRef.current.clear();
+            }
+
+            // 2. Kendi değişikliklerini gönder
             scheduleSync();
         };
+
         const handlePointerDown = () => {
-            isDrawingRef.current = true;
+            isInteractingRef.current = true;
         };
 
         window.addEventListener('pointerup', handlePointerUp);
@@ -187,10 +212,7 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
             cleanup();
             window.removeEventListener('pointerup', handlePointerUp);
             window.removeEventListener('pointerdown', handlePointerDown);
-            if (window[`timer_${roomId}`]) {
-                clearTimeout(window[`timer_${roomId}`]);
-                window[`timer_${roomId}`] = null;
-            }
+            if (window[`timer_${roomId}`]) clearTimeout(window[`timer_${roomId}`]);
         };
     }, [roomId, store, user, isReadOnly, roomName, isLoaded]);
 
@@ -199,10 +221,10 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
             {!isLoaded && (
                 <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center">
                     <div className="w-12 h-12 border-4 border-accent-blue border-t-transparent rounded-full animate-spin mb-4" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-blue">Kibele Hazırlanıyor...</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-blue">İlham Odası Hazırlanıyor...</p>
                 </div>
             )}
-
+            
             <div className="absolute inset-0">
                 <Tldraw
                     store={store}
@@ -232,7 +254,7 @@ const CanvasBoard = ({ roomId, isReadOnly = false, roomName }) => {
                     <div className="glass-card px-3 py-1.5 flex items-center gap-2 bg-red-50/80 backdrop-blur-md border-red-100 shadow-lg">
                         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                         <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest text-center leading-tight">
-                            Günlük Kota Doldu<br />Veriler Cihazına Kaydediliyor
+                            Kota Dolu (Yerel Kayıtta)<br/>Veri kaybı yok merak etme ✨
                         </span>
                     </div>
                 )}

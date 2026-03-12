@@ -88,21 +88,20 @@ const InspirationWorkspace = ({ room, onBack }) => {
             // Timeout Promise (8 saniye)
             const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 8000));
 
-            // FIX: Use currentCanvasRoomId instead of room.id to save shapes to the correct canvas
-            const savePromise = setDoc(doc(db, 'rooms', currentCanvasRoomId, 'shapes', shapeId), {
-                shape: shape,
-                updatedBy: user.uid,
-                updatedByName: user.name || user.displayName || user.email.split('@')[0],
-                updatedAt: new Date(),
-                canvasType: activeTab // shared or personal
-            });
+            // NEW: Single Document Storage Model - Saves hundreds of reads/writes
+            const canvasDocRef = doc(db, 'rooms', currentCanvasRoomId, 'canvas', 'data');
+            const savePromise = setDoc(canvasDocRef, {
+                [`shapes.${shapeId.replace(/:/g, '_')}`]: shape,
+                lastUpdatedBy: user.uid,
+                updatedAt: new Date()
+            }, { merge: true });
 
             await Promise.race([savePromise, timeout]);
             showToast("Görsel tuvale eklendi canım! ✨");
         } catch (error) {
             console.error("Error adding artwork to canvas:", error);
             if (error.message === "Timeout" || error.code === 'resource-exhausted') {
-                showToast("Günlük limit doldu, görsel sadece yerel olarak eklenebilir (şu an kapalı).", "error");
+                showToast("Günlük limit doldu, görsel şu an kaydedilemiyor.", "error");
             } else {
                 showToast("Görsel eklenirken bir hata oluştu.", "error");
             }
