@@ -35,7 +35,13 @@ service cloud.firestore {
     match /rooms/{roomId} {
       allow read: if true;
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (resource.data.creatorId == request.auth.uid || isAdmin());
+      // Kurucu veya Admin her şeyi güncelleyebilir. 
+      // Herkese açık odalarda (isPrivate: false) herkes katılımcı listesine kendisini ekleyebilir.
+      allow update: if isAuthenticated() && (
+        resource.data.creatorId == request.auth.uid || 
+        isAdmin() || 
+        (resource.data.isPrivate == false && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants']))
+      );
       allow delete: if isAdmin();
     }
     
