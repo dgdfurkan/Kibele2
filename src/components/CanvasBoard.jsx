@@ -15,6 +15,12 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
     // tldraw store
     const store = useMemo(() => createTLStore({ shapeUtils: defaultShapeUtils }), []);
 
+    // Sync status management refs
+    const syncTimerRef = useRef(null);
+    const lastSyncStartTimeRef = useRef(0);
+    const MIN_SYNC_DISPLAY_TIME = 800; // ms
+    const SYNC_SETTLE_TIME = 2000; // ms
+
     useEffect(() => {
         if (!roomId || !user) return;
 
@@ -46,18 +52,13 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
         const handleYjsChange = () => {
             isUpdatingRemote = true;
             store.mergeRemoteChanges(() => {
-                // Get all shapes from Yjs
                 const remoteShapesMap = yShapes.toJSON();
-                
-                // Sync to tldraw store
                 Object.values(remoteShapesMap).forEach((shape) => {
                     const existing = store.get(shape.id);
                     if (!existing || JSON.stringify(existing) !== JSON.stringify(shape)) {
                         store.put([shape]);
                     }
                 });
-
-                // Handle deletions
                 store.allRecords().forEach(record => {
                     if (record.typeName === 'shape' && !remoteShapesMap[record.id]) {
                         store.remove([record.id]);
@@ -65,7 +66,15 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
                 });
             });
             isUpdatingRemote = false;
-            setSyncStatus('synced');
+            
+            // Remote güncellemeler gelince hemen 'synced' deme, akışı bozma
+            if (syncStatus === 'syncing') {
+                const now = Date.now();
+                const diff = now - lastSyncStartTimeRef.current;
+                if (diff > MIN_SYNC_DISPLAY_TIME) {
+                    setSyncStatus('synced');
+                }
+            }
             setIsLoaded(true);
         };
 
@@ -75,7 +84,14 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
         const unlisten = store.listen((update) => {
             if (isUpdatingRemote) return;
             
-            setSyncStatus('syncing');
+            // Debounced Sync Status
+            if (syncStatus !== 'syncing') {
+                setSyncStatus('syncing');
+                lastSyncStartTimeRef.current = Date.now();
+            }
+
+            if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+            
             ydoc.transact(() => {
                 Object.values(update.changes.added).forEach(record => {
                     if (record.typeName === 'shape') yShapes.set(record.id, record);
@@ -88,9 +104,21 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
                 });
             }, 'local');
             
-            // Debounce syncing status to 'synced'
-            const syncTimer = setTimeout(() => setSyncStatus('synced'), 2000);
-            return () => clearTimeout(syncTimer);
+            // Transition back to 'synced' after activity stops
+            syncTimerRef.current = setTimeout(() => {
+                const now = Date.now();
+                const timeInSync = now - lastSyncStartTimeRef.current;
+                
+                // Minimum süre kontrolü - titremeyi engeller
+                if (timeInSync >= MIN_SYNC_DISPLAY_TIME) {
+                    setSyncStatus('synced');
+                } else {
+                    // Eğer minimum süreden önce bittiyse, kalanı bekle
+                    syncTimerRef.current = setTimeout(() => {
+                        setSyncStatus('synced');
+                    }, MIN_SYNC_DISPLAY_TIME - timeInSync);
+                }
+            }, SYNC_SETTLE_TIME);
         });
 
         // 3. Initial Load from Firestore (Optional Archive/Snapshot)
@@ -157,6 +185,7 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
             unlisten();
             clearInterval(snapshotInterval);
             clearTimeout(safetyTimeout);
+            if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
         };
     }, [roomId, store, user, isReadOnly]);
 
