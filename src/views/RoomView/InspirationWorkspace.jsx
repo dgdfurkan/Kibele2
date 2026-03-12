@@ -107,6 +107,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                             <CanvasBoard
                                 key={`${room.id}_shared`}
                                 roomId={`${room.id}_shared`}
+                                user={user}
                                 roomName={room.name}
                                 isReadOnly={isArchived}
                             />
@@ -129,6 +130,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                             <CanvasBoard
                                 key={`${room.id}_${selectedParticipantId || user.uid}`}
                                 roomId={`${room.id}_${selectedParticipantId || user.uid}`}
+                                user={user}
                                 roomName={`${room.name} - ${selectedParticipantId ? activeParticipant.name : 'Kişisel Pano'}`}
                                 isReadOnly={isArchived || (selectedParticipantId && selectedParticipantId !== user.uid && !isAdmin)}
                             />

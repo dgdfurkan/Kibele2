@@ -21,21 +21,26 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
         const ydoc = new Y.Doc();
         const yShapes = ydoc.getMap('shapes');
         
-        // Uzman tavsiyesi: Kullanıcı bilgileriyle provider başlatılıyor
-        const provider = new FirebaseRTDBProvider(roomId, ydoc, {
-            name: user.name || user.displayName || 'Anonim',
-            id: user.uid,
-            color: user.color || `#${Math.floor(Math.random()*16777215).toString(16)}`
-        });
+        let provider = null;
+        // Sadece RTDB URL'si varsa provider'ı başlat
+        if (import.meta.env.VITE_FIREBASE_DATABASE_URL) {
+            provider = new FirebaseRTDBProvider(roomId, ydoc, {
+                name: user.name || user.displayName || 'Anonim',
+                id: user.uid,
+                color: user.color || `#${Math.floor(Math.random()*16777215).toString(16)}`
+            });
+
+            // Awareness listener sadece provider varsa
+            const handleAwarenessChange = () => {
+                const states = provider.awareness.getStates();
+                setActiveUsersCount(states.size);
+            };
+            provider.awareness.on('change', handleAwarenessChange);
+        } else {
+            console.warn("RTDB URL missing, skipping real-time sync. Only Firestore snapshots will work.");
+        }
 
         let isUpdatingRemote = false;
-
-        // Active Users Tracking via Awareness
-        const handleAwarenessChange = () => {
-            const states = provider.awareness.getStates();
-            setActiveUsersCount(states.size);
-        };
-        provider.awareness.on('change', handleAwarenessChange);
 
         // 1. Yjs -> tldraw (Remote updates coming in)
         const handleYjsChange = () => {
@@ -61,7 +66,7 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
             });
             isUpdatingRemote = false;
             setSyncStatus('synced');
-            if (!isLoaded) setIsLoaded(true);
+            setIsLoaded(true);
         };
 
         yShapes.observe(handleYjsChange);
@@ -84,8 +89,8 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
             }, 'local');
             
             // Debounce syncing status to 'synced'
-            const timer = setTimeout(() => setSyncStatus('synced'), 2000);
-            return () => clearTimeout(timer);
+            const syncTimer = setTimeout(() => setSyncStatus('synced'), 2000);
+            return () => clearTimeout(syncTimer);
         });
 
         // 3. Initial Load from Firestore (Optional Archive/Snapshot)
@@ -106,10 +111,15 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
             } catch (error) {
                 console.error("Initial load failed:", error);
             }
-            if (!isLoaded) setIsLoaded(true);
+            setIsLoaded(true);
         };
 
         loadInitialSnapshot();
+
+        // Safety Force Load (5 seconds)
+        const safetyTimeout = setTimeout(() => {
+            setIsLoaded(true);
+        }, 5000);
 
         // 5. Listen for External Additions (e.g. from ArtsyExplorer) via RTDB
         const externalRef = ref(rtdb, `canvas_sync/${roomId}/external_shapes`);
@@ -142,10 +152,11 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
         }, 300000); // 5 mins
 
         return () => {
-            provider.destroy();
+            if (provider) provider.destroy();
             ydoc.destroy();
             unlisten();
             clearInterval(snapshotInterval);
+            clearTimeout(safetyTimeout);
         };
     }, [roomId, store, user, isReadOnly]);
 
