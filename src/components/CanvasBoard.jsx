@@ -13,7 +13,16 @@ import { sendNotification, getUsersProfiles } from '../services/dbService';
 // Zarif bir şekilde şekil sahibini gösteren bileşen
 const CustomSelectionForeground = track(({ boundShapes }) => {
     const editor = useEditor();
-    const selectionIds = editor.getSelectedShapeIds();
+    
+    // Safety guard: editor or its internal state might be null during store sync
+    if (!editor || !editor.getContainer()) return null;
+
+    let selectionIds = [];
+    try {
+        selectionIds = editor.getSelectedShapeIds();
+    } catch (e) {
+        return null; // Silent skip if internal state is being wiped
+    }
     
     // Sadece tek bir şekil seçiliyse sahibini göster
     if (selectionIds.length !== 1) return null;
@@ -21,12 +30,22 @@ const CustomSelectionForeground = track(({ boundShapes }) => {
     const shape = editor.getShape(selectionIds[0]);
     if (!shape || !shape.meta?.creatorName) return null;
 
-    const bounds = editor.getShapePageBounds(shape);
+    let bounds;
+    try {
+        bounds = editor.getShapePageBounds(shape);
+    } catch (e) {
+        return null;
+    }
     if (!bounds) return null;
 
     // Viewport koordinatlarına dönüştürerek zoom'dan etkilenmemesini sağlayalım
     const pagePoint = { x: bounds.minX, y: bounds.minY };
-    const viewportPoint = editor.pageToViewport(pagePoint);
+    let viewportPoint;
+    try {
+        viewportPoint = editor.pageToViewport(pagePoint);
+    } catch (e) {
+        return null;
+    }
 
     return (
         <div 
@@ -263,6 +282,9 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                 
                 // Add/Update
                 Object.values(remoteData).forEach((record) => {
+                    const syncableTypes = ['shape', 'page', 'asset'];
+                    if (!syncableTypes.includes(record.typeName)) return;
+
                     const existing = store.get(record.id);
                     if (!existing || JSON.stringify(existing) !== JSON.stringify(record)) {
                         store.put([record]);
@@ -271,8 +293,7 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
 
                 // Remove
                 store.allRecords().forEach(record => {
-                    // Sadece paylaşılan tipleri sil (bazı tipler yerel olmalı)
-                    const syncableTypes = ['shape', 'page', 'asset', 'instance_page_state'];
+                    const syncableTypes = ['shape', 'page', 'asset'];
                     if (syncableTypes.includes(record.typeName) && !remoteData[record.id]) {
                         store.remove([record.id]);
                     }
@@ -302,7 +323,7 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
             if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
             
             ydoc.transact(() => {
-                const syncableTypes = ['shape', 'page', 'asset', 'instance_page_state'];
+                const syncableTypes = ['shape', 'page', 'asset'];
 
                 // ADDED
                 Object.values(update.changes.added).forEach(record => {
@@ -494,9 +515,7 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                                 if (snap.exists()) {
                                     const prefs = snap.data();
                                     if (prefs.isGridMode !== undefined) {
-                                    if (prefs.isGridMode !== undefined) {
                                         editor.user.updateUserPreferences({ isGridMode: prefs.isGridMode });
-                                    }
                                     }
                                 }
                             } catch (e) {
