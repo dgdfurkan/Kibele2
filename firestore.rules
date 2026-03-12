@@ -92,7 +92,16 @@ service cloud.firestore {
       return fullId.split('_')[0];
     }
 
-    // tldraw Şekilleri (Canvas)
+    // tldraw Şekilleri (Yeni Tek Doküman Modeli)
+    match /rooms/{roomId}/canvas/{docId} {
+      allow read, write: if isAuthenticated() && (
+        get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.participants.hasAny([request.auth.uid]) ||
+        get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.creatorId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    // Eski tldraw Şekilleri (Geriye dönük uyumluluk için şimdilik kalsın)
     match /rooms/{roomId}/shapes/{shapeId} {
       allow read: if isAuthenticated() && (
         get(/databases/$(database)/documents/rooms/$(getBaseRoomId(roomId))).data.participants.hasAny([request.auth.uid]) ||
