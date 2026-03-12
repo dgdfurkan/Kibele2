@@ -9,7 +9,8 @@ import { db, rtdb } from '../firebase';
 
 const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odası" }) => {
     const [isLoaded, setIsLoaded] = useState(false);
-    const [syncStatus, setSyncStatus] = useState('synced'); // 'synced', 'syncing', 'error', 'quota'
+    const [syncStatus, setSyncStatus] = useState('synced');
+    const [activeUsersCount, setActiveUsersCount] = useState(1);
     
     // tldraw store
     const store = useMemo(() => createTLStore({ shapeUtils: defaultShapeUtils }), []);
@@ -19,9 +20,22 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
 
         const ydoc = new Y.Doc();
         const yShapes = ydoc.getMap('shapes');
-        const provider = new FirebaseRTDBProvider(roomId, ydoc);
+        
+        // Uzman tavsiyesi: Kullanıcı bilgileriyle provider başlatılıyor
+        const provider = new FirebaseRTDBProvider(roomId, ydoc, {
+            name: user.name || user.displayName || 'Anonim',
+            id: user.uid,
+            color: user.color || `#${Math.floor(Math.random()*16777215).toString(16)}`
+        });
 
         let isUpdatingRemote = false;
+
+        // Active Users Tracking via Awareness
+        const handleAwarenessChange = () => {
+            const states = provider.awareness.getStates();
+            setActiveUsersCount(states.size);
+        };
+        provider.awareness.on('change', handleAwarenessChange);
 
         // 1. Yjs -> tldraw (Remote updates coming in)
         const handleYjsChange = () => {
@@ -157,6 +171,16 @@ const CanvasBoard = ({ roomId, user, isReadOnly = false, roomName = "İlham Odas
             </div>
 
             <div className="absolute bottom-6 right-6 z-[10] flex flex-col items-end gap-2">
+                {activeUsersCount > 1 && (
+                    <div className="glass-card px-3 py-1.5 flex items-center gap-2 bg-indigo-50/80 backdrop-blur-md border-indigo-100 shadow-lg">
+                        <div className="flex -space-x-1.5">
+                            {[...Array(Math.min(activeUsersCount, 3))].map((_, i) => (
+                                <div key={i} className="w-2.5 h-2.5 rounded-full border border-white bg-indigo-400" />
+                            ))}
+                        </div>
+                        <span className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest">{activeUsersCount} Sanatçı Aktif</span>
+                    </div>
+                )}
                 {syncStatus === 'syncing' && (
                     <div className="glass-card px-3 py-1.5 flex items-center gap-2 bg-blue-50/80 backdrop-blur-md border-blue-100 shadow-lg">
                         <div className="w-2 h-2 rounded-full bg-blue-500 animate-spin" />
