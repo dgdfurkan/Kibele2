@@ -1,5 +1,4 @@
-import * as Y from 'yjs';
-import { ref, onValue, set, push, onChildAdded, remove, get } from 'firebase/database';
+import { ref, onValue, set, push, onChildAdded, onChildChanged, onChildRemoved, remove, get } from 'firebase/database';
 import { rtdb } from '../firebase';
 import { Awareness } from 'y-protocols/awareness';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -10,10 +9,9 @@ export class FirebaseRTDBProvider {
         this.ydoc = ydoc;
         this.awareness = new Awareness(ydoc);
         
-        // 0. Local Persistence (IndexedDB) - Reduces initial download
+        // 0. Local Persistence (IndexedDB)
         this.indexeddb = new IndexeddbPersistence(roomId, ydoc);
         
-        // Awareness state
         this.awareness.setLocalStateField('user', {
             name: userInfo.name || 'Sanatçı',
             color: userInfo.color || '#3399ff',
@@ -28,10 +26,10 @@ export class FirebaseRTDBProvider {
         this._updateCount = 0;
         this._isCompacting = false;
 
-        // 1. Initial Sync: Load Snapshot from DB once
+        // 1. Initial Load: Snapshot
         this._initSnapshot();
 
-        // 2. Remote updates listener (Deltas after snapshot)
+        // 2. Remote updates listener
         this._unsubscribeUpdates = onChildAdded(this.updatesRef, (snapshot) => {
             const updateBase64 = snapshot.val();
             if (updateBase64 && this.ydoc && !this.ydoc.destroyed) {
@@ -40,22 +38,20 @@ export class FirebaseRTDBProvider {
                     Y.applyUpdate(this.ydoc, update, this);
                     
                     this._updateCount++;
-                    // GC: Every 150 updates, merge into snapshot to save bandwidth
-                    if (this._updateCount > 150 && !this._isCompacting) {
+                    // GC: Every 100 updates, merge into snapshot
+                    if (this._updateCount > 100 && !this._isCompacting) {
                         this._compactHistory();
                     }
-                } catch (e) {
-                    console.error("Yjs update error:", e);
-                }
+                } catch (e) { console.error("Update error:", e); }
             }
         });
 
-        // 3. Local updates sender (Debounced & Merged)
+        // 3. Local updates sender
         this._pendingUpdates = [];
         this._debounceTimer = null;
 
         this._ydocUpdateListener = (update, origin) => {
-            if (origin !== this && origin !== this.indexeddb) { // Don't loop with IndexedDB
+            if (origin !== this && origin !== this.indexeddb) {
                 this._pendingUpdates.push(update);
                 if (this._debounceTimer) clearTimeout(this._debounceTimer);
                 this._debounceTimer = setTimeout(() => {
@@ -65,14 +61,14 @@ export class FirebaseRTDBProvider {
                             const updateBase64 = btoa(String.fromCharCode(...mergedUpdate));
                             push(this.updatesRef, updateBase64);
                             this._pendingUpdates = [];
-                        } catch (e) { console.error("Update push error:", e); }
+                        } catch (e) { console.error("Sync error:", e); }
                     }
-                }, 200);
+                }, 250);
             }
         };
         this.ydoc.on('update', this._ydocUpdateListener);
 
-        // 4. Awareness (Presence) Sync
+        // 4. Awareness (Cursors) - FULL SYNC
         this._awarenessDebounceTimer = null;
         this._awarenessUpdateListener = ({ added, updated, removed }, origin) => {
             if (origin !== 'remote') {
@@ -82,23 +78,32 @@ export class FirebaseRTDBProvider {
                     if (state) {
                         set(ref(rtdb, `canvas_sync/${roomId}/awareness/${this.ydoc.clientID}`), state);
                     }
-                }, 500); // Slower awareness updates to save traffic
+                }, 400); // Debounce cursor traffic
             }
         };
         this.awareness.on('update', this._awarenessUpdateListener);
 
-        this._unsubscribeAwareness = onChildAdded(this.awarenessRef, (snapshot) => {
-            const clientID = parseInt(snapshot.key);
-            if (clientID !== this.ydoc.clientID) {
-                this.awareness.setLocalState(snapshot.val(), 'remote');
-            }
-        });
+        // Listen for all awareness events
+        this._listeners = [
+            onChildAdded(this.awarenessRef, (snap) => {
+                const id = parseInt(snap.key);
+                if (id !== this.ydoc.clientID) this.awareness.setLocalState(snap.val(), 'remote');
+            }),
+            onChildChanged(this.awarenessRef, (snap) => {
+                const id = parseInt(snap.key);
+                if (id !== this.ydoc.clientID) this.awareness.setLocalState(snap.val(), 'remote');
+            }),
+            onChildRemoved(this.awarenessRef, (snap) => {
+                const id = parseInt(snap.key);
+                if (id !== this.ydoc.clientID) this.awareness.removeMember(id);
+            })
+        ];
 
-        // Cleanup on disconnect
-        const presenceRef = ref(rtdb, `canvas_sync/${roomId}/awareness/${this.ydoc.clientID}`);
-        this._unsubscribeConnected = onValue(ref(rtdb, '.info/connected'), (snap) => {
+        // Disconnect cleanup
+        onValue(ref(rtdb, '.info/connected'), (snap) => {
             if (snap.val() === true) {
-                import('firebase/database').then(({ onDisconnect }) => {
+                import('firebase/database').then(({ onDisconnect, ref }) => {
+                    const presenceRef = ref(rtdb, `canvas_sync/${roomId}/awareness/${this.ydoc.clientID}`);
                     onDisconnect(presenceRef).remove();
                 });
             }
@@ -109,51 +114,37 @@ export class FirebaseRTDBProvider {
         try {
             const snap = await get(this.snapshotRef);
             if (snap.exists()) {
-                const base64 = snap.val();
-                const update = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+                const update = Uint8Array.from(atob(snap.val()), c => c.charCodeAt(0));
                 Y.applyUpdate(this.ydoc, update, 'initial');
             }
-        } catch (e) {
-            console.error("Snapshot load error:", e);
-        }
+        } catch (e) { console.error("Snapshot error:", e); }
     }
 
     async _compactHistory() {
+        if (this._isCompacting) return;
         this._isCompacting = true;
         try {
-            // Encode current state as a single "atomic" update
             const snapshot = Y.encodeStateAsUpdate(this.ydoc);
             const base64 = btoa(String.fromCharCode(...snapshot));
-            
-            // Save as new base snapshot and CLEAR updates list
             await set(this.snapshotRef, base64);
             await remove(this.updatesRef);
-            
             this._updateCount = 0;
-            console.log("Canvas history compacted successfully! 🧹✨");
-        } catch (e) {
-            console.error("Compaction error:", e);
-        } finally {
+            console.log("History GC completed 🧹");
+        } catch (e) { console.error("GC error:", e); } finally {
             this._isCompacting = false;
         }
     }
 
     destroy() {
-        // Modular SDK cleanup: call unsubscribe functions
         if (this._unsubscribeUpdates) this._unsubscribeUpdates();
-        if (this._unsubscribeAwareness) this._unsubscribeAwareness();
-        if (this._unsubscribeConnected) this._unsubscribeConnected();
+        if (this._listeners) this._listeners.forEach(unsub => unsub());
         
-        // Remove Yjs/Awareness listeners
-        if (this.ydoc) {
-            this.ydoc.off('update', this._ydocUpdateListener);
-        }
+        if (this.ydoc) this.ydoc.off('update', this._ydocUpdateListener);
         if (this.awareness) {
             this.awareness.off('update', this._awarenessUpdateListener);
             this.awareness.destroy();
         }
-
-        // Final presence cleanup
+        
         set(ref(rtdb, `canvas_sync/${this.roomId}/awareness/${this.ydoc.clientID}`), null);
     }
 }
