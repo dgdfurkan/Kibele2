@@ -15,7 +15,7 @@ import { ref, push } from 'firebase/database';
 const InspirationWorkspace = ({ room, onBack }) => {
     const { user, isAdmin } = useAuth();
     const { showToast } = useToast();
-    const [activeTab, setActiveTab] = useState('shared'); // Default to shared canvas
+    const [activeTab, setActiveTab] = useState('personal'); // FIX: Default to personal board
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
@@ -114,7 +114,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                                 baseRoomId={room.id} // NEW: Firestore'daki asıl oda ID'si
                                 user={user}
                                 roomName={room.name}
-                                isReadOnly={isArchived}
+                                isReadOnly={true} // FIX: Shared board locked for now
                                 roomCreatorId={room.creatorId}
                                 boardType="shared"
                             />

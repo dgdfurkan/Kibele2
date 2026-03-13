@@ -38,22 +38,46 @@ export class FirebaseRTDBProvider {
             }
         });
 
-        // 2. Local updates sender
+        // 2. Local updates sender (Debounced to save bandwidth/costs)
+        this._pendingUpdates = [];
+        this._debounceTimer = null;
+
         this._ydocUpdateListener = (update, origin) => {
             if (origin !== this) {
-                const updateBase64 = btoa(String.fromCharCode(...update));
-                push(this.updatesRef, updateBase64);
+                // Collect updates
+                this._pendingUpdates.push(update);
+                
+                if (this._debounceTimer) clearTimeout(this._debounceTimer);
+                
+                this._debounceTimer = setTimeout(() => {
+                    if (this._pendingUpdates.length > 0) {
+                        try {
+                            // Merge all pending updates into one for efficiency
+                            const mergedUpdate = Y.mergeUpdates(this._pendingUpdates);
+                            const updateBase64 = btoa(String.fromCharCode(...mergedUpdate));
+                            push(this.updatesRef, updateBase64);
+                            this._pendingUpdates = [];
+                        } catch (e) {
+                            console.error("Yjs update merge/push error:", e);
+                        }
+                    }
+                }, 150); // 150ms debounce
             }
         };
         this.ydoc.on('update', this._ydocUpdateListener);
 
-        // 3. Awareness (Presence) Sync
+        // 3. Awareness (Presence) Sync (Also slightly debounced)
+        this._awarenessDebounceTimer = null;
         this._awarenessUpdateListener = ({ added, updated, removed }, origin) => {
             if (origin !== 'remote') {
-                const state = this.awareness.getLocalState();
-                if (state) {
-                    set(ref(rtdb, `canvas_sync/${roomId}/awareness/${this.ydoc.clientID}`), state);
-                }
+                if (this._awarenessDebounceTimer) clearTimeout(this._awarenessDebounceTimer);
+                
+                this._awarenessDebounceTimer = setTimeout(() => {
+                    const state = this.awareness.getLocalState();
+                    if (state) {
+                        set(ref(rtdb, `canvas_sync/${roomId}/awareness/${this.ydoc.clientID}`), state);
+                    }
+                }, 200);
             }
         };
         this.awareness.on('update', this._awarenessUpdateListener);

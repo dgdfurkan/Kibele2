@@ -389,9 +389,12 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
             }
         });
 
-        // 4. Periodic Snapshot to Firestore (Once every 5 mins for backup)
+        // 4. Periodic Snapshot to Firestore (CRITICAL: Only by owner & less frequent)
         const snapshotInterval = setInterval(async () => {
-            if (isReadOnly) return;
+            // Sadece oda sahibi yedek alsın ve 15 dakikada bir (300000 * 3)
+            const isOwner = user.uid === roomCreatorId;
+            if (isReadOnly || !isActive || !isOwner) return;
+            
             const currentShapes = yShapes.toJSON();
             if (Object.keys(currentShapes).length > 0) {
                 try {
@@ -403,7 +406,7 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
                     console.warn("Snapshot backup failed (Quota?)", e);
                 }
             }
-        }, 300000); // 5 mins
+        }, 900000); // 15 mins (was 5 mins)
 
         return () => {
             isActive = false;
