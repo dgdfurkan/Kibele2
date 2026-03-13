@@ -1,19 +1,19 @@
 import * as Y from 'yjs';
-import { ref, onValue, set, off, push, onChildAdded, remove } from 'firebase/database';
+import { ref, onValue, set, push, onChildAdded, remove, get } from 'firebase/database';
 import { rtdb } from '../firebase';
 import { Awareness } from 'y-protocols/awareness';
+import { IndexeddbPersistence } from 'y-indexeddb';
 
-/**
- * A bit more advanced Yjs provider for Firebase Realtime Database.
- * Includes Awareness support for cursors/presence.
- */
 export class FirebaseRTDBProvider {
     constructor(roomId, ydoc, userInfo = {}) {
         this.roomId = roomId;
         this.ydoc = ydoc;
         this.awareness = new Awareness(ydoc);
         
-        // Set local awareness state
+        // 0. Local Persistence (IndexedDB) - Reduces initial download
+        this.indexeddb = new IndexeddbPersistence(roomId, ydoc);
+        
+        // Awareness state
         this.awareness.setLocalStateField('user', {
             name: userInfo.name || 'Sanatçı',
             color: userInfo.color || '#3399ff',
@@ -21,63 +21,68 @@ export class FirebaseRTDBProvider {
         });
 
         this.roomRef = ref(rtdb, `canvas_sync/${roomId}`);
+        this.snapshotRef = ref(rtdb, `canvas_sync/${roomId}/snapshot`);
         this.updatesRef = ref(rtdb, `canvas_sync/${roomId}/updates`);
         this.awarenessRef = ref(rtdb, `canvas_sync/${roomId}/awareness`);
         
-        // 1. Remote updates listener
-        // Modular SDK: onChildAdded returns an unsubscribe function
+        this._updateCount = 0;
+        this._isCompacting = false;
+
+        // 1. Initial Sync: Load Snapshot from DB once
+        this._initSnapshot();
+
+        // 2. Remote updates listener (Deltas after snapshot)
         this._unsubscribeUpdates = onChildAdded(this.updatesRef, (snapshot) => {
             const updateBase64 = snapshot.val();
             if (updateBase64 && this.ydoc && !this.ydoc.destroyed) {
                 try {
                     const update = Uint8Array.from(atob(updateBase64), c => c.charCodeAt(0));
                     Y.applyUpdate(this.ydoc, update, this);
+                    
+                    this._updateCount++;
+                    // GC: Every 150 updates, merge into snapshot to save bandwidth
+                    if (this._updateCount > 150 && !this._isCompacting) {
+                        this._compactHistory();
+                    }
                 } catch (e) {
                     console.error("Yjs update error:", e);
                 }
             }
         });
 
-        // 2. Local updates sender (Debounced to save bandwidth/costs)
+        // 3. Local updates sender (Debounced & Merged)
         this._pendingUpdates = [];
         this._debounceTimer = null;
 
         this._ydocUpdateListener = (update, origin) => {
-            if (origin !== this) {
-                // Collect updates
+            if (origin !== this && origin !== this.indexeddb) { // Don't loop with IndexedDB
                 this._pendingUpdates.push(update);
-                
                 if (this._debounceTimer) clearTimeout(this._debounceTimer);
-                
                 this._debounceTimer = setTimeout(() => {
                     if (this._pendingUpdates.length > 0) {
                         try {
-                            // Merge all pending updates into one for efficiency
                             const mergedUpdate = Y.mergeUpdates(this._pendingUpdates);
                             const updateBase64 = btoa(String.fromCharCode(...mergedUpdate));
                             push(this.updatesRef, updateBase64);
                             this._pendingUpdates = [];
-                        } catch (e) {
-                            console.error("Yjs update merge/push error:", e);
-                        }
+                        } catch (e) { console.error("Update push error:", e); }
                     }
-                }, 150); // 150ms debounce
+                }, 200);
             }
         };
         this.ydoc.on('update', this._ydocUpdateListener);
 
-        // 3. Awareness (Presence) Sync (Also slightly debounced)
+        // 4. Awareness (Presence) Sync
         this._awarenessDebounceTimer = null;
         this._awarenessUpdateListener = ({ added, updated, removed }, origin) => {
             if (origin !== 'remote') {
                 if (this._awarenessDebounceTimer) clearTimeout(this._awarenessDebounceTimer);
-                
                 this._awarenessDebounceTimer = setTimeout(() => {
                     const state = this.awareness.getLocalState();
                     if (state) {
                         set(ref(rtdb, `canvas_sync/${roomId}/awareness/${this.ydoc.clientID}`), state);
                     }
-                }, 200);
+                }, 500); // Slower awareness updates to save traffic
             }
         };
         this.awareness.on('update', this._awarenessUpdateListener);
@@ -85,8 +90,7 @@ export class FirebaseRTDBProvider {
         this._unsubscribeAwareness = onChildAdded(this.awarenessRef, (snapshot) => {
             const clientID = parseInt(snapshot.key);
             if (clientID !== this.ydoc.clientID) {
-                const state = snapshot.val();
-                this.awareness.setLocalState(state, 'remote');
+                this.awareness.setLocalState(snapshot.val(), 'remote');
             }
         });
 
@@ -99,6 +103,39 @@ export class FirebaseRTDBProvider {
                 });
             }
         });
+    }
+
+    async _initSnapshot() {
+        try {
+            const snap = await get(this.snapshotRef);
+            if (snap.exists()) {
+                const base64 = snap.val();
+                const update = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+                Y.applyUpdate(this.ydoc, update, 'initial');
+            }
+        } catch (e) {
+            console.error("Snapshot load error:", e);
+        }
+    }
+
+    async _compactHistory() {
+        this._isCompacting = true;
+        try {
+            // Encode current state as a single "atomic" update
+            const snapshot = Y.encodeStateAsUpdate(this.ydoc);
+            const base64 = btoa(String.fromCharCode(...snapshot));
+            
+            // Save as new base snapshot and CLEAR updates list
+            await set(this.snapshotRef, base64);
+            await remove(this.updatesRef);
+            
+            this._updateCount = 0;
+            console.log("Canvas history compacted successfully! 🧹✨");
+        } catch (e) {
+            console.error("Compaction error:", e);
+        } finally {
+            this._isCompacting = false;
+        }
     }
 
     destroy() {
