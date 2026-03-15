@@ -41,16 +41,32 @@ function App() {
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
     const [filters, setFilters] = useState({
-        artwork_type: [],
         artists: [],
         places: [],
-        colors: []
+        artwork_type: [],
+        styles: [],
+        subjects: [],
+        classifications: [],
+        medium: [],
+        departments: [],
+        colors: [],
+        color_hex: '',
+        sort: 'relevance',
+        date_start: undefined,
+        date_end: undefined
     });
     const [expandedFilters, setExpandedFilters] = useState({
-        artwork_type: false,
+        sort_options: false,
         artists: false,
         places: false,
-        colors: false
+        artwork_type: false,
+        date: false,
+        color: false,
+        styles: false,
+        subjects: false,
+        classifications: false,
+        medium: false,
+        departments: false
     });
     const [queryText, setQueryText] = useState('');
     const [enlargedArtwork, setEnlargedArtwork] = useState(null);
@@ -136,7 +152,21 @@ function App() {
     };
 
     const clearFilters = () => {
-        setFilters({ artwork_type: [], artists: [], colors: [], places: [] });
+        setFilters({ 
+            artists: [],
+            places: [],
+            artwork_type: [],
+            styles: [],
+            subjects: [],
+            classifications: [],
+            medium: [],
+            departments: [],
+            colors: [],
+            color_hex: '',
+            sort: 'relevance',
+            date_start: undefined,
+            date_end: undefined
+        });
         setQueryText('');
         setPage(1);
     };
@@ -404,123 +434,129 @@ function App() {
                                             </div>
 
                                             <div className="o-accordion o-collection-filters__filters space-y-2">
-                                                {/* Artists */}
-                                                <div className="border border-border-light/40 rounded-xl overflow-hidden">
-                                                    <p 
-                                                        className="o-accordion__trigger f-tag-2 p-3 flex justify-between items-center cursor-pointer bg-surface-light/30 hover:bg-surface-light/50 transition-colors m-0"
-                                                        onClick={() => toggleSection('artists')}
-                                                    >
-                                                        <span className="font-semibold text-sm">Artists {filters.artists.length > 0 && `(${filters.artists.length})`}</span>
-                                                        <LucideChevronDown size={14} className={`transition-transform duration-300 text-text-muted ${expandedFilters.artists ? 'rotate-180' : ''}`} />
-                                                    </p>
-                                                    {expandedFilters.artists && (
-                                                        <div className="o-accordion__panel p-3 border-t border-border-light/40 bg-white o-accordion__panel-content m-filters">
-                                                            <ul className="m-filters__list max-h-[180px] overflow-y-auto space-y-1 scrollbar-hide m-0 p-0 list-none">
-                                                                {AIC_FILTERS.artists.map(s => (
-                                                                    <li key={s.id} className="m-0 p-0">
+                                                {[
+                                                    { key: 'sort_options', title: 'Sort', type: 'radio', stateKey: 'sort' },
+                                                    { key: 'artists', title: 'Artists', type: 'checkbox', stateKey: 'artists' },
+                                                    { key: 'places', title: 'Places', type: 'checkbox', stateKey: 'places' },
+                                                    { key: 'artwork_type', title: 'Artwork Type', type: 'checkbox', stateKey: 'artwork_type' },
+                                                    { key: 'date', title: 'Date', type: 'custom_date', stateKey: 'date' },
+                                                    { key: 'color', title: 'Color', type: 'custom_color', stateKey: 'color' },
+                                                    { key: 'styles', title: 'Styles', type: 'checkbox', stateKey: 'styles' },
+                                                    { key: 'subjects', title: 'Subjects', type: 'checkbox', stateKey: 'subjects' },
+                                                    { key: 'classifications', title: 'Classifications', type: 'checkbox', stateKey: 'classifications' },
+                                                    { key: 'medium', title: 'Medium', type: 'checkbox', stateKey: 'medium' },
+                                                    { key: 'departments', title: 'Departments', type: 'checkbox', stateKey: 'departments' }
+                                                ].map((section) => (
+                                                    <div key={section.key} className="border border-border-light/40 rounded-xl overflow-hidden">
+                                                        <p 
+                                                            className="o-accordion__trigger f-tag-2 p-3 flex justify-between items-center cursor-pointer bg-surface-light/30 hover:bg-surface-light/50 transition-colors m-0"
+                                                            onClick={() => toggleSection(section.key)}
+                                                        >
+                                                            <span className="font-semibold text-sm">
+                                                                {section.title} 
+                                                                {section.type === 'checkbox' && filters[section.stateKey]?.length > 0 && ` (${filters[section.stateKey].length})`}
+                                                                {section.type === 'custom_color' && filters.color_hex && ` (1)`}
+                                                                {section.type === 'custom_date' && (filters.date_start || filters.date_end) && ` (1)`}
+                                                            </span>
+                                                            <LucideChevronDown size={14} className={`transition-transform duration-300 text-text-muted ${expandedFilters[section.key] ? 'rotate-180' : ''}`} />
+                                                        </p>
+                                                        {expandedFilters[section.key] && (
+                                                            <div className="o-accordion__panel p-3 border-t border-border-light/40 bg-white o-accordion__panel-content m-filters">
+                                                                {section.type === 'checkbox' && (
+                                                                    <ul className="m-filters__list max-h-[180px] overflow-y-auto space-y-1 scrollbar-hide m-0 p-0 list-none">
+                                                                        {AIC_FILTERS[section.key]?.map(item => (
+                                                                            <li key={item.id} className="m-0 p-0">
+                                                                                <button 
+                                                                                    onClick={() => toggleFilter(section.stateKey, item.id)} 
+                                                                                    className={`checkbox f-secondary w-full text-left px-2 py-1.5 rounded-md text-[13px] transition-all flex items-center gap-2 ${filters[section.stateKey]?.includes(item.id) ? 'bg-accent-blue/10 text-accent-blue font-medium' : 'hover:bg-surface-light text-text-muted'}`}
+                                                                                >
+                                                                                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${filters[section.stateKey]?.includes(item.id) ? 'bg-accent-blue border-accent-blue text-white' : 'border-border-light'}`}>
+                                                                                        {filters[section.stateKey]?.includes(item.id) && <LucideCheck size={10} strokeWidth={3} />}
+                                                                                    </div>
+                                                                                    <span className="truncate">{item.name}</span>
+                                                                                </button>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                )}
+                                                                {section.type === 'radio' && (
+                                                                    <ul className="m-filters__list max-h-[180px] overflow-y-auto space-y-1 scrollbar-hide m-0 p-0 list-none">
+                                                                        {AIC_FILTERS[section.key]?.map(item => (
+                                                                            <li key={item.id} className="m-0 p-0">
+                                                                                <button 
+                                                                                    onClick={() => setFilters(prev => ({...prev, sort: item.id}))} 
+                                                                                    className={`checkbox f-secondary w-full text-left px-2 py-1.5 rounded-md text-[13px] transition-all flex items-center gap-2 ${filters.sort === item.id ? 'bg-accent-blue/10 text-accent-blue font-medium' : 'hover:bg-surface-light text-text-muted'}`}
+                                                                                >
+                                                                                    <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${filters.sort === item.id ? 'bg-accent-blue border-accent-blue text-white' : 'border-border-light'}`}>
+                                                                                        {filters.sort === item.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                                                                    </div>
+                                                                                    <span className="truncate">{item.name}</span>
+                                                                                </button>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                )}
+                                                                {section.type === 'custom_color' && (
+                                                                    <div className="flex flex-col gap-3">
+                                                                        <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Color values (HEX)</label>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <input 
+                                                                                type="color" 
+                                                                                value={filters.color_hex || '#ff3e3e'} 
+                                                                                onChange={(e) => setFilters(prev => ({...prev, color_hex: e.target.value}))}
+                                                                                className="w-10 h-10 rounded cursor-pointer border-0 p-0"
+                                                                            />
+                                                                            <input 
+                                                                                type="text" 
+                                                                                className="f-secondary outline-none border border-border-light/40 rounded px-2 py-1 w-full text-sm uppercase" 
+                                                                                value={filters.color_hex || ''}
+                                                                                placeholder="#RRGGBB"
+                                                                                onChange={(e) => setFilters(prev => ({...prev, color_hex: e.target.value}))}
+                                                                            />
+                                                                        </div>
                                                                         <button 
-                                                                            onClick={() => toggleFilter('artists', s.id)} 
-                                                                            className={`checkbox f-secondary w-full text-left px-2 py-1.5 rounded-md text-[13px] transition-all flex items-center gap-2 ${filters.artists.includes(s.id) ? 'bg-accent-blue/10 text-accent-blue font-medium' : 'hover:bg-surface-light text-text-muted'}`}
+                                                                            onClick={() => {
+                                                                                if (!filters.color_hex) setFilters(prev => ({...prev, color_hex: '#ff3e3e'}));
+                                                                            }} 
+                                                                            className="o-color-picker__submit bg-surface-light hover:bg-border-light/40 text-text-main text-sm font-semibold py-2 px-4 rounded-md transition-colors w-full flex justify-center items-center gap-2"
                                                                         >
-                                                                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${filters.artists.includes(s.id) ? 'bg-accent-blue border-accent-blue text-white' : 'border-border-light'}`}>
-                                                                                {filters.artists.includes(s.id) && <LucideCheck size={10} strokeWidth={3} />}
-                                                                            </div>
-                                                                            <span className="truncate">{s.name}</span>
+                                                                            <span style={{ backgroundColor: filters.color_hex || '#ff3e3e' }} className="w-3 h-3 rounded-full inline-block"></span>
+                                                                            Seç ve Uygula
                                                                         </button>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Places */}
-                                                <div className="border border-border-light/40 rounded-xl overflow-hidden">
-                                                    <p 
-                                                        className="o-accordion__trigger f-tag-2 p-3 flex justify-between items-center cursor-pointer bg-surface-light/30 hover:bg-surface-light/50 transition-colors m-0"
-                                                        onClick={() => toggleSection('places')}
-                                                    >
-                                                        <span className="font-semibold text-sm">Places {filters.places.length > 0 && `(${filters.places.length})`}</span>
-                                                        <LucideChevronDown size={14} className={`transition-transform duration-300 text-text-muted ${expandedFilters.places ? 'rotate-180' : ''}`} />
-                                                    </p>
-                                                    {expandedFilters.places && (
-                                                        <div className="o-accordion__panel p-3 border-t border-border-light/40 bg-white o-accordion__panel-content m-filters">
-                                                            <ul className="m-filters__list max-h-[180px] overflow-y-auto space-y-1 scrollbar-hide m-0 p-0 list-none">
-                                                                {AIC_FILTERS.places.map(p => (
-                                                                    <li key={p.id} className="m-0 p-0">
-                                                                        <button 
-                                                                            onClick={() => toggleFilter('places', p.id)} 
-                                                                            className={`checkbox f-secondary w-full text-left px-2 py-1.5 rounded-md text-[13px] transition-all flex items-center gap-2 ${filters.places.includes(p.id) ? 'bg-accent-blue/10 text-accent-blue font-medium' : 'hover:bg-surface-light text-text-muted'}`}
-                                                                        >
-                                                                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${filters.places.includes(p.id) ? 'bg-accent-blue border-accent-blue text-white' : 'border-border-light'}`}>
-                                                                                {filters.places.includes(p.id) && <LucideCheck size={10} strokeWidth={3} />}
-                                                                            </div>
-                                                                            <span className="truncate">{p.name}</span>
-                                                                        </button>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Artwork Type */}
-                                                <div className="border border-border-light/40 rounded-xl overflow-hidden">
-                                                    <p 
-                                                        className="o-accordion__trigger f-tag-2 p-3 flex justify-between items-center cursor-pointer bg-surface-light/30 hover:bg-surface-light/50 transition-colors m-0"
-                                                        onClick={() => toggleSection('artwork_type')}
-                                                    >
-                                                        <span className="font-semibold text-sm">Artwork Type {filters.artwork_type.length > 0 && `(${filters.artwork_type.length})`}</span>
-                                                        <LucideChevronDown size={14} className={`transition-transform duration-300 text-text-muted ${expandedFilters.artwork_type ? 'rotate-180' : ''}`} />
-                                                    </p>
-                                                    {expandedFilters.artwork_type && (
-                                                        <div className="o-accordion__panel p-3 border-t border-border-light/40 bg-white o-accordion__panel-content m-filters">
-                                                            <ul className="m-filters__list max-h-[180px] overflow-y-auto space-y-1 scrollbar-hide m-0 p-0 list-none">
-                                                                {AIC_FILTERS.artwork_type.map(m => (
-                                                                    <li key={m.id} className="m-0 p-0">
-                                                                        <button 
-                                                                            onClick={() => toggleFilter('artwork_type', m.id)} 
-                                                                            className={`checkbox f-secondary w-full text-left px-2 py-1.5 rounded-md text-[13px] transition-all flex items-center gap-2 ${filters.artwork_type.includes(m.id) ? 'bg-accent-blue/10 text-accent-blue font-medium' : 'hover:bg-surface-light text-text-muted'}`}
-                                                                        >
-                                                                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${filters.artwork_type.includes(m.id) ? 'bg-accent-blue border-accent-blue text-white' : 'border-border-light'}`}>
-                                                                                {filters.artwork_type.includes(m.id) && <LucideCheck size={10} strokeWidth={3} />}
-                                                                            </div>
-                                                                            <span className="truncate">{m.name}</span>
-                                                                        </button>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Colors */}
-                                                <div className="border border-border-light/40 rounded-xl overflow-hidden">
-                                                    <p 
-                                                        className="o-accordion__trigger f-tag-2 p-3 flex justify-between items-center cursor-pointer bg-surface-light/30 hover:bg-surface-light/50 transition-colors m-0"
-                                                        onClick={() => toggleSection('colors')}
-                                                    >
-                                                        <span className="font-semibold text-sm">Colors {filters.colors.length > 0 && `(${filters.colors.length})`}</span>
-                                                        <LucideChevronDown size={14} className={`transition-transform duration-300 text-text-muted ${expandedFilters.colors ? 'rotate-180' : ''}`} />
-                                                    </p>
-                                                    {expandedFilters.colors && (
-                                                        <div className="o-accordion__panel p-3 border-t border-border-light/40 bg-white o-accordion__panel-content m-filters">
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {AIC_FILTERS.colors.map(c => (
-                                                                    <button
-                                                                        key={c.id}
-                                                                        onClick={() => toggleFilter('colors', c.id)}
-                                                                        className={`w-6 h-6 rounded-full border border-border-light/40 transition-all shrink-0 flex items-center justify-center ${filters.colors.includes(c.id) ? 'ring-2 ring-accent-blue ring-offset-1 scale-110' : 'hover:scale-110'}`}
-                                                                        style={{ backgroundColor: c.hex }}
-                                                                        title={c.name}
-                                                                    >
-                                                                        {filters.colors.includes(c.id) && <LucideCheck size={10} className={c.id === 'white' || c.id === 'yellow' ? 'text-text-main' : 'text-white'} strokeWidth={3} />}
-                                                                    </button>
-                                                                ))}
+                                                                        {filters.color_hex && (
+                                                                            <button onClick={() => setFilters(prev => ({...prev, color_hex: ''}))} className="text-xs text-red-500 hover:text-red-600 font-medium text-center">Rengi Temizle</button>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                                {section.type === 'custom_date' && (
+                                                                    <div className="flex flex-col gap-3">
+                                                                        <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Tarih Aralığı (Yıl)</label>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <input 
+                                                                                type="number" 
+                                                                                className="f-secondary outline-none border border-border-light/40 rounded px-2 py-1 w-full text-sm" 
+                                                                                value={filters.date_start || ''}
+                                                                                placeholder="Başlangıç"
+                                                                                onChange={(e) => setFilters(prev => ({...prev, date_start: e.target.value ? parseInt(e.target.value) : undefined}))}
+                                                                            />
+                                                                            <span className="text-text-muted">-</span>
+                                                                            <input 
+                                                                                type="number" 
+                                                                                className="f-secondary outline-none border border-border-light/40 rounded px-2 py-1 w-full text-sm" 
+                                                                                value={filters.date_end || ''}
+                                                                                placeholder="Bitiş"
+                                                                                onChange={(e) => setFilters(prev => ({...prev, date_end: e.target.value ? parseInt(e.target.value) : undefined}))}
+                                                                            />
+                                                                        </div>
+                                                                        {(filters.date_start !== undefined || filters.date_end !== undefined) && (
+                                                                            <button onClick={() => setFilters(prev => ({...prev, date_start: undefined, date_end: undefined}))} className="text-xs text-red-500 hover:text-red-600 font-medium text-center mt-2">Tarihi Temizle</button>
+                                                                        )}
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                        )}
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     </div>
