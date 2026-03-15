@@ -2,6 +2,7 @@ import { ref, onValue, set, push, onChildAdded, onChildChanged, onChildRemoved, 
 import { rtdb } from '../firebase';
 import { Awareness } from 'y-protocols/awareness';
 import { IndexeddbPersistence } from 'y-indexeddb';
+import * as Y from 'yjs';
 
 export class FirebaseRTDBProvider {
     constructor(roomId, ydoc, userInfo = {}) {

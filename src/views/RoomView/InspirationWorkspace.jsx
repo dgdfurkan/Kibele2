@@ -85,6 +85,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                 h: 400 * (artwork.aspect_ratio || 1),
                 rel: 'external',
                 src: artwork.image_url || artwork.thumbnail,
+                url: artwork.image_url || artwork.thumbnail,
                 name: artwork.title,
                 isAnimated: false,
                 mimeType: 'image/jpeg',
