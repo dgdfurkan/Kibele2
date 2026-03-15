@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { LucideSearch, LucideX, LucideSparkles, LucideRefreshCcw, LucideTrash2, LucideChevronDown, LucideCheck, LucidePlus } from 'lucide-react';
 import { searchArtsyArtworks, ARTSY_FILTERS } from '../services/artsyService';
 import { useAuth } from '../context/AuthContext';
-import { subscribeToRooms } from '../services/dbService';
+import { subscribeToRooms, curateRoomArtwork } from '../services/dbService';
 import { rtdb } from '../firebase';
 import { ref, push } from 'firebase/database';
 import { useToast } from '../context/ToastContext';
@@ -117,66 +117,28 @@ const ArtsyExplorer = ({ onAddArtwork, onCurateArtwork, onClose, isArchiveMode }
     const handleRemoteAddArtwork = async (artwork) => {
         if (isArchiveMode) return;
         
-        // If they want to add to current workspace, use prop
-        if (onAddArtwork && (!selectedRoomId || selectedRoomId === 'current')) {
-            onAddArtwork(artwork);
-            setEnlargedArtwork(null);
+        // Use prop context if available, but redirect to curation if that's the primary goal
+        if (selectedRoomId === 'curation') {
+            if (onCurateArtwork) {
+                onCurateArtwork(artwork);
+                setEnlargedArtwork(null);
+            }
             return;
         }
 
-        // If they want to curate
-        if (onCurateArtwork && selectedRoomId === 'curation') {
-            onCurateArtwork(artwork);
-            setEnlargedArtwork(null);
-            return;
-        }
-
-        // Otherwise write to remote RTDB for the selected room
         if (!selectedRoomId) {
             showToast("Lütfen bir oda seçin.", "error");
             return;
         }
 
-        const currentCanvasRoomId = `${selectedRoomId}_${user.uid}`; // Assuming personal board
-        const shapeId = `shape:${Date.now()}`;
-
-        const shape = {
-            id: shapeId,
-            typeName: 'shape',
-            type: 'image',
-            x: 100,
-            y: 100,
-            rotation: 0,
-            index: 'a1',
-            opacity: 1,
-            isLocked: false,
-            parentId: 'page:page',
-            meta: {
-                creatorId: user.uid,
-                creatorName: user.name || user.displayName || 'Sanatçı',
-                createdAt: Date.now()
-            },
-            props: {
-                w: 400,
-                h: 400 * (artwork.aspect_ratio || 1),
-                rel: 'external',
-                src: artwork.image_url || artwork.thumbnail || "",
-                url: artwork.image_url || artwork.thumbnail || "",
-                name: artwork.title || "İsimsiz Görsel",
-                isAnimated: false,
-                mimeType: 'image/jpeg',
-                playing: false
-            }
-        };
-
+        // Redirect ALL "Send to Room" actions to Curation service as per user request
         try {
-            const externalRef = ref(rtdb, `canvas_sync/${currentCanvasRoomId}/external_shapes`);
-            await push(externalRef, shape);
-            showToast("Görsel ilham odasına eklendi! ✨");
+            await curateRoomArtwork(selectedRoomId, artwork, user);
+            showToast("İlham odası kürasyonuna eklendi! ✨");
             setEnlargedArtwork(null);
         } catch (error) {
-            console.error("Error adding artwork to canvas remotely:", error);
-            showToast("Görsel eklenirken bir hata oluştu.", "error");
+            console.error("Error curating artwork remotely:", error);
+            showToast("Görsel kürasyona eklenirken bir hata oluştu.", "error");
         }
     };
 
@@ -474,8 +436,7 @@ const ArtsyExplorer = ({ onAddArtwork, onCurateArtwork, onClose, isArchiveMode }
                                                             className="w-full bg-surface border border-border-light/40 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-accent-blue/50 focus:ring-2 focus:ring-accent-blue/10 appearance-none"
                                                             style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem' }}
                                                         >
-                                                            {onAddArtwork && <option value="current">Mevcut Panoya Ekle</option>}
-                                                            {onCurateArtwork && <option value="curation">Oda Kürasyonuna Kaydet</option>}
+                                                            {onCurateArtwork && <option value="curation">Mevcut Odanın Kürasyonuna Ekle</option>}
                                                             {userRooms.map((r, i) => (
                                                                 <option key={r.id || i} value={r.id}>{r.name}</option>
                                                             ))}
@@ -487,12 +448,12 @@ const ArtsyExplorer = ({ onAddArtwork, onCurateArtwork, onClose, isArchiveMode }
 
                                                 <button 
                                                     onClick={() => handleRemoteAddArtwork(enlargedArtwork)}
-                                                    disabled={(!selectedRoomId || selectedRoomId === '') && !onAddArtwork && !onCurateArtwork}
+                                                    disabled={(!selectedRoomId || selectedRoomId === '') && !onCurateArtwork}
                                                     className="w-full bg-accent-blue hover:bg-accent-blue-hover text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-accent-blue/20 disabled:opacity-50 disabled:cursor-not-allowed group"
                                                 >
                                                     <div className="flex items-center gap-2">
-                                                        {selectedRoomId === 'curation' ? <LucideSparkles size={18} /> : <LucidePlus size={18} />}
-                                                        {selectedRoomId === 'curation' ? 'Kürasyona Kaydet' : 'Odaya Gönder'}
+                                                        <LucideSparkles size={18} />
+                                                        İlham Odasına Gönder
                                                     </div>
                                                 </button>
                                     </div>

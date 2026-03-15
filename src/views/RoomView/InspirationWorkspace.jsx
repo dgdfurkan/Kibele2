@@ -136,7 +136,6 @@ const InspirationWorkspace = ({ room, onBack }) => {
                         {isSidebarOpen && (
                             <div className="w-[400px] h-full flex-shrink-0 animate-in slide-in-from-right-8 duration-500">
                                 <ArtsyExplorer
-                                    onAddArtwork={handleAddArtworkToCanvas}
                                     onCurateArtwork={handleAddArtworkToCuration}
                                     onClose={() => setIsSidebarOpen(false)}
                                     isArchiveMode={isArchived}
@@ -164,7 +163,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                         {isSidebarOpen && user.uid === (selectedParticipantId || user.uid) && (
                             <div className="w-[400px] h-full flex-shrink-0 animate-in slide-in-from-right-8 duration-500">
                                 <ArtsyExplorer
-                                    onAddArtwork={handleAddArtworkToCanvas}
+                                    onCurateArtwork={handleAddArtworkToCuration}
                                     onClose={() => setIsSidebarOpen(false)}
                                     isArchiveMode={isArchived}
                                 />
