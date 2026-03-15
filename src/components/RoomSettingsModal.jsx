@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LucideX, LucideLock, LucideUnlock, LucideSparkles, LucideTrash2, LucideUsers, LucideAlertCircle } from 'lucide-react';
-import { updateRoomSettings, removeParticipantFromRoom, getUsersProfiles, sendNotification } from '../services/dbService';
+import { updateRoomSettings, removeParticipantFromRoom, getUsersProfiles, sendNotification, logRoomActivity } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -64,14 +64,49 @@ const RoomSettingsModal = ({ isOpen, onClose, room }) => {
                 updatedAt: new Date()
             });
 
+            // Detailed logging for each change
+            if (room.name !== name) {
+                await logRoomActivity(room.id, {
+                    type: 'system_update',
+                    detail: `Oda ismi '${room.name}' -> '${name}' olarak değiştirildi.`,
+                    authorName: user.name || "Admin"
+                });
+            }
+            if (deadlineChanged) {
+                await logRoomActivity(room.id, {
+                    type: 'system_update',
+                    detail: `Teslim tarihi ${newDeadline ? newDeadline.toLocaleDateString() : 'Kaldırıldı'} olarak güncellendi.`,
+                    authorName: user.name || "Admin"
+                });
+            }
+            if (revisionsChanged) {
+                await logRoomActivity(room.id, {
+                    type: 'system_update',
+                    detail: `Revize hakkı ${room.maxRevisions} -> ${maxRevisions} olarak güncellendi.`,
+                    authorName: user.name || "Admin"
+                });
+            }
+            if (room.isActive !== isActive) {
+                await logRoomActivity(room.id, {
+                    type: 'system_update',
+                    detail: `Oda durumu ${isActive ? 'AKTİF' : 'PASİF'} olarak değiştirildi.`,
+                    authorName: user.name || "Admin"
+                });
+            }
+
             // Send notifications if important settings changed
-            if (deadlineChanged || revisionsChanged) {
+            if (deadlineChanged || revisionsChanged || room.isActive !== isActive) {
                 const participantsToNotify = room.participants?.filter(id => id !== user.uid) || [];
+                const changes = [];
+                if (deadlineChanged) changes.push(`Teslim Tarihi: ${newDeadline ? newDeadline.toLocaleDateString() : 'Kaldırıldı'}`);
+                if (revisionsChanged) changes.push(`Revize Hakkı: ${maxRevisions}`);
+                if (room.isActive !== isActive) changes.push(`Oda Durumu: ${isActive ? 'Aktif' : 'Pasif'}`);
+
                 const notificationPromises = participantsToNotify.map(participantId => 
                     sendNotification(participantId, {
                         type: 'room_update',
-                        title: 'Oda Güncellemesi',
-                        message: `'${name}' odasının ${deadlineChanged ? 'teslim tarihi' : ''} ${deadlineChanged && revisionsChanged ? 've' : ''} ${revisionsChanged ? 'revize hakkı' : ''} güncellendi canım! ✨`,
+                        title: 'Oda Ayarları Güncellendi',
+                        message: `'${name}' odasında değişiklikler yapıldı: ${changes.join(', ')} ✨`,
                         roomId: room.id,
                         roomName: name,
                         createdAt: new Date()

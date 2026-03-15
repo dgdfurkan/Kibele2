@@ -530,7 +530,8 @@ export const addRoomItem = async (roomId, userId, itemData) => {
                 type: 'system_final_delivery',
                 userId,
                 authorName: itemData.authorName || "Kullanıcı",
-                detail: itemData.title || "Proje teslimatı yapıldı."
+                detail: itemData.title || "Proje teslimatı yapıldı.",
+                content: itemData.content // Linki loga ekliyoruz ki süreçten tııklanabilsin
             });
         }
 

@@ -90,6 +90,14 @@ const FinalWorkView = ({ room, targetUserId }) => {
                             <LucideAward size={40} />
                         </div>
                     </div>
+                    
+                    {isAdmin && user?.uid !== targetUserId ? (
+                        <div className="mb-8 inline-flex items-center gap-2 px-4 py-2 bg-text-main text-white rounded-2xl text-[10px] font-black uppercase tracking-widest animate-in slide-in-from-top-4">
+                            <LucideSparkles size={14} className="text-accent-blue" />
+                            Admin İzleme Modu: {room?.participants?.includes(targetUserId) ? 'Öğrenci Panosu' : 'Tanımsız'}
+                        </div>
+                    ) : null}
+
                     <h2 className="text-5xl font-display font-bold italic text-text-main mb-4 leading-tight">Proje Teslimatı.</h2>
                     <p className="text-text-muted italic max-w-xl mx-auto">
                         Buraya Google Drive, Figma veya Behance linklerini ekleyebilirsin. 
