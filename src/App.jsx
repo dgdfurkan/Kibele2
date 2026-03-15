@@ -51,6 +51,7 @@ function App() {
     });
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [returnToRooms, setReturnToRooms] = useState(false);
 
     useEffect(() => {
         const unsubscribeRooms = subscribeToRooms(setRooms);
@@ -142,6 +143,25 @@ function App() {
     // View Navigation Logic
     const liveSelectedRoom = selectedRoom ? rooms.find(r => r.id === selectedRoom.id) : null;
 
+    const handleSmoothScroll = (e, targetId) => {
+        e.preventDefault();
+        const element = document.getElementById(targetId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
+    useEffect(() => {
+        if (currentView === 'hub' && returnToRooms) {
+            setTimeout(() => {
+                const targetId = user ? 'inspiration-rooms' : 'hubs';
+                const el = document.getElementById(targetId);
+                if (el) el.scrollIntoView({ behavior: 'auto', block: 'center' });
+            }, 100);
+            setReturnToRooms(false);
+        }
+    }, [currentView, returnToRooms, user]);
+
     // Check if user should be kicked out of the current workspace
     useEffect(() => {
         if (currentView === 'workspace' && liveSelectedRoom && user && !isAdmin) {
@@ -158,12 +178,18 @@ function App() {
             {currentView === 'request' ? (
                 <RoomRequestView
                     room={liveSelectedRoom || selectedRoom}
-                    onBack={() => setCurrentView('hub')}
+                    onBack={() => {
+                        setCurrentView('hub');
+                        setReturnToRooms(true);
+                    }}
                     onRequestAccess={(reason) => handleRequestAccess(reason)}
                     isPending={userRequests.some(r => r.roomId === selectedRoom?.id && r.status === 'pending')}
                 />
             ) : currentView === 'workspace' ? (
-                <InspirationWorkspace room={liveSelectedRoom || selectedRoom} onBack={() => setCurrentView('hub')} />
+                <InspirationWorkspace room={liveSelectedRoom || selectedRoom} onBack={() => {
+                    setCurrentView('hub');
+                    setReturnToRooms(true);
+                }} />
             ) : (
                 <div className="min-h-screen bg-background text-text-main font-sans selection:bg-accent-blue selection:text-white">
                     <AdminPanel rooms={rooms} openOverride={isDashboardOpen} onOpenChange={setIsDashboardOpen} />
@@ -175,9 +201,9 @@ function App() {
                                 <div className="font-serif text-2xl font-bold tracking-tight">Kibele.</div>
                             </div>
                             <div className="hidden lg:flex items-center gap-10 text-xs font-bold uppercase tracking-widest text-text-muted">
-                                <a href="#kesfet" className="hover:text-accent-blue transition-colors">Keşfet</a>
-                                <a href="#nasil-calisir" className="hover:text-accent-blue transition-colors">Yöntem</a>
-                                <a href="#inspiration-rooms" className="hover:text-accent-blue transition-colors">İlham Odaları</a>
+                                <a href="#kesfet" onClick={(e) => handleSmoothScroll(e, 'kesfet')} className="hover:text-accent-blue transition-colors">Keşfet</a>
+                                <a href="#nasil-calisir" onClick={(e) => handleSmoothScroll(e, 'nasil-calisir')} className="hover:text-accent-blue transition-colors">Yöntem</a>
+                                <a href="#inspiration-rooms" onClick={(e) => handleSmoothScroll(e, user ? 'inspiration-rooms' : 'hubs')} className="hover:text-accent-blue transition-colors">İlham Odaları</a>
                             </div>
                             <div className="flex items-center gap-4">
                                 {user ? (
