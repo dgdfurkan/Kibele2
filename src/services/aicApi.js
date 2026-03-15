@@ -1,5 +1,40 @@
 const AIC_API_BASE = "https://api.artic.edu/api/v1";
 
+export const AIC_FILTERS = {
+    artwork_type: [
+        { id: 'Print', name: 'Print' },
+        { id: 'Photograph', name: 'Photograph' },
+        { id: 'Drawing and Watercolor', name: 'Drawing and Watercolor' },
+        { id: 'Textile', name: 'Textile' }
+    ],
+    artists: [
+        { id: 'Utagawa Hiroshige', name: 'Utagawa hiroshige' },
+        { id: 'Unknown', name: 'Unknown artist' },
+        { id: 'Ancient Roman', name: 'Ancient roman' },
+        { id: 'James McNeill Whistler', name: 'James mcneill whistler' },
+        { id: 'Ancient Egyptian', name: 'Ancient egyptian' },
+        { id: 'Jasper Johns', name: 'Jasper johns' }
+    ],
+    places: [
+        { id: 'United States', name: 'United states' },
+        { id: 'France', name: 'France' },
+        { id: 'Japan', name: 'Japan' },
+        { id: 'England', name: 'England' },
+        { id: 'Italy', name: 'Italy' },
+        { id: 'Germany', name: 'Germany' },
+        { id: 'China', name: 'China' },
+        { id: 'Netherlands', name: 'Netherlands' }
+    ],
+    colors: [
+        { id: 'black', hex: '#000000', name: 'Black' },
+        { id: 'white', hex: '#FFFFFF', name: 'White' },
+        { id: 'red', hex: '#FF0000', name: 'Red' },
+        { id: 'yellow', hex: '#FFD700', name: 'Yellow' },
+        { id: 'blue', hex: '#0000FF', name: 'Blue' },
+        { id: 'green', hex: '#008000', name: 'Green' }
+    ]
+};
+
 /**
  * Art Institute of Chicago (AIC) API üzerinden eserleri getirir.
  * Elasticsearch Query DSL kullanarak gelişmiş filtreleme (çoklu seçim, renk aralıkları) sağlar.
