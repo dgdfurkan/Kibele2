@@ -247,28 +247,53 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
         // 1. Yjs -> tldraw (Remote updates coming in)
         const handleYjsChange = () => {
             isUpdatingRemote = true;
-            store.mergeRemoteChanges(() => {
-                const remoteShapesMap = yShapes.toJSON();
-                Object.values(remoteShapesMap).forEach((shape) => {
-                    // 🛡️ Sanitization: Ensure image shapes have required properties
-                    if (shape.typeName === 'shape' && shape.type === 'image') {
-                        if (!shape.props.url) {
-                            shape.props.url = shape.props.src || "";
-                        }
-                    }
+            try {
+                store.mergeRemoteChanges(() => {
+                    const remoteShapesMap = yShapes.toJSON();
+                    Object.values(remoteShapesMap).forEach((shape) => {
+                        try {
+                            // 🛡️ Bulletproof Sanitization: Ensure required properties
+                            if (shape.typeName === 'shape') {
+                                if (!shape.props) shape.props = {};
 
-                    const existing = store.get(shape.id);
-                    if (!existing || JSON.stringify(existing) !== JSON.stringify(shape)) {
-                        store.put([shape]);
-                    }
+                                if (shape.type === 'image' || shape.type === 'video') {
+                                    // Handle missing/corrupt URL
+                                    if (typeof shape.props.url !== 'string') {
+                                        shape.props.url = typeof shape.props.src === 'string' ? shape.props.src : "";
+                                    }
+                                    
+                                    // Handle missing/corrupt SRC
+                                    if (typeof shape.props.src !== 'string') {
+                                        shape.props.src = shape.props.url || "";
+                                    }
+
+                                    // Ensure 'playing' property exists (tldraw requirement for some versions)
+                                    if (shape.props.playing === undefined) {
+                                        shape.props.playing = false;
+                                    }
+                                }
+                            }
+
+                            const existing = store.get(shape.id);
+                            if (!existing || JSON.stringify(existing) !== JSON.stringify(shape)) {
+                                store.put([shape]);
+                            }
+                        } catch (shapeErr) {
+                            console.warn("Skipping corrupt shape during sync:", shape.id, shapeErr);
+                        }
+                    });
+                    
+                    store.allRecords().forEach(record => {
+                        if (record.typeName === 'shape' && !remoteShapesMap[record.id]) {
+                            store.remove([record.id]);
+                        }
+                    });
                 });
-                store.allRecords().forEach(record => {
-                    if (record.typeName === 'shape' && !remoteShapesMap[record.id]) {
-                        store.remove([record.id]);
-                    }
-                });
-            });
-            isUpdatingRemote = false;
+            } catch (globalErr) {
+                console.error("Critical error in handleYjsChange:", globalErr);
+            } finally {
+                isUpdatingRemote = false;
+            }
             
             // Remote güncellemeler gelince hemen 'synced' deme, akışı bozma
             if (syncStatus === 'syncing') {
