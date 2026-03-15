@@ -17,6 +17,11 @@ service cloud.firestore {
       allow write: if isAuthenticated() && request.auth.uid == userId;
     }
     
+    // Kibele AI Sohbet Geçmişi
+    match /users/{userId}/kibele_chats/{roomId}/messages/{messageId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
     // Oda katılım talepleri
     match /room_requests/{reqId} {
       allow create: if isAuthenticated();

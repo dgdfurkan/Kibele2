@@ -545,3 +545,35 @@ export const notifyParticipantsOfCanvasUpdate = async (roomId, currentUserId, cu
         console.error("Error notifying participants: ", e);
     }
 };
+
+// --- Kibele AI Chat History ---
+export const saveKibeleChatMessage = async (userId, roomId, role, text) => {
+    try {
+        const targetRoomId = roomId || "global";
+        const messagesRef = collection(db, `users/${userId}/kibele_chats/${targetRoomId}/messages`);
+        
+        await addDoc(messagesRef, {
+            role,      // 'user' or 'ai'
+            text,
+            createdAt: serverTimestamp()
+        });
+    } catch (error) {
+        console.error("Error saving Kibele chat: ", error);
+    }
+};
+
+export const subscribeToKibeleChat = (userId, roomId, callback) => {
+    if (!userId) return () => {};
+
+    const targetRoomId = roomId || "global";
+    const messagesRef = collection(db, `users/${userId}/kibele_chats/${targetRoomId}/messages`);
+    const qSub = query(messagesRef, orderBy("createdAt", "asc"));
+    
+    return onSnapshot(qSub, (snapshot) => {
+        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(messages);
+    }, (error) => {
+        console.error("Error subscribing to Kibele chat:", error);
+    });
+};
+

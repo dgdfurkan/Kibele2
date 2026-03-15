@@ -1,20 +1,48 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LucideSparkles, LucideSend, LucideLoader2 } from 'lucide-react';
 import { generateKibeleResponse } from '../services/kibeleApi';
+import { useAuth } from '../context/AuthContext';
+import { saveKibeleChatMessage, subscribeToKibeleChat } from '../services/dbService';
 
-const KibelePartner = () => {
-    const [messages, setMessages] = useState([
-        {
-            role: 'ai',
-            text: 'Selam Canım! Ben Kibele. Yaratıcı sürecinde sana nasıl ilham verebilirim? Bir fikrin varsa paylaş, "it is okey" birlikte geliştirebiliriz! ✨'
-        }
-    ]);
+const KibelePartner = ({ roomId }) => {
+    const { user } = useAuth();
+    
+    const INITIAL_MSG = {
+        role: 'ai',
+        text: 'Selam Canım! Ben Kibele. Yaratıcı sürecinde sana nasıl ilham verebilirim? Bir fikrin varsa paylaş, "it is okey" birlikte geliştirebiliriz! ✨'
+    };
+
+    const [messages, setMessages] = useState([INITIAL_MSG]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const chatBoxRef = useRef(null);
 
     const KIBELE_SECRET_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
+    // Sohbet geçmişini veritabanından çek ve dinle
+    useEffect(() => {
+        if (!user) {
+            setMessages([INITIAL_MSG]);
+            return;
+        }
+
+        const unsubscribe = subscribeToKibeleChat(user.uid, roomId, (fetchedMessages) => {
+            if (fetchedMessages.length > 0) {
+                const formatted = fetchedMessages.map(m => ({
+                    role: m.role,
+                    text: m.text
+                }));
+                // Her zaman başlangıç mesajını en başa koy
+                setMessages([INITIAL_MSG, ...formatted]);
+            } else {
+                setMessages([INITIAL_MSG]);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [user, roomId]);
+
+    // Otomatik aşağı kaydırma
     useEffect(() => {
         if (chatBoxRef.current) {
             chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
@@ -31,12 +59,27 @@ const KibelePartner = () => {
         }));
 
         setInput('');
-        setMessages(prev => [...prev, { role: 'user', text: userText }]);
+        
+        // Optimistic UI update
+        const newUserMsg = { role: 'user', text: userText };
+        setMessages(prev => [...prev, newUserMsg]);
         setIsTyping(true);
+
+        // Veritabanına kaydet (Eğer kullanıcı giriş yaptıysa)
+        if (user) {
+            saveKibeleChatMessage(user.uid, roomId, 'user', userText);
+        }
 
         try {
             const aiResponse = await generateKibeleResponse(KIBELE_SECRET_KEY, history, userText);
-            setMessages(prev => [...prev, { role: 'ai', text: aiResponse }]);
+            
+            // Optimistic UI update for AI 
+            const newAiMsg = { role: 'ai', text: aiResponse };
+            setMessages(prev => [...prev, newAiMsg]);
+
+            if (user) {
+                saveKibeleChatMessage(user.uid, roomId, 'ai', aiResponse);
+            }
         } catch (error) {
             console.error("Kibele Chat Error:", error);
             setMessages(prev => [...prev, { role: 'ai', text: "Bir sorun oluştu canım, ama it is okey. Tekrar dener misin?" }]);
