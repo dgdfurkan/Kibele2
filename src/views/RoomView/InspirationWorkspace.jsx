@@ -172,7 +172,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                     </div>
                 );
             case 'final':
-                return <FinalWorkView room={room} isArchived={isArchived} />;
+                return <FinalWorkView room={room} targetUserId={selectedParticipantId || user.uid} isArchived={isArchived} />;
             case 'curation':
                 return <CurationView roomId={room.id} onAddToCanvas={handleAddArtworkToCanvas} isArchiveMode={isArchived} />;
             case 'logs':

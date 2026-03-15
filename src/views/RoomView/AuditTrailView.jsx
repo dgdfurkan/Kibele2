@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LucideHistory, LucideClock, LucideMessageCircle, LucideImage, LucideSparkles, LucidePencil, LucideUserPlus, LucideUserMinus, LucideDoorOpen, LucideAward, LucideLink } from 'lucide-react';
+import { LucideHistory, LucideClock, LucideMessageCircle, LucideImage, LucideSparkles, LucidePencil, LucideUserPlus, LucideUserMinus, LucideDoorOpen, LucideAward, LucideLink, LucideCheckCircle } from 'lucide-react';
 import { subscribeToRoomItems } from '../../services/dbService';
 import { db } from '../../firebase';
 import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';

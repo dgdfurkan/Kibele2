@@ -139,5 +139,18 @@ service cloud.firestore {
       );
       allow delete: if isAdmin();
     }
+
+    // Oda Kürasyonları (Kaydedilenler)
+    match /rooms/{roomId}/curations/{curationId} {
+      allow read, create: if isAuthenticated() && (
+        get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]) ||
+        get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin() || (
+        isAuthenticated() && 
+        get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorId == request.auth.uid
+      );
+    }
   }
 }
