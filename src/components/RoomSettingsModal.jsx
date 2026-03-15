@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LucideX, LucideLock, LucideUnlock, LucideSparkles, LucideTrash2, LucideUsers, LucideAlertCircle } from 'lucide-react';
-import { updateRoomSettings, removeParticipantFromRoom, getUsersProfiles } from '../services/dbService';
+import { updateRoomSettings, removeParticipantFromRoom, getUsersProfiles, sendNotification } from '../services/dbService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -12,6 +12,7 @@ const RoomSettingsModal = ({ isOpen, onClose, room }) => {
     const [isPrivate, setIsPrivate] = useState(room?.isPrivate || false);
     const [deadline, setDeadline] = useState('');
     const [isActive, setIsActive] = useState(room?.isActive !== false);
+    const [maxRevisions, setMaxRevisions] = useState(room?.maxRevisions || 2);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Participant management
@@ -30,6 +31,7 @@ const RoomSettingsModal = ({ isOpen, onClose, room }) => {
                 const date = room.deadline.toDate ? room.deadline.toDate() : new Date(room.deadline);
                 setDeadline(date.toISOString().split('T')[0]);
             }
+            setMaxRevisions(room.maxRevisions || 2);
 
             // Load participants detailed profiles for kicking
             if (room.participants) {
@@ -44,14 +46,40 @@ const RoomSettingsModal = ({ isOpen, onClose, room }) => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
+            const newDeadline = deadline ? new Date(deadline) : null;
+            
+            // Check for changes to notify participants
+            const deadlineChanged = room.deadline?.toDate ? 
+                room.deadline.toDate().getTime() !== newDeadline?.getTime() : 
+                new Date(room.deadline).getTime() !== newDeadline?.getTime();
+            const revisionsChanged = room.maxRevisions !== maxRevisions;
+
             await updateRoomSettings(room.id, {
                 name,
                 description,
                 isPrivate,
-                deadline: deadline ? new Date(deadline) : null,
+                deadline: newDeadline,
                 isActive,
+                maxRevisions,
                 updatedAt: new Date()
             });
+
+            // Send notifications if important settings changed
+            if (deadlineChanged || revisionsChanged) {
+                const participantsToNotify = room.participants?.filter(id => id !== user.uid) || [];
+                const notificationPromises = participantsToNotify.map(participantId => 
+                    sendNotification(participantId, {
+                        type: 'room_update',
+                        title: 'Oda Güncellemesi',
+                        message: `'${name}' odasının ${deadlineChanged ? 'teslim tarihi' : ''} ${deadlineChanged && revisionsChanged ? 've' : ''} ${revisionsChanged ? 'revize hakkı' : ''} güncellendi canım! ✨`,
+                        roomId: room.id,
+                        roomName: name,
+                        createdAt: new Date()
+                    })
+                );
+                await Promise.all(notificationPromises);
+            }
+
             showToast("Oda ayarları güncellendi canım! ✨");
             onClose();
         } catch (error) {
@@ -141,6 +169,26 @@ const RoomSettingsModal = ({ isOpen, onClose, room }) => {
                                         <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
                                     </button>
                                 </div>
+                            </div>
+
+                            <div className="bg-surface-light p-4 rounded-2xl border border-border-light">
+                                <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
+                                    Revize Hakkı (Öğrenci Başına)
+                                </label>
+                                <div className="flex items-center gap-4">
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="10"
+                                        value={maxRevisions}
+                                        onChange={(e) => setMaxRevisions(parseInt(e.target.value))}
+                                        className="flex-1 accent-accent-blue"
+                                    />
+                                    <span className="w-10 h-10 flex items-center justify-center bg-white rounded-xl border border-border-light text-sm font-bold text-accent-blue">
+                                        {maxRevisions}
+                                    </span>
+                                </div>
+                                <p className="text-[9px] text-text-muted mt-2 italic">Öğrenciler final teslimatını en fazla bu kadar güncelleyebilir.</p>
                             </div>
 
                             <div className="p-4 bg-surface-light rounded-2xl flex items-center justify-between border border-border-light">

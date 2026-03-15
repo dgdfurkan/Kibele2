@@ -2,7 +2,7 @@ import { collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp,
 import { db } from "../firebase";
 
 // Rooms logic
-export const createRoom = async (name, creatorId, isPrivate = false, password = "", description = "", deadline = null, isActive = true) => {
+export const createRoom = async (name, creatorId, isPrivate = false, password = "", description = "", deadline = null, isActive = true, maxRevisions = 2) => {
     // Timeout Promise (10 saniye)
     const timeout = new Promise((_, reject) =>
         setTimeout(() => reject(new Error("İstek zaman aşımına uğradı (Muhtemelen günlük kota doldu)")), 10000)
@@ -18,6 +18,7 @@ export const createRoom = async (name, creatorId, isPrivate = false, password = 
             description: typeof description === 'string' ? description : (description.text || ""),
             deadline: deadline,
             isActive: isActive,
+            maxRevisions: maxRevisions,
             createdAt: serverTimestamp(),
             participants: [creatorId]
         });
@@ -517,7 +518,7 @@ export const subscribeToRoomItems = (roomId, boardType, userId, callback) => {
             collection(db, "room_items"),
             where("roomId", "==", roomId),
             where("userId", "==", userId),
-            where("boardType", "==", "personal")
+            where("boardType", "==", boardType)
             // orderBy removed to avoid composite index requirement
         );
     }
