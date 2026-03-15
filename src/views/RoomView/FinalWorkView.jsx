@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LucideAward, LucideUpload, LucideLink, LucideExternalLink, LucideHistory, LucideCheckCircle, LucideX, LucideSparkles, LucideCalendar, LucideClock } from 'lucide-react';
+import { LucideAward, LucideUpload, LucideLink, LucideExternalLink, LucideHistory, LucideCheckCircle, LucideX, LucideSparkles, LucideCalendar, LucideClock, LucideChevronLeft } from 'lucide-react';
 import { subscribeToRoomItems, addRoomItem, deleteRoomItem, subscribeToAllFinalWorks } from '../../services/dbService';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
