@@ -1,15 +1,21 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LucideSearch, LucideX, LucideSparkles, LucideFilter, LucideCheck, LucideChevronDown, LucideChevronUp, LucidePlus, LucideRefreshCcw, LucideTrash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { LucideSearch, LucideX, LucideSparkles, LucideRefreshCcw, LucideTrash2, LucideChevronDown, LucideCheck, LucidePlus } from 'lucide-react';
 import { searchArtsyArtworks, ARTSY_FILTERS } from '../services/artsyService';
+import { useAuth } from '../context/AuthContext';
+import { subscribeToRooms } from '../services/dbService';
+import { rtdb } from '../firebase';
+import { ref, push } from 'firebase/database';
+import { useToast } from '../context/ToastContext';
 
 const ArtsyExplorer = ({ onAddArtwork, onClose, isArchiveMode }) => {
+    const { user } = useAuth();
+    const { showToast } = useToast();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
 
-    // Multi-select state
     const [filters, setFilters] = useState({
         artwork_type: [],
         artists: [],
@@ -21,12 +27,29 @@ const ArtsyExplorer = ({ onAddArtwork, onClose, isArchiveMode }) => {
         artwork_type: false,
         artists: false,
         places: false,
-        colors: true
+        colors: false
     });
 
     const [enlargedArtwork, setEnlargedArtwork] = useState(null);
+    const [userRooms, setUserRooms] = useState([]);
+    const [selectedRoomId, setSelectedRoomId] = useState('');
 
     const lastSearchRef = useRef(null);
+
+    // Fetch user's joined rooms for the Lightbox Room Selector
+    useEffect(() => {
+        if (!user) return;
+        const unsubscribe = subscribeToRooms((allRooms) => {
+            const joinedRooms = allRooms.filter(r => 
+                (r.participants?.includes(user.uid) || r.creatorId === user.uid) && r.isActive !== false
+            );
+            setUserRooms(joinedRooms);
+            if (joinedRooms.length > 0) {
+                setSelectedRoomId(joinedRooms[0].id);
+            }
+        });
+        return () => unsubscribe();
+    }, [user]);
 
     // Initial search and filter change
     useEffect(() => {
@@ -91,276 +114,382 @@ const ArtsyExplorer = ({ onAddArtwork, onClose, isArchiveMode }) => {
         setExpandedFilters(prev => ({ ...prev, [section]: !prev[section] }));
     };
 
+    const handleRemoteAddArtwork = async (artwork) => {
+        if (isArchiveMode) return;
+        
+        // If they want to add to current workspace, use prop
+        if (onAddArtwork && (!selectedRoomId || selectedRoomId === 'current')) {
+            onAddArtwork(artwork);
+            setEnlargedArtwork(null);
+            return;
+        }
+
+        // Otherwise write to remote RTDB for the selected room
+        if (!selectedRoomId) {
+            showToast("Lütfen bir oda seçin.", "error");
+            return;
+        }
+
+        const currentCanvasRoomId = `${selectedRoomId}_${user.uid}`; // Assuming personal board
+        const shapeId = `shape:${Date.now()}`;
+
+        const shape = {
+            id: shapeId,
+            typeName: 'shape',
+            type: 'image',
+            x: 100,
+            y: 100,
+            rotation: 0,
+            index: 'a1',
+            opacity: 1,
+            isLocked: false,
+            parentId: 'page:page',
+            meta: {
+                creatorId: user.uid,
+                creatorName: user.name || user.displayName || 'Sanatçı',
+                createdAt: Date.now()
+            },
+            props: {
+                w: 400,
+                h: 400 * (artwork.aspect_ratio || 1),
+                rel: 'external',
+                src: artwork.image_url || artwork.thumbnail,
+                name: artwork.title,
+                isAnimated: false,
+                mimeType: 'image/jpeg'
+            }
+        };
+
+        try {
+            const externalRef = ref(rtdb, `canvas_sync/${currentCanvasRoomId}/external_shapes`);
+            await push(externalRef, shape);
+            showToast("Görsel ilham odasına eklendi! ✨");
+            setEnlargedArtwork(null);
+        } catch (error) {
+            console.error("Error adding artwork to canvas remotely:", error);
+            showToast("Görsel eklenirken bir hata oluştu.", "error");
+        }
+    };
+
     return (
         <div className="h-full flex flex-col bg-[#FDF8F5] dark:bg-[#1E1C1A] border-l border-border-light/40 shadow-[-4px_0_24px_rgba(0,0,0,0.05)] overflow-hidden">
-            {/* STICKY TOP SECTION: Header + Filters */}
-            <div className="flex-shrink-0 z-20 bg-white/90 backdrop-blur-xl border-b border-border-light/40 shadow-sm">
-                <div className="p-6 pb-2">
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-accent-blue/10 flex items-center justify-center text-accent-blue">
-                                <LucideSparkles size={18} />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-display font-bold italic text-text-main leading-tight">Derinlikli Kürasyon</h2>
-                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted/60">Kibele AI x AIC Explorer</p>
-                            </div>
+            {/* STICKY TOP SECTION: Header + Search */}
+            <div className="flex-shrink-0 z-20 bg-white/90 backdrop-blur-xl border-b border-border-light/40 shadow-sm p-4 w-full">
+                <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-accent-blue/10 flex items-center justify-center text-accent-blue">
+                            <LucideSparkles size={16} />
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-surface-light rounded-xl transition-all text-text-muted hover:text-accent-blue">
-                            <LucideX size={20} />
+                        <div>
+                            <h2 className="text-lg font-display font-bold text-text-main leading-tight italic">Derinlikli Kürasyon</h2>
+                        </div>
+                    </div>
+                    {onClose && (
+                        <button onClick={onClose} className="p-1.5 hover:bg-surface-light rounded-lg transition-all text-text-muted">
+                            <LucideX size={18} />
                         </button>
-                    </div>
+                    )}
+                </div>
 
-                    <div className="relative group mb-4">
-                        <input
-                            type="text"
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Sanatçı, stil veya dönem ara..."
-                            className="w-full bg-white rounded-2xl py-4 pl-12 pr-4 border border-border-light/40 focus:ring-4 focus:ring-accent-blue/5 focus:border-accent-blue/30 outline-none transition-all text-sm font-medium shadow-sm italic placeholder:text-text-muted/30"
-                        />
-                        <LucideSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-blue transition-colors" size={18} />
-                        {loading && <LucideRefreshCcw className="absolute right-4 top-1/2 -translate-y-1/2 text-accent-blue animate-spin" size={14} />}
-                    </div>
+                <div className="relative group">
+                    <input
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Search artworks, artists, styles..."
+                        className="w-full bg-surface-light/50 rounded-xl py-2.5 pl-10 pr-4 outline-none text-sm transition-all shadow-inner focus:bg-white focus:ring-2 focus:ring-accent-blue/20"
+                    />
+                    <LucideSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+                    {loading && <LucideRefreshCcw className="absolute right-3 top-1/2 -translate-y-1/2 text-accent-blue animate-spin" size={14} />}
                 </div>
             </div>
 
-            {/* MAIN CONTENT AREA: Filters on Left, Grid on Right */}
-            <div className="flex-1 flex overflow-hidden">
-                {/* Desktop: Sidebar Filters, Mobile: Accordion above grid */}
-                <div className="w-full md:w-[280px] shrink-0 border-r border-border-light/40 flex flex-col bg-white">
-                    <div className="p-4 border-b border-border-light/40 flex justify-between items-center sticky top-0 bg-white/90 z-20">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-text-muted flex items-center gap-2">
-                            <LucideFilter size={10} /> Filtreler
-                        </span>
-                        {Object.values(filters).some(arr => arr.length > 0) && (
-                            <button onClick={clearFilters} className="text-[10px] font-bold text-accent-blue hover:text-red-500 transition-colors flex items-center gap-1">
-                                <LucideTrash2 size={10} /> Temizle
-                            </button>
-                        )}
-                    </div>
-                    
-                    <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4">
-                        {/* Eser Tipi Accordion */}
-                        <div className="border-b border-border-light/40 pb-4">
-                            <button 
-                                onClick={() => toggleSection('artwork_type')} 
-                                className="w-full flex justify-between items-center text-sm font-bold text-text-main group"
-                            >
-                                <span>Eser Tipi {filters.artwork_type.length > 0 && <span className="text-accent-blue ml-1">({filters.artwork_type.length})</span>}</span>
-                                <LucideChevronDown size={14} className={`text-text-muted transition-transform duration-300 group-hover:text-accent-blue ${expandedFilters.artwork_type ? 'rotate-180' : ''}`} />
-                            </button>
-                            {expandedFilters.artwork_type && (
-                                <div className="mt-3 space-y-1 animate-in slide-in-from-top-2 duration-200">
-                                    {ARTSY_FILTERS.artwork_type.map(m => (
-                                        <button 
-                                            key={m.id} 
-                                            onClick={() => toggleFilter('artwork_type', m.id)} 
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all flex items-center gap-3 group ${filters.artwork_type.includes(m.id) ? 'bg-accent-blue/10 text-accent-blue font-semibold' : 'hover:bg-surface-light text-text-muted hover:text-text-main'}`}
-                                        >
-                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filters.artwork_type.includes(m.id) ? 'bg-accent-blue border-accent-blue text-white' : 'border-border-light group-hover:border-accent-blue/50'}`}>
-                                                {filters.artwork_type.includes(m.id) && <LucideCheck size={10} strokeWidth={3} />}
-                                            </div>
-                                            <span className="truncate">{m.name}</span>
-                                        </button>
-                                    ))}
-                                </div>
+            {/* SCROLLABLE MAIN CONTENT: EXACT HTML MAPPING FOR FILTERS + GRID */}
+            <div className="flex-1 overflow-y-auto scrollbar-hide flex flex-col">
+                
+                {/* o-collection-filters (Compact Layout) */}
+                <div className="o-collection-filters w-full border-b border-border-light/40 bg-white" id="collectionFilters">
+                    <div className="o-collection-filters__scroll-area p-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-bold uppercase tracking-wider text-text-muted">Filtreler</span>
+                            {Object.values(filters).some(arr => arr.length > 0) && (
+                                <button onClick={clearFilters} className="text-xs font-bold text-red-500 hover:text-red-600 transition-colors flex items-center gap-1">
+                                    <LucideTrash2 size={12} /> Temizle
+                                </button>
                             )}
                         </div>
 
-                        {/* Sanatçı Accordion */}
-                        <div className="border-b border-border-light/40 pb-4">
-                            <button 
-                                onClick={() => toggleSection('artists')} 
-                                className="w-full flex justify-between items-center text-sm font-bold text-text-main group"
-                            >
-                                <span>Sanatçı {filters.artists.length > 0 && <span className="text-accent-blue ml-1">({filters.artists.length})</span>}</span>
-                                <LucideChevronDown size={14} className={`text-text-muted transition-transform duration-300 group-hover:text-accent-blue ${expandedFilters.artists ? 'rotate-180' : ''}`} />
-                            </button>
-                            {expandedFilters.artists && (
-                                <div className="mt-3 space-y-1 animate-in slide-in-from-top-2 duration-200">
-                                    {ARTSY_FILTERS.artists.map(s => (
-                                        <button 
-                                            key={s.id} 
-                                            onClick={() => toggleFilter('artists', s.id)} 
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all flex items-center gap-3 group ${filters.artists.includes(s.id) ? 'bg-accent-blue/10 text-accent-blue font-semibold' : 'hover:bg-surface-light text-text-muted hover:text-text-main'}`}
-                                        >
-                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filters.artists.includes(s.id) ? 'bg-accent-blue border-accent-blue text-white' : 'border-border-light group-hover:border-accent-blue/50'}`}>
-                                                {filters.artists.includes(s.id) && <LucideCheck size={10} strokeWidth={3} />}
-                                            </div>
-                                            <span className="truncate">{s.name}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        <div className="o-accordion o-collection-filters__filters space-y-2">
+                            {/* Artists */}
+                            <div className="border border-border-light/40 rounded-xl overflow-hidden">
+                                <p 
+                                    className="o-accordion__trigger f-tag-2 p-3 flex justify-between items-center cursor-pointer bg-surface-light/30 hover:bg-surface-light/50 transition-colors m-0"
+                                    onClick={() => toggleSection('artists')}
+                                >
+                                    <span className="font-semibold text-sm">Artists {filters.artists.length > 0 && `(${filters.artists.length})`}</span>
+                                    <LucideChevronDown size={14} className={`transition-transform duration-300 ${expandedFilters.artists ? 'rotate-180' : ''}`} />
+                                </p>
+                                {expandedFilters.artists && (
+                                    <div className="o-accordion__panel p-3 border-t border-border-light/40 bg-white o-accordion__panel-content m-filters">
+                                        <div className="m-filters__whittle-down mb-3 relative">
+                                            <input type="text" className="f-secondary w-full border border-border-light rounded-lg px-3 py-1.5 text-xs outline-none focus:border-accent-blue/50" placeholder="Find Artists" />
+                                        </div>
+                                        <ul className="m-filters__list max-h-40 overflow-y-auto space-y-1 scrollbar-hide m-0 p-0 list-none">
+                                            {ARTSY_FILTERS.artists.map(s => (
+                                                <li key={s.id} className="m-0 p-0">
+                                                    <button 
+                                                        onClick={() => toggleFilter('artists', s.id)} 
+                                                        className={`checkbox f-secondary w-full text-left px-2 py-1.5 rounded-md text-xs transition-all flex items-center gap-2 ${filters.artists.includes(s.id) ? 'bg-accent-blue/10 text-accent-blue font-medium' : 'hover:bg-surface-light'}`}
+                                                    >
+                                                        <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${filters.artists.includes(s.id) ? 'bg-accent-blue border-accent-blue text-white' : 'border-border-light'}`}>
+                                                            {filters.artists.includes(s.id) && <LucideCheck size={10} strokeWidth={3} />}
+                                                        </div>
+                                                        <span className="truncate">{s.name}</span>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
 
-                        {/* Ülke Accordion */}
-                        <div className="border-b border-border-light/40 pb-4">
-                            <button 
-                                onClick={() => toggleSection('places')} 
-                                className="w-full flex justify-between items-center text-sm font-bold text-text-main group"
-                            >
-                                <span>Ülke {filters.places.length > 0 && <span className="text-accent-blue ml-1">({filters.places.length})</span>}</span>
-                                <LucideChevronDown size={14} className={`text-text-muted transition-transform duration-300 group-hover:text-accent-blue ${expandedFilters.places ? 'rotate-180' : ''}`} />
-                            </button>
-                            {expandedFilters.places && (
-                                <div className="mt-3 space-y-1 animate-in slide-in-from-top-2 duration-200">
-                                    {ARTSY_FILTERS.places.map(p => (
-                                        <button 
-                                            key={p.id} 
-                                            onClick={() => toggleFilter('places', p.id)} 
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all flex items-center gap-3 group ${filters.places.includes(p.id) ? 'bg-accent-blue/10 text-accent-blue font-semibold' : 'hover:bg-surface-light text-text-muted hover:text-text-main'}`}
-                                        >
-                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filters.places.includes(p.id) ? 'bg-accent-blue border-accent-blue text-white' : 'border-border-light group-hover:border-accent-blue/50'}`}>
-                                                {filters.places.includes(p.id) && <LucideCheck size={10} strokeWidth={3} />}
-                                            </div>
-                                            <span className="truncate">{p.name}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                            {/* Places */}
+                            <div className="border border-border-light/40 rounded-xl overflow-hidden">
+                                <p 
+                                    className="o-accordion__trigger f-tag-2 p-3 flex justify-between items-center cursor-pointer bg-surface-light/30 hover:bg-surface-light/50 transition-colors m-0"
+                                    onClick={() => toggleSection('places')}
+                                >
+                                    <span className="font-semibold text-sm">Places {filters.places.length > 0 && `(${filters.places.length})`}</span>
+                                    <LucideChevronDown size={14} className={`transition-transform duration-300 ${expandedFilters.places ? 'rotate-180' : ''}`} />
+                                </p>
+                                {expandedFilters.places && (
+                                    <div className="o-accordion__panel p-3 border-t border-border-light/40 bg-white o-accordion__panel-content m-filters">
+                                        <div className="m-filters__whittle-down mb-3 relative">
+                                            <input type="text" className="f-secondary w-full border border-border-light rounded-lg px-3 py-1.5 text-xs outline-none focus:border-accent-blue/50" placeholder="Find Places" />
+                                        </div>
+                                        <ul className="m-filters__list max-h-40 overflow-y-auto space-y-1 scrollbar-hide m-0 p-0 list-none">
+                                            {ARTSY_FILTERS.places.map(p => (
+                                                <li key={p.id} className="m-0 p-0">
+                                                    <button 
+                                                        onClick={() => toggleFilter('places', p.id)} 
+                                                        className={`checkbox f-secondary w-full text-left px-2 py-1.5 rounded-md text-xs transition-all flex items-center gap-2 ${filters.places.includes(p.id) ? 'bg-accent-blue/10 text-accent-blue font-medium' : 'hover:bg-surface-light'}`}
+                                                    >
+                                                        <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${filters.places.includes(p.id) ? 'bg-accent-blue border-accent-blue text-white' : 'border-border-light'}`}>
+                                                            {filters.places.includes(p.id) && <LucideCheck size={10} strokeWidth={3} />}
+                                                        </div>
+                                                        <span className="truncate">{p.name}</span>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
 
-                        {/* Renk Accordion */}
-                        <div className="pb-4">
-                            <button 
-                                onClick={() => toggleSection('colors')} 
-                                className="w-full flex justify-between items-center text-sm font-bold text-text-main group mb-3"
-                            >
-                                <span>Renk {filters.colors.length > 0 && <span className="text-accent-blue ml-1">({filters.colors.length})</span>}</span>
-                                <LucideChevronDown size={14} className={`text-text-muted transition-transform duration-300 group-hover:text-accent-blue ${expandedFilters.colors ? 'rotate-180' : ''}`} />
-                            </button>
-                            {expandedFilters.colors && (
-                                <div className="flex flex-wrap gap-3 animate-in fade-in duration-300">
-                                    {ARTSY_FILTERS.colors.map(c => (
-                                        <button
-                                            key={c.id}
-                                            onClick={() => toggleFilter('colors', c.id)}
-                                            className={`w-6 h-6 rounded-full border border-border-light/40 transition-all shadow-sm shrink-0 flex items-center justify-center ${filters.colors.includes(c.id) ? 'ring-2 ring-accent-blue ring-offset-1 scale-110' : 'hover:scale-110 hover:shadow-md'}`}
-                                            style={{ backgroundColor: c.hex }}
-                                            title={c.name}
-                                        >
-                                            {filters.colors.includes(c.id) && <LucideCheck size={12} className={c.id === 'white' || c.id === 'yellow' ? 'text-text-main' : 'text-white'} strokeWidth={4} />}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                            {/* Artwork Type */}
+                            <div className="border border-border-light/40 rounded-xl overflow-hidden">
+                                <p 
+                                    className="o-accordion__trigger f-tag-2 p-3 flex justify-between items-center cursor-pointer bg-surface-light/30 hover:bg-surface-light/50 transition-colors m-0"
+                                    onClick={() => toggleSection('artwork_type')}
+                                >
+                                    <span className="font-semibold text-sm">Artwork Type {filters.artwork_type.length > 0 && `(${filters.artwork_type.length})`}</span>
+                                    <LucideChevronDown size={14} className={`transition-transform duration-300 ${expandedFilters.artwork_type ? 'rotate-180' : ''}`} />
+                                </p>
+                                {expandedFilters.artwork_type && (
+                                    <div className="o-accordion__panel p-3 border-t border-border-light/40 bg-white o-accordion__panel-content m-filters">
+                                        <div className="m-filters__whittle-down mb-3 relative">
+                                            <input type="text" className="f-secondary w-full border border-border-light rounded-lg px-3 py-1.5 text-xs outline-none focus:border-accent-blue/50" placeholder="Find Artwork Types" />
+                                        </div>
+                                        <ul className="m-filters__list max-h-40 overflow-y-auto space-y-1 scrollbar-hide m-0 p-0 list-none">
+                                            {ARTSY_FILTERS.artwork_type.map(m => (
+                                                <li key={m.id} className="m-0 p-0">
+                                                    <button 
+                                                        onClick={() => toggleFilter('artwork_type', m.id)} 
+                                                        className={`checkbox f-secondary w-full text-left px-2 py-1.5 rounded-md text-xs transition-all flex items-center gap-2 ${filters.artwork_type.includes(m.id) ? 'bg-accent-blue/10 text-accent-blue font-medium' : 'hover:bg-surface-light'}`}
+                                                    >
+                                                        <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${filters.artwork_type.includes(m.id) ? 'bg-accent-blue border-accent-blue text-white' : 'border-border-light'}`}>
+                                                            {filters.artwork_type.includes(m.id) && <LucideCheck size={10} strokeWidth={3} />}
+                                                        </div>
+                                                        <span className="truncate">{m.name}</span>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Colors */}
+                            <div className="border border-border-light/40 rounded-xl overflow-hidden">
+                                <p 
+                                    className="o-accordion__trigger f-tag-2 p-3 flex justify-between items-center cursor-pointer bg-surface-light/30 hover:bg-surface-light/50 transition-colors m-0"
+                                    onClick={() => toggleSection('colors')}
+                                >
+                                    <span className="font-semibold text-sm">Colors {filters.colors.length > 0 && `(${filters.colors.length})`}</span>
+                                    <LucideChevronDown size={14} className={`transition-transform duration-300 ${expandedFilters.colors ? 'rotate-180' : ''}`} />
+                                </p>
+                                {expandedFilters.colors && (
+                                    <div className="o-accordion__panel p-3 border-t border-border-light/40 bg-white o-accordion__panel-content m-filters">
+                                        <div className="flex flex-wrap gap-2">
+                                            {ARTSY_FILTERS.colors.map(c => (
+                                                <button
+                                                    key={c.id}
+                                                    onClick={() => toggleFilter('colors', c.id)}
+                                                    className={`w-6 h-6 rounded-full border border-border-light/40 transition-all shrink-0 flex items-center justify-center ${filters.colors.includes(c.id) ? 'ring-2 ring-accent-blue ring-offset-1 scale-110' : 'hover:scale-110'}`}
+                                                    style={{ backgroundColor: c.hex }}
+                                                    title={c.name}
+                                                >
+                                                    {filters.colors.includes(c.id) && <LucideCheck size={10} className={c.id === 'white' || c.id === 'yellow' ? 'text-text-main' : 'text-white'} strokeWidth={3} />}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* SCROLLABLE RESULTS AREA */}
-                <div className="flex-1 overflow-y-auto p-6 scrollbar-hide bg-[#FDF8F5] dark:bg-[#1E1C1A]">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {results.map((item, i) => (
-                            <div 
-                                key={`${item.id}-${i}`} 
-                                className="group relative bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-700 border border-border-light/40 aspect-[3/4.5] animate-in fade-in zoom-in-95 cursor-pointer" 
-                                style={{ animationDelay: `${(i % 10) * 50}ms` }}
-                                onClick={() => setEnlargedArtwork(item)}
-                            >
-                                <img
-                                    src={item.thumbnail || item.image_url}
-                                    alt={item.title}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s] ease-out grayscale group-hover:grayscale-0"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-5 pointer-events-none">
-                                    <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                                        <p className="text-[10px] text-white font-black uppercase tracking-widest mb-1 line-clamp-2 leading-relaxed">{item.title}</p>
-                                        <p className="text-[8px] text-white/60 italic mb-4 truncate">{item.artist || 'Bilinmeyen Sanatçı'}</p>
-                                        <div className="w-full py-3 bg-white text-text-main rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                            İncele
+                {/* RESULTS GRID (4 on md+, 2 on mobile) */}
+                <div className="p-4 flex-1 pb-24">
+                    {results.length > 0 ? (
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                            {results.map((item, index) => (
+                                <div 
+                                    key={item.id || index} 
+                                    className="group relative aspect-square bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer border border-border-light/40"
+                                    onClick={() => setEnlargedArtwork(item)}
+                                >
+                                    <img 
+                                        src={item.thumbnail} 
+                                        alt={item.title} 
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        loading="lazy"
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.parentElement.innerHTML = `<div class="w-full h-full bg-surface-light flex items-center justify-center text-xs text-text-muted text-center p-2">${item.title}</div>`;
+                                        }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
+                                        <div className="p-2 w-full transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                                            <p className="text-[10px] text-white font-bold line-clamp-2 leading-tight">{item.title}</p>
                                         </div>
                                     </div>
                                 </div>
+                            ))}
+                        </div>
+                    ) : (
+                        !loading && (
+                            <div className="h-full flex flex-col items-center justify-center text-text-muted py-20">
+                                <LucideSearch size={32} className="mb-3 opacity-20" />
+                                <p className="text-sm">Sonuç bulunamadı.</p>
                             </div>
-                        ))}
-
-                    {loading && results.length === 0 && (
-                        <div className="col-span-2 py-32 flex flex-col items-center justify-center text-text-muted space-y-4">
-                            <div className="w-12 h-12 border-2 border-accent-blue/20 border-t-accent-blue rounded-full animate-spin" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Kürasyon Yükleniyor</span>
-                        </div>
+                        )
                     )}
 
-                    {!loading && results.length === 0 && (
-                        <div className="col-span-2 py-32 text-center text-text-muted/60 italic px-8">
-                            <LucideSearch size={32} className="mx-auto mb-4 opacity-20" />
-                            <p className="text-sm">Seçtiğin kriterlere uygun ilham bulunamadı canım. Filtreleri değiştirmeyi dene! ✨</p>
-                        </div>
-                    )}
-
-                    {hasMore && results.length > 0 && (
-                        <button
+                    {hasMore && results.length > 0 && !loading && (
+                        <button 
                             onClick={() => handleSearch(false)}
-                            disabled={loading}
-                            className="col-span-2 py-8 text-[10px] font-black uppercase tracking-[0.4em] text-text-muted hover:text-accent-blue transition-all disabled:opacity-50 flex items-center justify-center gap-4 group"
+                            className="w-full mt-6 py-3 rounded-xl bg-white border border-border-light/40 text-sm font-bold text-accent-blue hover:bg-surface-light transition-colors"
                         >
-                            {loading ? 'Yükleniyor...' : (
-                                <>
-                                    <div className="h-px w-8 bg-border-light group-hover:bg-accent-blue transition-colors"></div>
-                                    Daha Fazla Keşfet
-                                    <div className="h-px w-8 bg-border-light group-hover:bg-accent-blue transition-colors"></div>
-                                </>
-                            )}
+                            Daha Fazla Göster
                         </button>
+                    )}
+                    
+                    {loading && results.length > 0 && (
+                        <div className="mt-4 flex justify-center">
+                            <LucideRefreshCcw size={20} className="text-accent-blue animate-spin" />
+                        </div>
                     )}
                 </div>
             </div>
 
-            {/* ENLARGED ARTWORK LIGHTBOX */}
+            {/* LIGHTBOX MODAL WITH ROOM SELECTOR */}
             {enlargedArtwork && (
-                <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in"
-                    onClick={() => setEnlargedArtwork(null)}
-                >
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md" onClick={() => setEnlargedArtwork(null)}>
                     <div 
-                        className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center animate-in zoom-in-95" 
+                        className="bg-white rounded-3xl overflow-hidden shadow-2xl border border-border-light/40 w-full max-w-4xl max-h-[90vh] flex flex-col md:flex-row relative animate-in zoom-in-95 duration-200"
                         onClick={e => e.stopPropagation()}
                     >
                         <button 
-                            onClick={() => setEnlargedArtwork(null)} 
-                            className="absolute -top-12 right-0 text-white/70 hover:text-white p-2 transition-colors"
+                            onClick={() => setEnlargedArtwork(null)}
+                            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm shadow-sm flex items-center justify-center text-text-main hover:bg-white hover:text-red-500 transition-colors"
                         >
-                            <LucideX size={24} />
+                            <LucideX size={18} />
                         </button>
-                        
-                        <div className="relative w-full rounded-2xl overflow-hidden bg-black/50 shadow-2xl flex items-center justify-center p-4">
+
+                        {/* Image Area */}
+                        <div className="md:w-3/5 bg-black/5 flex items-center justify-center p-6 min-h-[40vh]">
                             <img 
-                                src={enlargedArtwork.image_url} 
+                                src={enlargedArtwork.image_url || enlargedArtwork.thumbnail} 
                                 alt={enlargedArtwork.title} 
-                                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                                className="max-w-full max-h-[80vh] rounded-xl object-contain shadow-md"
                             />
                         </div>
 
-                        <div className="w-full mt-4 bg-surface-dark/90 backdrop-blur-xl border border-white/10 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        {/* Details & Actions Area */}
+                        <div className="md:w-2/5 p-8 flex flex-col bg-white overflow-y-auto">
                             <div className="flex-1">
-                                <h3 className="text-white font-display font-bold text-xl mb-1">{enlargedArtwork.title}</h3>
-                                <p className="text-white/70 text-sm">
-                                    {enlargedArtwork.artist || 'Bilinmeyen Sanatçı'} 
-                                    {enlargedArtwork.medium && <span className="opacity-50 mx-2">•</span>}
-                                    {enlargedArtwork.medium}
-                                    {enlargedArtwork.place && <span className="opacity-50 mx-2">•</span>}
-                                    {enlargedArtwork.place}
-                                </p>
+                                <h3 className="text-2xl font-display font-bold text-text-main mb-2 leading-tight pr-8">{enlargedArtwork.title}</h3>
+                                {enlargedArtwork.artist && (
+                                    <p className="text-text-muted font-medium mb-4">{enlargedArtwork.artist}</p>
+                                )}
+                                
+                                <div className="space-y-3 mb-6 border-t border-border-light/30 pt-4">
+                                    {enlargedArtwork.medium && (
+                                        <div>
+                                            <span className="block text-[10px] font-black uppercase tracking-widest text-text-muted/60 mb-0.5">Teknik</span>
+                                            <p className="text-sm font-medium">{enlargedArtwork.medium}</p>
+                                        </div>
+                                    )}
+                                    {enlargedArtwork.date && (
+                                        <div>
+                                            <span className="block text-[10px] font-black uppercase tracking-widest text-text-muted/60 mb-0.5">Tarih</span>
+                                            <p className="text-sm font-medium">{enlargedArtwork.date}</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <button
-                                onClick={() => {
-                                    onAddArtwork(enlargedArtwork);
-                                    setEnlargedArtwork(null);
-                                    onClose();
-                                }}
-                                disabled={isArchiveMode}
-                                className="w-full sm:w-auto px-8 py-3.5 bg-accent-blue text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-white hover:text-accent-blue transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-accent-blue/20 shrink-0"
-                            >
-                                <LucidePlus size={16} /> Panoya Ekle
-                            </button>
+
+                            <div className="pt-6 border-t border-border-light/40 mt-auto">
+                                {!isArchiveMode && (
+                                    <div className="space-y-4">
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-text-muted">Buraya Ekle:</label>
+                                            
+                                            {/* Show onAddArtwork context as "Mevcut Pano", followed by other rooms */}
+                                            {userRooms.length > 0 || onAddArtwork ? (
+                                                <select 
+                                                    value={selectedRoomId}
+                                                    onChange={(e) => setSelectedRoomId(e.target.value)}
+                                                    className="w-full bg-surface border border-border-light/40 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-accent-blue/50 focus:ring-2 focus:ring-accent-blue/10 appearance-none"
+                                                    style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem' }}
+                                                >
+                                                    {onAddArtwork && <option value="current">Mevcut Panoya Ekle</option>}
+                                                    {userRooms.map((r, i) => (
+                                                        <option key={r.id || i} value={r.id}>{r.name}</option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <p className="text-xs text-orange-500 font-medium bg-orange-50 p-3 rounded-xl border border-orange-100">Henüz katıldığın bir ilham odası yok.</p>
+                                            )}
+                                        </div>
+
+                                        <button 
+                                            onClick={() => handleRemoteAddArtwork(enlargedArtwork)}
+                                            disabled={(!selectedRoomId || selectedRoomId === '') && !onAddArtwork}
+                                            className="w-full bg-accent-blue hover:bg-accent-blue-hover text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-accent-blue/20 disabled:opacity-50 disabled:cursor-not-allowed group"
+                                        >
+                                            <LucidePlus size={18} className="group-hover:scale-110 transition-transform" /> 
+                                            İlham Odasına Ekle
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
         </div>
     );
 };
