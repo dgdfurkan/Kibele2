@@ -207,7 +207,8 @@ function App() {
                 src: artwork.image_url || artwork.thumbnail,
                 name: artwork.title,
                 isAnimated: false,
-                mimeType: 'image/jpeg'
+                mimeType: 'image/jpeg',
+                playing: false
             }
         };
 

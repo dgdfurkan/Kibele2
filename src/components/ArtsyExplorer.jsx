@@ -7,7 +7,7 @@ import { rtdb } from '../firebase';
 import { ref, push } from 'firebase/database';
 import { useToast } from '../context/ToastContext';
 
-const ArtsyExplorer = ({ onAddArtwork, onClose, isArchiveMode }) => {
+const ArtsyExplorer = ({ onAddArtwork, onCurateArtwork, onClose, isArchiveMode }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
     const [query, setQuery] = useState('');
@@ -124,6 +124,13 @@ const ArtsyExplorer = ({ onAddArtwork, onClose, isArchiveMode }) => {
             return;
         }
 
+        // If they want to curate
+        if (onCurateArtwork && selectedRoomId === 'curation') {
+            onCurateArtwork(artwork);
+            setEnlargedArtwork(null);
+            return;
+        }
+
         // Otherwise write to remote RTDB for the selected room
         if (!selectedRoomId) {
             showToast("Lütfen bir oda seçin.", "error");
@@ -156,7 +163,8 @@ const ArtsyExplorer = ({ onAddArtwork, onClose, isArchiveMode }) => {
                 src: artwork.image_url || artwork.thumbnail,
                 name: artwork.title,
                 isAnimated: false,
-                mimeType: 'image/jpeg'
+                mimeType: 'image/jpeg',
+                playing: false
             }
         };
 
@@ -458,31 +466,34 @@ const ArtsyExplorer = ({ onAddArtwork, onClose, isArchiveMode }) => {
                                             <label className="text-[10px] font-black uppercase tracking-widest text-text-muted">Buraya Ekle:</label>
                                             
                                             {/* Show onAddArtwork context as "Mevcut Pano", followed by other rooms */}
-                                            {userRooms.length > 0 || onAddArtwork ? (
-                                                <select 
-                                                    value={selectedRoomId}
-                                                    onChange={(e) => setSelectedRoomId(e.target.value)}
-                                                    className="w-full bg-surface border border-border-light/40 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-accent-blue/50 focus:ring-2 focus:ring-accent-blue/10 appearance-none"
-                                                    style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem' }}
-                                                >
-                                                    {onAddArtwork && <option value="current">Mevcut Panoya Ekle</option>}
-                                                    {userRooms.map((r, i) => (
-                                                        <option key={r.id || i} value={r.id}>{r.name}</option>
-                                                    ))}
-                                                </select>
+                                                    {userRooms.length > 0 || onAddArtwork || onCurateArtwork ? (
+                                                        <select 
+                                                            value={selectedRoomId}
+                                                            onChange={(e) => setSelectedRoomId(e.target.value)}
+                                                            className="w-full bg-surface border border-border-light/40 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-accent-blue/50 focus:ring-2 focus:ring-accent-blue/10 appearance-none"
+                                                            style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem' }}
+                                                        >
+                                                            {onAddArtwork && <option value="current">Mevcut Panoya Ekle</option>}
+                                                            {onCurateArtwork && <option value="curation">Oda Kürasyonuna Kaydet</option>}
+                                                            {userRooms.map((r, i) => (
+                                                                <option key={r.id || i} value={r.id}>{r.name}</option>
+                                                            ))}
+                                                        </select>
                                             ) : (
                                                 <p className="text-xs text-orange-500 font-medium bg-orange-50 p-3 rounded-xl border border-orange-100">Henüz katıldığın bir ilham odası yok.</p>
                                             )}
                                         </div>
 
-                                        <button 
-                                            onClick={() => handleRemoteAddArtwork(enlargedArtwork)}
-                                            disabled={(!selectedRoomId || selectedRoomId === '') && !onAddArtwork}
-                                            className="w-full bg-accent-blue hover:bg-accent-blue-hover text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-accent-blue/20 disabled:opacity-50 disabled:cursor-not-allowed group"
-                                        >
-                                            <LucidePlus size={18} className="group-hover:scale-110 transition-transform" /> 
-                                            İlham Odasına Ekle
-                                        </button>
+                                                <button 
+                                                    onClick={() => handleRemoteAddArtwork(enlargedArtwork)}
+                                                    disabled={(!selectedRoomId || selectedRoomId === '') && !onAddArtwork && !onCurateArtwork}
+                                                    className="w-full bg-accent-blue hover:bg-accent-blue-hover text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-accent-blue/20 disabled:opacity-50 disabled:cursor-not-allowed group"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        {selectedRoomId === 'curation' ? <LucideSparkles size={18} /> : <LucidePlus size={18} />}
+                                                        {selectedRoomId === 'curation' ? 'Kürasyona Kaydet' : 'Odaya Gönder'}
+                                                    </div>
+                                                </button>
                                     </div>
                                 )}
                             </div>

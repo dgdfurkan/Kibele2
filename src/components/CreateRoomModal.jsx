@@ -11,6 +11,7 @@ const CreateRoomModal = ({ isOpen, onClose }) => {
     const [description, setDescription] = useState('');
     const [isPrivate, setIsPrivate] = useState(false);
     const [deadline, setDeadline] = useState('');
+    const [maxRevisions, setMaxRevisions] = useState(2);
     const [isActive, setIsActive] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,7 +27,7 @@ const CreateRoomModal = ({ isOpen, onClose }) => {
             const roomId = await createRoom(name, user.uid, isPrivate, "", {
                 text: description,
                 creatorName: user.name || user.displayName || user.email.split('@')[0]
-            }, deadline ? new Date(deadline) : null, isActive);
+            }, deadline ? new Date(deadline) : null, isActive, maxRevisions);
 
             console.log("Kibele Bilgi: Oda başarıyla oluşturuldu, ID:", roomId);
 
@@ -98,14 +99,26 @@ const CreateRoomModal = ({ isOpen, onClose }) => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Oda Durumu</label>
-                                <div
-                                    onClick={() => setIsActive(!isActive)}
-                                    className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${isActive ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}
-                                >
-                                    <span className="text-[10px] font-black uppercase tracking-widest">{isActive ? 'AKTİF' : 'PASİF'}</span>
-                                    <div className={`w-2 h-2 rounded-full animate-pulse ${isActive ? 'bg-green-500' : 'bg-red-500'}`} />
-                                </div>
+                                <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Revize Hakkı</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="10"
+                                    value={maxRevisions}
+                                    onChange={(e) => setMaxRevisions(parseInt(e.target.value))}
+                                    className="w-full px-4 py-3 rounded-xl border border-border-light focus:ring-2 focus:ring-accent-blue/20 outline-none text-xs font-bold"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Oda Durumu</label>
+                            <div
+                                onClick={() => setIsActive(!isActive)}
+                                className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${isActive ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}
+                            >
+                                <span className="text-[10px] font-black uppercase tracking-widest">{isActive ? 'AKTİF' : 'PASİF'}</span>
+                                <div className={`w-2 h-2 rounded-full animate-pulse ${isActive ? 'bg-green-500' : 'bg-red-500'}`} />
                             </div>
                         </div>
 

@@ -4,8 +4,9 @@ import FinalWorkView from './FinalWorkView';
 import AuditTrailView from './AuditTrailView';
 import RoomSettingsModal from '../../components/RoomSettingsModal';
 import CanvasBoard from '../../components/CanvasBoard';
+import CurationView from './CurationView';
 import { useAuth } from '../../context/AuthContext';
-import { getUsersProfiles, deleteRoom, fetchRoomPrivacySettings } from '../../services/dbService';
+import { getUsersProfiles, deleteRoom, fetchRoomPrivacySettings, curateRoomArtwork } from '../../services/dbService';
 import { useToast } from '../../context/ToastContext';
 import ArtsyExplorer from '../../components/ArtsyExplorer';
 import { db, rtdb } from '../../firebase';
@@ -86,7 +87,8 @@ const InspirationWorkspace = ({ room, onBack }) => {
                 src: artwork.image_url || artwork.thumbnail,
                 name: artwork.title,
                 isAnimated: false,
-                mimeType: 'image/jpeg'
+                mimeType: 'image/jpeg',
+                playing: false
             }
         };
 
@@ -99,6 +101,17 @@ const InspirationWorkspace = ({ room, onBack }) => {
         } catch (error) {
             console.error("Error adding artwork to canvas:", error);
             showToast("Görsel eklenirken bir hata oluştu.", "error");
+        }
+    };
+
+    const handleAddArtworkToCuration = async (artwork) => {
+        if (isArchived) return;
+        try {
+            await curateRoomArtwork(room.id, artwork, user);
+            showToast("Görsel kürasyona kaydedildi! ✨");
+        } catch (error) {
+            console.error("Error curating artwork:", error);
+            showToast("Kürasyona eklenirken bir hata oluştu.", "error");
         }
     };
 
@@ -123,6 +136,7 @@ const InspirationWorkspace = ({ room, onBack }) => {
                             <div className="w-[400px] h-full flex-shrink-0 animate-in slide-in-from-right-8 duration-500">
                                 <ArtsyExplorer
                                     onAddArtwork={handleAddArtworkToCanvas}
+                                    onCurateArtwork={handleAddArtworkToCuration}
                                     onClose={() => setIsSidebarOpen(false)}
                                     isArchiveMode={isArchived}
                                 />
@@ -159,6 +173,8 @@ const InspirationWorkspace = ({ room, onBack }) => {
                 );
             case 'final':
                 return <FinalWorkView room={room} isArchived={isArchived} />;
+            case 'curation':
+                return <CurationView roomId={room.id} onAddToCanvas={handleAddArtworkToCanvas} isArchiveMode={isArchived} />;
             case 'logs':
                 return <AuditTrailView roomId={room.id} userId={selectedParticipantId || user.uid} />;
             default:
@@ -216,6 +232,15 @@ const InspirationWorkspace = ({ room, onBack }) => {
                         title="Ortak pano geçici olarak kilitlidir."
                     >
                         <LucideLock size={14} /> Ortak (Kilitli)
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('curation')}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'curation'
+                            ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
+                            : 'text-text-muted hover:text-text-main'
+                            }`}
+                    >
+                        <LucideSparkles size={14} /> Kürasyon
                     </button>
                     <button
                         onClick={() => setActiveTab('final')}

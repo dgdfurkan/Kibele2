@@ -1,5 +1,17 @@
-import { collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, doc, setDoc, getDoc, getDocs, increment, arrayUnion, writeBatch } from "firebase/firestore";
+import { collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, doc, setDoc, getDoc, getDocs, increment, arrayUnion, writeBatch, limit } from "firebase/firestore";
 import { db } from "../firebase";
+
+// Activity Logging Helper
+export const logRoomActivity = async (roomId, activityData) => {
+    try {
+        await addDoc(collection(db, "rooms", roomId, "activity"), {
+            ...activityData,
+            timestamp: serverTimestamp()
+        });
+    } catch (e) {
+        console.error("Error logging room activity:", e);
+    }
+};
 
 // Rooms logic
 export const createRoom = async (name, creatorId, isPrivate = false, password = "", description = "", deadline = null, isActive = true, maxRevisions = 2) => {
@@ -25,6 +37,15 @@ export const createRoom = async (name, creatorId, isPrivate = false, password = 
 
         // Hangi söz (promise) önce dönerse: Ekleme mi yoksa Timeout mu?
         const docRef = await Promise.race([roomPromise, timeout]);
+
+        // İlk oda kurulma logu
+        await logRoomActivity(docRef.id, {
+            type: 'system_creation',
+            userId: creatorId,
+            authorName: typeof description === 'string' ? "Kurucu" : (description.creatorName || "Kurucu"),
+            detail: `Oda kuruldu.`
+        });
+
         return docRef.id;
     } catch (e) {
         if (e.message?.includes("quota") || e.code === "resource-exhausted") {
@@ -57,6 +78,14 @@ export const removeParticipantFromRoom = async (roomId, userId, reason = "") => 
             const updatedParticipants = participants.filter(id => id !== userId);
 
             await setDoc(roomRef, { participants: updatedParticipants }, { merge: true });
+
+            // Süreç logu ekle
+            await logRoomActivity(roomId, {
+                type: 'system_leave',
+                userId: userId,
+                authorName: "Kullanıcı", // İsim bilgisi o an yoksa fallback
+                detail: `Odadan ayrıldı/çıkarıldı.`
+            });
 
             // Kullanıcıya bildirim gönder
             await sendNotification(userId, {
@@ -284,6 +313,14 @@ export const approveRoomAccessRequest = async (request) => {
             roomId: request.roomId
         });
 
+        // 4. Süreç logu ekle
+        await logRoomActivity(request.roomId, {
+            type: 'system_join',
+            userId: request.uid,
+            authorName: request.userName || "Yeni Katılımcı",
+            detail: "Odaya katıldı."
+        });
+
         return { success: true };
     } catch (e) {
         console.error("Error approving room request:", e);
@@ -486,6 +523,17 @@ export const addRoomItem = async (roomId, userId, itemData) => {
             boardType: itemData.boardType || "personal", // 'personal' or 'shared'
             createdAt: serverTimestamp()
         });
+
+        // Eğer final teslimatı ise süreç loguna ekle
+        if (itemData.boardType === 'final') {
+            await logRoomActivity(roomId, {
+                type: 'system_final_delivery',
+                userId,
+                authorName: itemData.authorName || "Kullanıcı",
+                detail: itemData.title || "Proje teslimatı yapıldı."
+            });
+        }
+
         return itemRef.id;
     } catch (e) {
         console.error("Error adding room item: ", e);
@@ -548,6 +596,15 @@ export const joinRoom = async (roomId, userId) => {
         await setDoc(roomRef, {
             participants: arrayUnion(userId)
         }, { merge: true });
+
+        // Süreç logu ekle
+        await logRoomActivity(roomId, {
+            type: 'system_join',
+            userId: userId,
+            authorName: "Bir katılımcı",
+            detail: "Odaya katıldı."
+        });
+
         return { success: true };
     } catch (e) {
         console.error("Error joining room: ", e);
@@ -611,6 +668,65 @@ export const subscribeToKibeleChat = (userId, roomId, callback) => {
         callback(messages);
     }, (error) => {
         console.error("Error subscribing to Kibele chat:", error);
+    });
+};
+
+// --- CURATION SYSTEM ---
+
+/**
+ * Saves an artwork to the room's curation collection.
+ * @param {string} roomId 
+ * @param {object} artwork 
+ * @param {object} user 
+ */
+export const curateRoomArtwork = async (roomId, artwork, user) => {
+    if (!roomId || !artwork || !user) throw new Error("Missing parameters for curation");
+
+    const curationRef = collection(db, "rooms", roomId, "curations");
+    const docData = {
+        ...artwork,
+        curatedBy: user.uid,
+        curatedByName: user.name || user.displayName || 'Sanatçı',
+        curatedAt: serverTimestamp()
+    };
+
+    const docId = `art_${artwork.id || Date.now()}`;
+    await setDoc(doc(curationRef, docId), docData);
+
+    // Log the activity
+    await logRoomActivity(roomId, {
+        type: 'system_curation',
+        message: `${user.name || user.displayName || 'Birisi'} yeni bir eseri kürasyona ekledi: ${artwork.title}`,
+        userName: user.name || user.displayName || 'Sanatçı',
+        userId: user.uid,
+        authorName: user.name || user.displayName || 'Sanatçı',
+        details: {
+            artworkTitle: artwork.title,
+            artworkId: artwork.id
+        }
+    });
+
+    return docId;
+};
+
+/**
+ * Subscribes to the room's curation collection.
+ * @param {string} roomId 
+ * @param {function} callback 
+ */
+export const subscribeToCurations = (roomId, callback) => {
+    const curationRef = collection(db, "rooms", roomId, "curations");
+    const q = query(curationRef, orderBy("curatedAt", "desc"));
+
+    return onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        callback(items);
+    }, (error) => {
+        console.error("Curations subscription error:", error);
+        callback([]);
     });
 };
 

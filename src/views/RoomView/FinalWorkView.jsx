@@ -98,8 +98,8 @@ const FinalWorkView = ({ room, targetUserId }) => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-12">
-                    {/* Submission Form */}
-                    {!isArchiveMode && (user?.uid === targetUserId || isAdmin) && finalWorks.length < maxRevisions && (
+                    {/* Submission Form - Only for student owner, not for admin */}
+                    {!isArchiveMode && !isAdmin && user?.uid === targetUserId && finalWorks.length < maxRevisions && (
                         <div className="glass-card !bg-surface-light p-8 border-dashed border-border-light relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform">
                                 <LucideLink size={48} />
