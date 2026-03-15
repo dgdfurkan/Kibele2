@@ -152,7 +152,7 @@ export const fetchRoomPrivacySettings = async (roomId) => {
     }
 };
 
-// Student Management
+// User Management
 export const fetchAllStudents = async () => {
     try {
         const q = query(collection(db, "users"), where("role", "==", "student"));
@@ -160,6 +160,17 @@ export const fetchAllStudents = async () => {
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (e) {
         console.error("Error fetching students:", e);
+        return [];
+    }
+};
+
+export const fetchAllAdmins = async () => {
+    try {
+        const q = query(collection(db, "users"), where("role", "==", "admin"));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+        console.error("Error fetching admins:", e);
         return [];
     }
 };
@@ -189,14 +200,25 @@ export const requestRoomAccess = async (roomId, roomName, user, roomOwnerId, rea
             createdAt: serverTimestamp()
         });
 
-        // Oda sahibine bildirim gönder
-        await sendNotification(roomOwnerId, {
-            type: "room_request",
-            title: "Yeni Oda Katılım İsteği",
-            message: `${user.name || user.displayName || 'Bir kullanıcı'}, '${roomName}' odasına katılmak istiyor.`,
-            relatedId: requestRef.id,
-            roomId: roomId
+        // Tüm adminleri bul ve Hepsine (veya Kurucuya) bildirim gönder
+        const admins = await fetchAllAdmins();
+        
+        // Eğer odanın kurucusu admin değilse (artık kural gereği admin ama yine de emin olmak için ekliyoruz) 
+        // veya kurucu bilgisini de listeye katmak istiyorsak Set kullanabiliriz.
+        const targetUserIds = new Set(admins.map(admin => admin.id));
+        targetUserIds.add(roomOwnerId); // Her ihtimale karşı kurucuyu da ekle
+
+        const batchPromises = Array.from(targetUserIds).map(adminId => {
+             return sendNotification(adminId, {
+                type: "room_request",
+                title: "Yeni Oda Katılım İsteği",
+                message: `${user.name || user.displayName || 'Bir kullanıcı'}, '${roomName}' odasına katılmak istiyor.`,
+                relatedId: requestRef.id,
+                roomId: roomId
+            });
         });
+
+        await Promise.all(batchPromises);
 
         return { success: true };
     } catch (e) {
@@ -268,20 +290,34 @@ export const approveRoomAccessRequest = async (request) => {
     }
 };
 
-export const rejectRoomAccessRequest = async (request) => {
+export const rejectRoomAccessRequest = async (requestOrId) => {
     try {
-        await setDoc(doc(db, "room_requests", request.id), {
-            status: "rejected",
-            rejectedAt: serverTimestamp()
-        }, { merge: true });
+        let requestId = null;
+        let requestData = null;
 
+        if (typeof requestOrId === 'string') {
+            requestId = requestOrId;
+            const reqSnap = await getDoc(doc(db, "room_requests", requestId));
+            if(reqSnap.exists()) {
+               requestData = reqSnap.data();
+            }
+        } else {
+            requestId = requestOrId.id;
+            requestData = requestOrId;
+        }
+
+        const requestRef = doc(db, "room_requests", requestId);
+        await setDoc(requestRef, { status: "rejected" }, { merge: true });
+        
         // Kullanıcıya bildirim gönder
-        await sendNotification(request.uid, {
-            type: "request_rejected",
-            title: "Oda İsteği Reddedildi",
-            message: `'${request.roomName}' odasına katılım isteğin ne yazık ki onaylanmadı.`,
-            roomId: request.roomId
-        });
+        if (requestData && requestData.uid) {
+            await sendNotification(requestData.uid, {
+                type: "request_rejected",
+                title: "Oda İsteği Onaylanmadı 🚫",
+                message: `'${requestData.roomName}' odasına yaptığın katılım isteği şu an için kabul edilmedi.`,
+                roomId: requestData.roomId
+            });
+        }
 
         return { success: true };
     } catch (e) {

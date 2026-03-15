@@ -458,13 +458,15 @@ function App() {
                                         </div>
                                     ))}
 
-                                    <button
-                                        onClick={() => setIsLoginOpen(true)}
-                                        className="p-6 rounded-3xl border-2 border-dashed border-text-main/10 flex flex-col items-center justify-center gap-2 hover:border-accent-blue hover:text-accent-blue transition-all group cursor-pointer bg-surface-light/30"
-                                    >
-                                        <LucidePlus size={24} className="opacity-20 group-hover:opacity-100" />
-                                        <span className="font-serif text-base">Yeni Oda Aç</span>
-                                    </button>
+                                    {isAdmin && (
+                                        <button
+                                            onClick={() => setIsCreateModalOpen(true)}
+                                            className="p-6 rounded-3xl border-2 border-dashed border-text-main/10 flex flex-col items-center justify-center gap-2 hover:border-accent-blue hover:text-accent-blue transition-all group cursor-pointer bg-surface-light/30"
+                                        >
+                                            <LucidePlus size={24} className="opacity-20 group-hover:opacity-100" />
+                                            <span className="font-serif text-base">Yeni Oda Aç</span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </section>

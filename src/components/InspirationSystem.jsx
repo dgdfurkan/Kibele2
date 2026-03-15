@@ -7,7 +7,7 @@ import CreateRoomModal from './CreateRoomModal';
 import RoomDetailModal from './RoomDetailModal';
 
 const InspirationSystem = ({ onEnterRoom }) => {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const { showToast } = useToast();
     const [rooms, setRooms] = useState([]);
     const [activeTab, setActiveTab] = useState('explore'); // 'explore' or 'my-rooms'
@@ -87,13 +87,15 @@ const InspirationSystem = ({ onEnterRoom }) => {
                         className="w-full pl-12 pr-4 py-3 bg-white/40 backdrop-blur-md rounded-2xl border border-white/50 focus:ring-2 focus:ring-accent-blue/30 focus:border-accent-blue outline-none transition-all placeholder:text-text-muted/50"
                     />
                 </div>
-                <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="bg-accent-blue text-white px-8 py-3 rounded-2xl font-medium hover:bg-opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-accent-blue/20"
-                >
-                    <LucidePlus size={20} />
-                    Yeni Oda Kur
-                </button>
+                {isAdmin && (
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="bg-accent-blue text-white px-8 py-3 rounded-2xl font-medium hover:bg-opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-accent-blue/20"
+                    >
+                        <LucidePlus size={20} />
+                        Yeni Oda Kur
+                    </button>
+                )}
             </div>
 
             {/* Carousel structure */}
