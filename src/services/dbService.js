@@ -531,7 +531,8 @@ export const addRoomItem = async (roomId, userId, itemData) => {
                 userId,
                 authorName: itemData.authorName || "Kullanıcı",
                 detail: itemData.title || "Proje teslimatı yapıldı.",
-                content: itemData.content // Linki loga ekliyoruz ki süreçten tııklanabilsin
+                content: itemData.content, // Linki loga ekliyoruz ki süreçten tııklanabilsin
+                revisionNumber: itemData.revisionNumber // Revize numarasını loga ekliyoruz
             });
         }
 
@@ -587,6 +588,40 @@ export const subscribeToRoomItems = (roomId, boardType, userId, callback) => {
     }, (error) => {
         console.error("Error subscribing to room items:", error);
         callback([]);
+    });
+};
+
+// Final teslimatlarını odadaki tüm öğrenciler için çek (Admin Paneli İçin)
+export const subscribeToAllFinalWorks = (roomId, callback) => {
+    const q = query(
+        collection(db, "room_items"),
+        where("roomId", "==", roomId),
+        where("boardType", "==", "final")
+    );
+
+    return onSnapshot(q, (snapshot) => {
+        let items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Client-side grouping by userId as a helper
+        const grouped = items.reduce((acc, item) => {
+            if (!acc[item.userId]) acc[item.userId] = [];
+            acc[item.userId].push(item);
+            return acc;
+        }, {});
+
+        // Sort each user's revisions
+        Object.keys(grouped).forEach(userId => {
+            grouped[userId].sort((a, b) => {
+                const timeA = a.createdAt?.seconds || 0;
+                const timeB = b.createdAt?.seconds || 0;
+                return timeB - timeA;
+            });
+        });
+
+        callback(grouped);
+    }, (error) => {
+        console.error("Error subscribing to all final works:", error);
+        callback({});
     });
 };
 

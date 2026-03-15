@@ -142,7 +142,9 @@ const AuditTrailView = ({ roomId, userId }) => {
                                             </div>
                                         ) : item.type === 'system_final_delivery' ? (
                                             <div className="px-4 py-3 bg-orange-50/40 rounded-lg border border-orange-100/30">
-                                                <p className="text-[11px] font-bold text-orange-800 leading-tight mb-0.5">{item.detail}</p>
+                                                <p className="text-[11px] font-bold text-orange-800 leading-tight mb-0.5">
+                                                    {item.revisionNumber ? `${item.revisionNumber}. Revize Teslim Edildi` : 'Proje Teslimatı Yapıldı'}
+                                                </p>
                                                 {item.content && item.content.startsWith('http') && (
                                                     <a href={item.content} target="_blank" rel="noreferrer" className="text-[9px] text-orange-600 hover:underline flex items-center gap-1">
                                                         Teslimatı Gör <LucideLink size={8} />
@@ -153,8 +155,10 @@ const AuditTrailView = ({ roomId, userId }) => {
                                             <p className="text-[11px] italic font-medium text-text-main/70">{item.detail}</p>
                                         ) : (
                                             <div className="space-y-1">
-                                                {item.title && <p className="text-[10px] font-black uppercase tracking-widest text-text-main mb-1">{item.title}</p>}
-                                                <p className="text-[14px] font-serif italic text-text-main/80 leading-relaxed leading-snug">"{item.content}"</p>
+                                                {/* Öğrenci notları ve başlıkları gizleniyor - sadece tip görünür */}
+                                                <p className="text-[14px] font-serif italic text-text-main/40 leading-relaxed leading-snug">
+                                                    {item.type === 'note' ? "Bir fikir/not paylaştı." : "Bir içerik ekledi."}
+                                                </p>
                                             </div>
                                         )}
                                     </div>
