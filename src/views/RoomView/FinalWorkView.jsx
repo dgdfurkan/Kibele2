@@ -4,7 +4,7 @@ import { subscribeToRoomItems, addRoomItem, deleteRoomItem, subscribeToAllFinalW
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
-const FinalWorkView = ({ room, targetUserId, participants = [] }) => {
+const FinalWorkView = ({ room, targetUserId, participants = [], onSelectStudent }) => {
     const { user, isAdmin } = useAuth();
     const { showToast } = useToast();
     const [finalWorks, setFinalWorks] = useState([]);
@@ -124,7 +124,14 @@ const FinalWorkView = ({ room, targetUserId, participants = [] }) => {
                             {sortedSubmissions.map((p) => {
                                 const latestSub = p.submissions[0];
                                 return (
-                                    <tr key={p.id} className="hover:bg-surface-light/20 transition-colors group">
+                                    <tr 
+                                        key={p.id} 
+                                        onClick={() => {
+                                            if (onSelectStudent) onSelectStudent(p.id);
+                                            setViewMode('individual');
+                                        }}
+                                        className="hover:bg-surface-light/40 transition-all cursor-pointer group border-b border-border-light/10 last:border-0"
+                                    >
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-10 h-10 rounded-full bg-accent-blue/10 flex items-center justify-center font-bold text-accent-blue border border-accent-blue/10">
@@ -158,16 +165,25 @@ const FinalWorkView = ({ room, targetUserId, participants = [] }) => {
                                             </span>
                                         </td>
                                         <td className="px-8 py-6 text-right">
-                                            {latestSub && (
-                                                <a
-                                                    href={latestSub.content}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="inline-flex items-center gap-2 px-4 py-2 bg-text-main text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-accent-blue transition-all shadow-lg shadow-accent-blue/10"
+                                            <div className="flex items-center justify-end gap-3">
+                                                {latestSub && (
+                                                    <a
+                                                        href={latestSub.content}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        onClick={(e) => e.stopPropagation()} // Satır tıklamasını engelle
+                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-text-main text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-accent-blue transition-all shadow-lg shadow-accent-blue/10"
+                                                    >
+                                                        Link <LucideExternalLink size={10} />
+                                                    </a>
+                                                )}
+                                                <button 
+                                                    className="w-8 h-8 rounded-lg bg-accent-blue/5 text-accent-blue flex items-center justify-center group-hover:bg-accent-blue group-hover:text-white transition-all shadow-sm"
+                                                    title="İncele"
                                                 >
-                                                    Link <LucideExternalLink size={10} />
-                                                </a>
-                                            )}
+                                                    <LucideChevronLeft size={14} className="rotate-180" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 );
@@ -200,13 +216,13 @@ const FinalWorkView = ({ room, targetUserId, participants = [] }) => {
                                     onClick={() => setViewMode('overview')}
                                     className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'overview' ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5' : 'text-text-muted hover:text-text-main'}`}
                                 >
-                                    Genel Bakış
+                                    Tüm Sınıf
                                 </button>
                                 <button
                                     onClick={() => setViewMode('individual')}
                                     className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'individual' ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5' : 'text-text-muted hover:text-text-main'}`}
                                 >
-                                    Bireysel İzleme
+                                    Detaylı İnceleme
                                 </button>
                             </div>
                         )}
@@ -278,13 +294,24 @@ const FinalWorkView = ({ room, targetUserId, participants = [] }) => {
                                                 <div className="w-12 h-12 rounded-2xl bg-accent-blue/5 flex items-center justify-center text-accent-blue font-bold text-sm">
                                                     {index + 1}
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-bold text-text-main flex items-center gap-2">
-                                                        {work.title}
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <h4 className="font-bold text-text-main text-lg uppercase tracking-tight leading-none italic">
+                                                            {index + 1}. Revize
+                                                        </h4>
                                                         <span className="text-[8px] font-black bg-green-50 text-green-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">İşlendi</span>
-                                                    </h4>
-                                                    <div className="flex items-center gap-4 mt-1 opacity-60">
-                                                        <div className="text-[10px] font-medium italic">{formatDate(work.createdAt)}</div>
+                                                    </div>
+                                                    
+                                                    <div className="bg-surface-light/50 rounded-2xl p-4 mb-2 border border-border-light/20">
+                                                        <p className="font-serif text-[15px] italic text-text-main leading-relaxed">
+                                                            "{work.title}"
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-4 opacity-50">
+                                                        <div className="text-[10px] font-medium flex items-center gap-1">
+                                                            <LucideCalendar size={10} /> {formatDate(work.createdAt)}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
