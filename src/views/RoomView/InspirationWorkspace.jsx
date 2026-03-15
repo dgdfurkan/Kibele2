@@ -210,13 +210,12 @@ const InspirationWorkspace = ({ room, onBack }) => {
                         <LucideUser size={14} /> Pano
                     </button>
                     <button
-                        onClick={() => setActiveTab('shared')}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'shared'
-                            ? 'bg-white text-accent-blue shadow-lg shadow-accent-blue/5'
-                            : 'text-text-muted hover:text-text-main'
-                            }`}
+                        disabled
+                        onClick={() => {}}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all opacity-50 cursor-not-allowed text-text-muted"
+                        title="Ortak pano geçici olarak kilitlidir."
                     >
-                        <LucideUsers size={14} /> Ortak
+                        <LucideLock size={14} /> Ortak (Kilitli)
                     </button>
                     <button
                         onClick={() => setActiveTab('final')}
