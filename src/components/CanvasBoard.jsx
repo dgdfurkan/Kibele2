@@ -250,6 +250,13 @@ const CanvasBoard = ({ roomId, baseRoomId, user, isReadOnly = false, roomName = 
             store.mergeRemoteChanges(() => {
                 const remoteShapesMap = yShapes.toJSON();
                 Object.values(remoteShapesMap).forEach((shape) => {
+                    // 🛡️ Sanitization: Ensure image shapes have required properties
+                    if (shape.typeName === 'shape' && shape.type === 'image') {
+                        if (!shape.props.url) {
+                            shape.props.url = shape.props.src || "";
+                        }
+                    }
+
                     const existing = store.get(shape.id);
                     if (!existing || JSON.stringify(existing) !== JSON.stringify(shape)) {
                         store.put([shape]);
