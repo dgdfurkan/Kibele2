@@ -6,11 +6,10 @@ import { fetchAICArtworks } from './aicApi';
 
 export const searchArtsyArtworks = async (params = {}) => {
     const {
-        mediums = [],
-        styles = [],
+        artists = [],
+        artwork_type = [],
         colors = [],
         places = [],
-        topics = [],
         query = '',
         page = 1,
         limit = 20
@@ -22,11 +21,10 @@ export const searchArtsyArtworks = async (params = {}) => {
             page,
             limit,
             filters: {
-                mediums,
-                styles,
+                artists,
+                artwork_type,
                 colors,
-                places,
-                topics
+                places
             }
         });
 
@@ -47,41 +45,33 @@ export const searchArtsyArtworks = async (params = {}) => {
 };
 
 export const ARTSY_FILTERS = {
-    mediums: [
-        { id: 'Painting', name: 'Resim' },
-        { id: 'Photograph', name: 'Fotoğraf' },
-        { id: 'Sculpture', name: 'Heykel' },
+    artwork_type: [
         { id: 'Print', name: 'Baskı' },
-        { id: 'Drawing', name: 'Çizim' },
-        { id: 'Decorative Arts', name: 'Dekoratif Sanat' },
+        { id: 'Photograph', name: 'Fotoğraf' },
+        { id: 'Drawing and Watercolor', name: 'Çizim ve Sulu Boya' },
+        { id: 'Textile', name: 'Tekstil' },
+        { id: 'Painting', name: 'Resim' },
+        { id: 'Architectural Drawing', name: 'Mimari Çizim' },
+        { id: 'Book', name: 'Kitap' },
         { id: 'Ceramics', name: 'Seramik' }
     ],
-    styles: [
-        { id: 'Modernism', name: 'Modernizm' },
-        { id: 'Impressionism', name: 'Empresyonizm' },
-        { id: 'Surrealism', name: 'Sürrealizm' },
-        { id: 'Pop Art', name: 'Pop Art' },
-        { id: 'Contemporary Art', name: 'Çağdaş Sanat' },
-        { id: 'Baroque', name: 'Barok' },
-        { id: 'Renaissance', name: 'Rönesans' }
+    artists: [
+        { id: 'Utagawa Hiroshige', name: 'Utagawa Hiroshige' },
+        { id: 'Unknown artist', name: 'Bilinmeyen Sanatçı' },
+        { id: 'Ancient Roman', name: 'Antik Roma' },
+        { id: 'James McNeill Whistler', name: 'James McNeill Whistler' },
+        { id: 'Ancient Egyptian', name: 'Antik Mısır' },
+        { id: 'Jasper Johns', name: 'Jasper Johns' }
     ],
     places: [
+        { id: 'United States', name: 'Amerika Birleşik Devletleri' },
         { id: 'France', name: 'Fransa' },
         { id: 'Japan', name: 'Japonya' },
-        { id: 'United States', name: 'ABD' },
+        { id: 'England', name: 'İngiltere' },
         { id: 'Italy', name: 'İtalya' },
+        { id: 'Germany', name: 'Almanya' },
         { id: 'China', name: 'Çin' },
-        { id: 'Netherlands', name: 'Hollanda' },
-        { id: 'India', name: 'Hindistan' }
-    ],
-    topics: [
-        { id: 'Nature', name: 'Doğa' },
-        { id: 'Architecture', name: 'Mimari' },
-        { id: 'Portraits', name: 'Portre' },
-        { id: 'Mythology', name: 'Mitoloji' },
-        { id: 'Landscape', name: 'Manzara' },
-        { id: 'Animals', name: 'Hayvanlar' },
-        { id: 'Religion', name: 'Din' }
+        { id: 'Netherlands', name: 'Hollanda' }
     ],
     colors: [
         { id: 'red', name: 'Kırmızı', hex: '#EF4444' },

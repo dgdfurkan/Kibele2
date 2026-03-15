@@ -27,19 +27,19 @@ export const fetchAICArtworks = async (params = {}) => {
     }
 
     // Teknik/Kategori Filtresi (Çoklu Seçim)
-    if (filters.mediums && filters.mediums.length > 0) {
+    if (filters.artwork_type && filters.artwork_type.length > 0) {
         filter.push({
             terms: {
-                "classification_titles.keyword": filters.mediums
+                "artwork_type_title.keyword": filters.artwork_type
             }
         });
     }
 
-    // Dönem/Akım Filtresi (Çoklu Seçim)
-    if (filters.styles && filters.styles.length > 0) {
+    // Sanatçı Filtresi (Çoklu Seçim)
+    if (filters.artists && filters.artists.length > 0) {
         filter.push({
             terms: {
-                "style_titles.keyword": filters.styles
+                "artist_title.keyword": filters.artists
             }
         });
     }
@@ -49,15 +49,6 @@ export const fetchAICArtworks = async (params = {}) => {
         filter.push({
             terms: {
                 "place_of_origin.keyword": filters.places
-            }
-        });
-    }
-
-    // Tema/Konu Filtresi (Çoklu Seçim)
-    if (filters.topics && filters.topics.length > 0) {
-        filter.push({
-            terms: {
-                "subject_titles.keyword": filters.topics
             }
         });
     }
