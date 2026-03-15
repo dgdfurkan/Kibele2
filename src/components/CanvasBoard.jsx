@@ -6,7 +6,7 @@ import { FirebaseRTDBProvider } from '../lib/y-firebase-rtdb';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { ref, onChildAdded, remove } from 'firebase/database';
 import { db, rtdb } from '../firebase';
-import { sendNotification } from '../services/dbService';
+import { sendNotification, getUsersProfiles } from '../services/dbService';
 
 // --- Custom Components for tldraw ---
 
