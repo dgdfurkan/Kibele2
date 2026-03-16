@@ -7,6 +7,8 @@
 
 const GEMINI_MODELS = [
     "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
     "gemini-1.5-flash-latest",
     "gemini-1.5-pro-latest"
 ];
@@ -68,6 +70,7 @@ export default {
 
             // Try models in order (fallback chain)
             let lastError = null;
+            let lastErrorStatus = 500;
             for (const model of GEMINI_MODELS) {
                 const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -90,13 +93,14 @@ export default {
                         });
                     }
 
-                    // If 404 (model not found), try next model
-                    if (geminiResponse.status === 404) {
-                        lastError = `Model ${model} not found`;
+                    // If 404 (model not found) or 429 (quota exceeded), try next model
+                    if (geminiResponse.status === 404 || geminiResponse.status === 429) {
+                        lastError = `Model ${model}: ${geminiResponse.status === 404 ? 'not found' : 'quota exceeded'}`;
+                        lastErrorStatus = geminiResponse.status;
                         continue;
                     }
 
-                    // For other errors, return the error
+                    // For other errors (400, 403 etc.), return the error immediately
                     const errorText = await geminiResponse.text();
                     return new Response(errorText, {
                         status: geminiResponse.status,
