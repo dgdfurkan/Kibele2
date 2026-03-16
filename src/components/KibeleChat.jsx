@@ -26,7 +26,7 @@ const KibeleChat = ({ apiKey, isPremium }) => {
         setInput("");
         setIsTyping(true);
 
-        const response = await generateKibeleResponse(apiKey, messages, currentInput);
+        const response = await generateKibeleResponse(messages, currentInput);
 
         setMessages(prev => [...prev, { role: "model", parts: [{ text: response }] }]);
         setIsTyping(false);
