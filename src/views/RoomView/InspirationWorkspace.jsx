@@ -8,7 +8,7 @@ import CurationView from './CurationView';
 import { useAuth } from '../../context/AuthContext';
 import { getUsersProfiles, deleteRoom, fetchRoomPrivacySettings, curateRoomArtwork } from '../../services/dbService';
 import { useToast } from '../../context/ToastContext';
-import ArtsyExplorer from '../../components/ArtsyExplorer';
+import ArticExplorer from '../../components/ArticExplorer';
 import { db, rtdb } from '../../firebase';
 import { collection, doc, setDoc } from 'firebase/firestore';
 import { ref, push } from 'firebase/database';
@@ -135,10 +135,11 @@ const InspirationWorkspace = ({ room, onBack }) => {
                         </div>
                         {isSidebarOpen && (
                             <div className="w-[400px] h-full flex-shrink-0 animate-in slide-in-from-right-8 duration-500">
-                                <ArtsyExplorer
+                                <ArticExplorer
                                     onCurateArtwork={handleAddArtworkToCuration}
                                     onClose={() => setIsSidebarOpen(false)}
                                     isArchiveMode={isArchived}
+                                    currentRoomId={room?.id}
                                 />
                             </div>
                         )}
@@ -162,10 +163,11 @@ const InspirationWorkspace = ({ room, onBack }) => {
                         </div>
                         {isSidebarOpen && user.uid === (selectedParticipantId || user.uid) && (
                             <div className="w-[400px] h-full flex-shrink-0 animate-in slide-in-from-right-8 duration-500">
-                                <ArtsyExplorer
+                                <ArticExplorer
                                     onCurateArtwork={handleAddArtworkToCuration}
                                     onClose={() => setIsSidebarOpen(false)}
                                     isArchiveMode={isArchived}
+                                    currentRoomId={room?.id}
                                 />
                             </div>
                         )}

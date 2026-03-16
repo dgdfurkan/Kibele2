@@ -3,7 +3,7 @@ import { LucideSearch, LucidePlus, LucideImage, LucideZoomIn, LucideMoreHorizont
 import { useAuth } from '../../context/AuthContext';
 import { subscribeToRoomItems, addRoomItem, deleteRoomItem } from '../../services/dbService';
 import { useToast } from '../../context/ToastContext';
-import ArtsyExplorer from '../../components/ArtsyExplorer';
+import ArticExplorer from '../../components/ArticExplorer';
 
 const SharedBoardView = ({ room, isSidebarOpen, onSidebarToggle }) => {
     const { user, isAdmin } = useAuth();
@@ -167,10 +167,11 @@ const SharedBoardView = ({ room, isSidebarOpen, onSidebarToggle }) => {
 
             {/* Curation Sidebar */}
             <aside className={`w-[450px] flex-shrink-0 border-l border-border-light/40 flex flex-col z-50 shadow-2xl transition-all duration-700 ${isSidebarOpen ? 'mr-0' : '-mr-[450px]'}`}>
-                <ArtsyExplorer
+                <ArticExplorer
                     onClose={onSidebarToggle}
-                    onAddArtwork={handleAddCurationItem}
+                    onCurateArtwork={handleAddCurationItem}
                     isArchiveMode={isArchiveMode}
+                    currentRoomId={room?.id}
                 />
             </aside>
 

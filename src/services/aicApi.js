@@ -273,7 +273,13 @@ export const fetchAICArtworks = async (params = {}) => {
         fields: [
             "id", "title", "image_id", "artist_display",
             "medium_display", "classification_title",
-            "style_title", "place_of_origin", "is_public_domain"
+            "style_title", "place_of_origin", "is_public_domain",
+            "date_display", "dimensions", "credit_line",
+            "main_reference_number", "description",
+            "department_title", "artwork_type_title",
+            "date_start", "date_end", "artist_title",
+            "style_titles", "subject_titles", "technique_titles",
+            "material_titles", "thumbnail"
         ],
         sort: sort.length > 0 ? sort : undefined,
         limit: limit,
@@ -304,9 +310,27 @@ export const fetchAICArtworks = async (params = {}) => {
                 id: item.id,
                 title: item.title,
                 artist: item.artist_display,
+                artist_title: item.artist_title,
                 medium: item.medium_display || item.classification_title,
                 style: item.style_title,
                 place: item.place_of_origin,
+                date_display: item.date_display,
+                dimensions: item.dimensions,
+                credit_line: item.credit_line,
+                main_reference_number: item.main_reference_number,
+                description: item.description,
+                department_title: item.department_title,
+                artwork_type_title: item.artwork_type_title,
+                classification_title: item.classification_title,
+                date_start: item.date_start,
+                date_end: item.date_end,
+                style_titles: item.style_titles,
+                subject_titles: item.subject_titles,
+                technique_titles: item.technique_titles,
+                material_titles: item.material_titles,
+                aspect_ratio: item.thumbnail?.height && item.thumbnail?.width
+                    ? item.thumbnail.height / item.thumbnail.width
+                    : 1,
                 image_url: `${iiifBaseUrl}/${item.image_id}/full/843,/0/default.jpg`,
                 thumbnail: `${iiifBaseUrl}/${item.image_id}/full/400,/0/default.jpg`
             }));
