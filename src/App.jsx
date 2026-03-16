@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { LucideHome, LucideLayers, LucideMessageSquare, LucideUser, LucidePlus, LucideChevronDown, LucideSearch, LucideBell, LucideCheck, LucideX, LucideTrash2, LucideRefreshCcw } from 'lucide-react';
+import { LucideHome, LucideLayers, LucideMessageSquare, LucideUser, LucidePlus, LucideChevronDown, LucideSearch, LucideBell, LucideCheck, LucideX, LucideTrash2, LucideRefreshCcw, LucideFolderOpen } from 'lucide-react';
 import { fetchAICArtworks, AIC_FILTERS } from './services/aicApi';
 import { useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
@@ -20,6 +20,7 @@ import { subscribeToRooms, requestRoomAccess } from './services/dbService';
 
 import RoomRequestView from './views/RoomView/RoomRequestView';
 import InspirationWorkspace from './views/RoomView/InspirationWorkspace';
+import AdminProjectsView from './views/AdminProjectsView';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -39,6 +40,7 @@ function App() {
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
     const [selectedRequestId, setSelectedRequestId] = useState(null);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [isProjectsOpen, setIsProjectsOpen] = useState(false);
 
     const [filters, setFilters] = useState({
         artists: [],
@@ -321,6 +323,7 @@ function App() {
             ) : (
                 <div className="min-h-screen bg-background text-text-main font-sans selection:bg-accent-blue selection:text-white">
                     <AdminPanel rooms={rooms} openOverride={isDashboardOpen} onOpenChange={setIsDashboardOpen} />
+                    {isProjectsOpen && <AdminProjectsView onClose={() => setIsProjectsOpen(false)} />}
 
                     <nav className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-5xl transition-all duration-500">
                         <div className="glass-card px-8 py-4 flex items-center justify-between">
@@ -337,13 +340,22 @@ function App() {
                                 {user ? (
                                     <div className="flex items-center gap-4">
                                         {isAdmin && (
-                                            <button
-                                                onClick={() => setIsDashboardOpen(true)}
-                                                className="p-2.5 text-accent-blue hover:bg-accent-blue/5 rounded-full transition-all relative group"
-                                                title="Yönetim Paneli"
-                                            >
-                                                <LucideLayers size={21} />
-                                            </button>
+                                            <>
+                                                <button
+                                                    onClick={() => setIsProjectsOpen(true)}
+                                                    className="p-2.5 text-accent-blue hover:bg-accent-blue/5 rounded-full transition-all relative group"
+                                                    title="Projelerim"
+                                                >
+                                                    <LucideFolderOpen size={21} />
+                                                </button>
+                                                <button
+                                                    onClick={() => setIsDashboardOpen(true)}
+                                                    className="p-2.5 text-accent-blue hover:bg-accent-blue/5 rounded-full transition-all relative group"
+                                                    title="Yönetim Paneli"
+                                                >
+                                                    <LucideLayers size={21} />
+                                                </button>
+                                            </>
                                         )}
 
                                         <NotificationDropdown onRequestClick={(id) => {

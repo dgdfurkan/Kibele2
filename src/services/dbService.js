@@ -1,4 +1,4 @@
-import { collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, doc, setDoc, getDoc, getDocs, increment, arrayUnion, writeBatch, limit } from "firebase/firestore";
+import { collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, doc, setDoc, getDoc, getDocs, increment, arrayUnion, writeBatch, limit, deleteDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
 // Activity Logging Helper
@@ -766,3 +766,55 @@ export const subscribeToCurations = (roomId, callback) => {
     });
 };
 
+// --- Admin Projects (Portfolio) ---
+export const addAdminProject = async (uid, projectData) => {
+    try {
+        const ref = await addDoc(collection(db, "users", uid, "projects"), {
+            ...projectData,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+        return ref.id;
+    } catch (e) {
+        console.error("Error adding admin project:", e);
+        throw e;
+    }
+};
+
+export const subscribeToAdminProjects = (uid, callback) => {
+    const q = query(
+        collection(db, "users", uid, "projects"),
+        orderBy("createdAt", "desc")
+    );
+    return onSnapshot(q, (snapshot) => {
+        const projects = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        callback(projects);
+    }, (error) => {
+        console.error("Projects subscription error:", error);
+        callback([]);
+    });
+};
+
+export const updateAdminProject = async (uid, projectId, data) => {
+    try {
+        await updateDoc(doc(db, "users", uid, "projects", projectId), {
+            ...data,
+            updatedAt: serverTimestamp()
+        });
+    } catch (e) {
+        console.error("Error updating admin project:", e);
+        throw e;
+    }
+};
+
+export const deleteAdminProject = async (uid, projectId) => {
+    try {
+        await deleteDoc(doc(db, "users", uid, "projects", projectId));
+    } catch (e) {
+        console.error("Error deleting admin project:", e);
+        throw e;
+    }
+};
