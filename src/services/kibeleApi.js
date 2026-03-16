@@ -7,7 +7,7 @@
 
 // Cloudflare Worker proxy URL
 // Deploy edildikten sonra bu URL'i güncelle:
-const KIBELE_PROXY_URL = "https://kibele-proxy.dgdfurkan.workers.dev";
+const KIBELE_PROXY_URL = "https://kibele-proxy.frkngndz60.workers.dev";
 
 // Eğer proxy henüz deploy edilmediyse, fallback olarak doğrudan Gemini URL kullan (geçici)
 const DIRECT_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
@@ -49,13 +49,13 @@ export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) 
                     return data.candidates[0].content.parts[0].text;
                 }
             }
-            
+
             // Proxy hata verirse ve API key varsa fallback'e düş
             if (!proxyResponse.ok && apiKeyOrNull) {
                 console.warn("Proxy failed, falling back to direct API...");
                 throw new Error("Proxy failed");
             }
-            
+
             if (!proxyResponse.ok) {
                 const errorBody = await proxyResponse.text();
                 console.error(`Proxy Error (${proxyResponse.status}):`, errorBody);
@@ -77,7 +77,7 @@ export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) 
                         return data.candidates[0].content.parts[0].text;
                     }
                 }
-                
+
                 throw new Error("Direct API also failed");
             }
             throw proxyError;
