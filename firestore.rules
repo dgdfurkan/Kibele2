@@ -21,6 +21,12 @@ service cloud.firestore {
     match /users/{userId}/kibele_chats/{roomId}/messages/{messageId} {
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
+
+    // Admin Projeleri
+    match /users/{userId}/projects/{projectId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
     
     // Oda katılım talepleri
     match /room_requests/{reqId} {

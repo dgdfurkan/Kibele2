@@ -4,6 +4,7 @@ import { fetchAICArtworks, AIC_FILTERS } from '../services/aicApi';
 import { useAuth } from '../context/AuthContext';
 import { subscribeToRooms, curateRoomArtwork } from '../services/dbService';
 import { useToast } from '../context/ToastContext';
+import RoomSelector from './RoomSelector';
 
 const ArticExplorer = ({ onCurateArtwork, onClose, isArchiveMode, currentRoomId }) => {
     const { user } = useAuth();
@@ -252,80 +253,7 @@ const ArticExplorer = ({ onCurateArtwork, onClose, isArchiveMode, currentRoomId 
         );
     };
 
-    // Custom Room Selector Component
-    const RoomSelector = () => {
-        const selectedRoom = userRooms.find(r => r.id === selectedRoomId);
-        return (
-            <div className="relative">
-                <button
-                    onClick={() => setRoomSelectorOpen(!roomSelectorOpen)}
-                    className="w-full flex items-center justify-between gap-3 bg-surface-light/50 hover:bg-surface-light border border-border-light/40 rounded-xl px-4 py-3 transition-all"
-                >
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-accent-blue/10 flex items-center justify-center shrink-0">
-                            <LucideSparkles size={14} className="text-accent-blue" />
-                        </div>
-                        <div className="text-left min-w-0">
-                            <p className="text-xs font-bold text-text-main truncate">
-                                {selectedRoomId === currentRoomId ? 'Bu Odanın Kürasyonu' : selectedRoom?.name || 'Oda Seçin'}
-                            </p>
-                            <p className="text-[10px] text-text-muted truncate">Kürasyon sekmesine eklenir</p>
-                        </div>
-                    </div>
-                    <LucideChevronDown size={16} className={`text-text-muted transition-transform duration-200 shrink-0 ${roomSelectorOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {roomSelectorOpen && (
-                    <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-2xl border border-border-light/40 shadow-2xl z-50 max-h-[280px] overflow-y-auto scrollbar-hide animate-in fade-in slide-in-from-bottom-2 duration-200">
-                        <div className="p-2 space-y-1">
-                            {/* Current room option */}
-                            {currentRoomId && (
-                                <button
-                                    onClick={() => { setSelectedRoomId(currentRoomId); setRoomSelectorOpen(false); }}
-                                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${selectedRoomId === currentRoomId ? 'bg-accent-blue text-white' : 'hover:bg-surface-light'}`}
-                                >
-                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${selectedRoomId === currentRoomId ? 'bg-white/20' : 'bg-accent-blue/10'}`}>
-                                        <LucideSparkles size={14} className={selectedRoomId === currentRoomId ? 'text-white' : 'text-accent-blue'} />
-                                    </div>
-                                    <div className="text-left min-w-0">
-                                        <p className="text-sm font-bold truncate">Bu Odanın Kürasyonu</p>
-                                        <p className={`text-[10px] truncate ${selectedRoomId === currentRoomId ? 'text-white/60' : 'text-text-muted'}`}>Mevcut oda</p>
-                                    </div>
-                                    {selectedRoomId === currentRoomId && <LucideCheck size={16} className="ml-auto shrink-0" />}
-                                </button>
-                            )}
-
-                            {/* Divider */}
-                            {currentRoomId && userRooms.length > 0 && (
-                                <div className="px-3 py-1">
-                                    <div className="h-px bg-border-light/40"></div>
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-text-muted/50 mt-2 mb-1">Diğer Odalar</p>
-                                </div>
-                            )}
-
-                            {/* Other rooms */}
-                            {userRooms.filter(r => r.id !== currentRoomId).map(room => (
-                                <button
-                                    key={room.id}
-                                    onClick={() => { setSelectedRoomId(room.id); setRoomSelectorOpen(false); }}
-                                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${selectedRoomId === room.id ? 'bg-accent-blue text-white' : 'hover:bg-surface-light'}`}
-                                >
-                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-xs ${selectedRoomId === room.id ? 'bg-white/20' : 'bg-surface-light'}`}>
-                                        {room.name?.charAt(0) || '?'}
-                                    </div>
-                                    <div className="text-left min-w-0">
-                                        <p className="text-sm font-bold truncate">{room.name}</p>
-                                        <p className={`text-[10px] truncate ${selectedRoomId === room.id ? 'text-white/60' : 'text-text-muted'}`}>{room.participants?.length || 0} katılımcı</p>
-                                    </div>
-                                    {selectedRoomId === room.id && <LucideCheck size={16} className="ml-auto shrink-0" />}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
+    // Custom Room Selector is now a separate component
 
     return (
         <div className="h-full flex flex-col bg-[#FDF8F5] dark:bg-[#1E1C1A] border-l border-border-light/40 shadow-[-4px_0_24px_rgba(0,0,0,0.05)] overflow-hidden">
@@ -535,7 +463,12 @@ const ArticExplorer = ({ onCurateArtwork, onClose, isArchiveMode, currentRoomId 
                             {!isArchiveMode && (
                                 <div className="p-6 border-t border-border-light/40 bg-surface-light/30 space-y-3">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-text-muted block">Kürasyona Gönder</label>
-                                    <RoomSelector />
+                                    <RoomSelector 
+                                        userRooms={userRooms} 
+                                        selectedRoomId={selectedRoomId} 
+                                        onSelectRoom={setSelectedRoomId} 
+                                        currentRoomId={currentRoomId} 
+                                    />
                                     <button
                                         onClick={() => handleSendToCuration(enlargedArtwork)}
                                         disabled={!selectedRoomId}

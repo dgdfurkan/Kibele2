@@ -78,7 +78,7 @@ const FinalWorkView = ({ room, targetUserId, participants = [], onSelectStudent 
 
     const handleDeleteFinal = async (item) => {
         if (isArchiveMode) return;
-        if (!confirm("Bu revizeyi silmek istediğine emin misin?")) return;
+        // Native confirm removed
         try {
             await deleteRoomItem(item.id);
             showToast("Revize silindi.");

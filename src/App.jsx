@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { LucideHome, LucideLayers, LucideMessageSquare, LucideUser, LucidePlus, LucideChevronDown, LucideSearch, LucideBell, LucideCheck, LucideX, LucideTrash2, LucideRefreshCcw, LucideFolderOpen } from 'lucide-react';
 import { fetchAICArtworks, AIC_FILTERS } from './services/aicApi';
 import { useAuth } from './context/AuthContext';
-import { ToastProvider } from './context/ToastContext';
+import { useToast } from './context/ToastContext';
 import KibelePartner from './components/KibelePartner';
 import InspirationSystem from './components/InspirationSystem';
 import AdminPanel from './components/AdminPanel';
@@ -27,6 +27,7 @@ gsap.registerPlugin(ScrollTrigger);
 function App() {
     const heroRef = useRef(null);
     const { user, isAdmin } = useAuth();
+    const { showToast } = useToast();
 
     // States
     const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -178,7 +179,7 @@ function App() {
 
     const handleRemoteAddArtwork = async (artwork) => {
         if (!selectedRoomId) {
-            alert("Lütfen bir oda seçin.");
+            showToast("Lütfen bir oda seçin.", "error");
             return;
         }
 
@@ -217,11 +218,11 @@ function App() {
         try {
             const externalRef = ref(rtdb, `canvas_sync/${currentCanvasRoomId}/external_shapes`);
             await push(externalRef, shape);
-            alert("Görsel ilham odasına eklendi! ✨");
+            showToast("Görsel ilham odasına eklendi! ✨");
             setEnlargedArtwork(null);
         } catch (error) {
             console.error("Error adding artwork to canvas remotely:", error);
-            alert("Görsel eklenirken bir hata oluştu.");
+            showToast("Görsel eklenirken bir hata oluştu.", "error");
         }
     };
 
@@ -250,7 +251,7 @@ function App() {
         try {
             await requestRoomAccess(selectedRoom.id, selectedRoom.name, user, selectedRoom.creatorId, reason);
         } catch (error) {
-            alert("İstek gönderilirken bir hata oluştu: " + error.message);
+            showToast("İstek gönderilirken bir hata oluştu: " + error.message, "error");
         }
     };
 
@@ -303,7 +304,7 @@ function App() {
     }, [liveSelectedRoom, user, isAdmin, currentView]);
 
     return (
-        <ToastProvider>
+        <>
             {currentView === 'request' ? (
                 <RoomRequestView
                     room={liveSelectedRoom || selectedRoom}
@@ -323,7 +324,7 @@ function App() {
                 <AdminProjectsView onClose={() => setCurrentView('hub')} />
             ) : (
                 <div className="min-h-screen bg-background text-text-main font-sans selection:bg-accent-blue selection:text-white">
-                    <AdminPanel rooms={rooms} openOverride={isDashboardOpen} onOpenChange={setIsDashboardOpen} />
+                    <AdminPanel rooms={rooms} openOverride={isDashboardOpen} onOpenChange={setIsDashboardOpen} showToast={showToast} />
 
                     <nav className="fixed top-4 sm:top-8 left-1/2 -translate-x-1/2 z-[100] w-[95%] sm:w-[90%] max-w-5xl transition-all duration-500">
                         <div className="glass-card px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
@@ -693,26 +694,19 @@ function App() {
                                                                 <p className="text-sm font-medium text-text-main">{enlargedArtwork.place}</p>
                                                             </div>
                                                         )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="pt-6 border-t border-border-light/40 mt-auto">
+                                                                                          <div className="pt-6 border-t border-border-light/40 mt-auto">
                                                     {user ? (
                                                         <div className="space-y-4">
                                                             <div className="flex flex-col gap-2">
                                                                 <label className="text-[10px] font-black uppercase tracking-widest text-text-muted">Buraya Ekle:</label>
                                                                 
                                                                 {userRooms.length > 0 ? (
-                                                                    <select 
-                                                                        value={selectedRoomId}
-                                                                        onChange={(e) => setSelectedRoomId(e.target.value)}
-                                                                        className="w-full bg-surface border border-border-light/40 rounded-xl px-4 py-3.5 text-sm font-semibold outline-none focus:border-accent-blue/50 focus:ring-2 focus:ring-accent-blue/10 appearance-none cursor-pointer"
-                                                                        style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem' }}
-                                                                    >
-                                                                        {userRooms.map((r, i) => (
-                                                                            <option key={r.id || i} value={r.id}>{r.name}</option>
-                                                                        ))}
-                                                                    </select>
+                                                                    <RoomSelector 
+                                                                        userRooms={userRooms} 
+                                                                        selectedRoomId={selectedRoomId} 
+                                                                        onSelectRoom={setSelectedRoomId}
+                                                                        placeholder="Oda Seçiniz"
+                                                                    />
                                                                 ) : (
                                                                     <p className="text-xs text-orange-500 font-medium bg-orange-50 p-3 rounded-xl border border-orange-100">Henüz katıldığın bir ilham odası yok.</p>
                                                                 )}
@@ -727,20 +721,22 @@ function App() {
                                                                 İlham Odasına Gönder
                                                             </button>
                                                         </div>
-                                                    ) : (
-                                                        <div className="bg-surface-light/50 p-4 rounded-2xl border border-border-light/40 text-center">
-                                                            <p className="text-sm font-medium text-text-main mb-3">İlham odasına eklemek için giriş yapmalısın.</p>
-                                                            <button onClick={() => { setEnlargedArtwork(null); setIsLoginOpen(true); }} className="text-xs font-bold bg-white px-4 py-2 rounded-lg border border-border-light hover:bg-text-main hover:text-white transition-colors">Giriş Yap</button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </section>
+                                                     ) : (
+                                                         <div className="bg-surface-light/50 p-4 rounded-2xl border border-border-light/40 text-center">
+                                                             <p className="text-sm font-medium text-text-main mb-3">İlham odasına eklemek için giriş yapmalısın.</p>
+                                                             <button onClick={() => { setEnlargedArtwork(null); setIsLoginOpen(true); }} className="text-xs font-bold bg-white px-4 py-2 rounded-lg border border-border-light hover:bg-text-main hover:text-white transition-colors">Giriş Yap</button>
+                                                         </div>
+                                                     )}
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+                         )}
+                     </div>
+                 </div>
+             </section>
 
                     <section id="nasil-calisir" className="py-32 px-[5%] bg-background">
                         <div className="max-w-2xl mx-auto text-center mb-20">
@@ -849,7 +845,7 @@ function App() {
                     />
                 </div>
             )}
-        </ToastProvider>
+        </>
     );
 }
 
