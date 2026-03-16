@@ -1,5 +1,16 @@
-const KIBELE_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
-// Alternatif: "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+/**
+ * Kibele AI Partner — Gemini API Service
+ * 
+ * Cloudflare Workers proxy üzerinden güvenli API erişimi.
+ * API key frontend'de saklanmaz, proxy'de güvenli şekilde tutulur.
+ */
+
+// Cloudflare Worker proxy URL
+// Deploy edildikten sonra bu URL'i güncelle:
+const KIBELE_PROXY_URL = "https://kibele-proxy.dgdfurkan.workers.dev";
+
+// Eğer proxy henüz deploy edilmediyse, fallback olarak doğrudan Gemini URL kullan (geçici)
+const DIRECT_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 const KIBELE_PERSONA = `
 Sen "Kibele Hoca" adında bir yapay zeka sanat partnerisin. Konuşmalarında samimi, destekleyici ama bir hoca otoritesine sahip bir ton kullan.
@@ -13,7 +24,7 @@ KESİN KURALLAR:
 3. Kullanıcı hangi dili konuşuyorsa "O DİLDE" (kesinlikle o dilde) cevap ver. Örneğin İngilizce yazarsa İngilizce, Türkçe yazarsa Türkçe.
 `;
 
-export const generateKibeleResponse = async (apiKey, history, newMessage) => {
+export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) => {
     try {
         const contents = [
             { role: "user", parts: [{ text: KIBELE_PERSONA }] },
@@ -22,36 +33,57 @@ export const generateKibeleResponse = async (apiKey, history, newMessage) => {
             { role: "user", parts: [{ text: newMessage }] }
         ];
 
-        // Deneme 1: Flash 1.5
-        let response = await fetch(`${KIBELE_API_URL}?key=${apiKey}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents })
-        });
+        const requestBody = { contents };
 
-        // Eğer 404 alırsak Pro modelini deneyelim (Fallback)
-        if (response.status === 404) {
-            const FALLBACK_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent";
-            response = await fetch(`${FALLBACK_URL}?key=${apiKey}`, {
+        // 1. Cloudflare Worker proxy üzerinden dene
+        try {
+            const proxyResponse = await fetch(KIBELE_PROXY_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents })
+                body: JSON.stringify(requestBody)
             });
+
+            if (proxyResponse.ok) {
+                const data = await proxyResponse.json();
+                if (data.candidates?.[0]?.content?.parts) {
+                    return data.candidates[0].content.parts[0].text;
+                }
+            }
+            
+            // Proxy hata verirse ve API key varsa fallback'e düş
+            if (!proxyResponse.ok && apiKeyOrNull) {
+                console.warn("Proxy failed, falling back to direct API...");
+                throw new Error("Proxy failed");
+            }
+            
+            if (!proxyResponse.ok) {
+                const errorBody = await proxyResponse.text();
+                console.error(`Proxy Error (${proxyResponse.status}):`, errorBody);
+                throw new Error(`Kibele şu an yoğun... (${proxyResponse.status})`);
+            }
+        } catch (proxyError) {
+            // 2. Fallback: Doğrudan Gemini API (sadece API key varsa)
+            if (apiKeyOrNull) {
+                console.warn("Using direct Gemini API fallback with key...");
+                const directResponse = await fetch(`${DIRECT_GEMINI_URL}?key=${apiKeyOrNull}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (directResponse.ok) {
+                    const data = await directResponse.json();
+                    if (data.candidates?.[0]?.content?.parts) {
+                        return data.candidates[0].content.parts[0].text;
+                    }
+                }
+                
+                throw new Error("Direct API also failed");
+            }
+            throw proxyError;
         }
 
-        if (!response.ok) {
-            const errorBody = await response.text();
-            console.error(`Kibele Engine Error (${response.status}):`, errorBody);
-            throw new Error(`Kibele şu an yoğun... (${response.status})`);
-        }
-
-        const data = await response.json();
-
-        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
-            return data.candidates[0].content.parts[0].text;
-        } else {
-            throw new Error("Beklenmedik veri yapısı.");
-        }
+        throw new Error("Beklenmedik veri yapısı.");
     } catch (error) {
         console.error("Kibele Service Error:", error);
         return "Bir sorun oluştu canım, ama it is okey. Tekrar dener misin?";
