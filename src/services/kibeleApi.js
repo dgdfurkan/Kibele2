@@ -4,7 +4,7 @@
  */
 
 const KIBELE_PROXY_URL = "https://kibele-proxy.frkngndz60.workers.dev";
-const DIRECT_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+const DIRECT_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent";
 
 const KIBELE_PERSONA = `
 Sen "Kibele Hoca" adında bir yapay zeka sanat partnerisin.
