@@ -6,10 +6,12 @@
  */
 
 const GEMINI_MODELS = [
+    "gemini-1.5-flash-latest",
     "gemini-1.5-flash",
     "gemini-2.0-flash",
-    "gemini-1.5-flash-8b",
-    "gemini-1.5-pro"
+    "gemini-1.5-pro-latest",
+    "gemini-1.5-pro",
+    "gemini-1.0-pro"
 ];
 
 const CORS_HEADERS = {
@@ -70,48 +72,43 @@ export default {
             // Try models in order (fallback chain)
             let errors = [];
             for (const model of GEMINI_MODELS) {
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                // Try both v1beta and v1 for each model
+                for (const version of ["v1beta", "v1"]) {
+                    const geminiUrl = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`;
 
-                try {
-                    const geminiResponse = await fetch(geminiUrl, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(body),
-                    });
-
-                    if (geminiResponse.ok) {
-                        const data = await geminiResponse.json();
-                        return new Response(JSON.stringify(data), {
-                            status: 200,
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Access-Control-Allow-Origin": responseOrigin,
-                                ...CORS_HEADERS,
-                            },
+                    try {
+                        const geminiResponse = await fetch(geminiUrl, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(body),
                         });
-                    }
 
-                    // Log error and try next model on 404/429
-                    const errorJson = await geminiResponse.json().catch(() => ({}));
-                    const errorMsg = errorJson.error?.message || `HTTP ${geminiResponse.status}`;
-                    errors.push({ model, status: geminiResponse.status, message: errorMsg });
-                    
-                    if (geminiResponse.status === 404 || geminiResponse.status === 429) {
+                        if (geminiResponse.ok) {
+                            const data = await geminiResponse.json();
+                            return new Response(JSON.stringify(data), {
+                                status: 200,
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Access-Control-Allow-Origin": responseOrigin,
+                                    ...CORS_HEADERS,
+                                },
+                            });
+                        }
+
+                        // Collect errors for diagnostics
+                        const errorJson = await geminiResponse.json().catch(() => ({}));
+                        const errorMsg = errorJson.error?.message || `HTTP ${geminiResponse.status}`;
+                        
+                        // Don't spam 404s if it's just a version mismatch
+                        errors.push({ model, version, status: geminiResponse.status, message: errorMsg });
+                        
+                        // If it's a critical error like 400 (Bad Request), but not 404/429, 
+                        // we'd usually stop, but let's keep trying other models/versions
+                        continue;
+                    } catch (fetchError) {
+                        errors.push({ model, error: fetchError.message });
                         continue;
                     }
-
-                    // For other critical errors (400, 403), return immediately
-                    return new Response(JSON.stringify({ error: errorMsg, details: errors }), {
-                        status: geminiResponse.status,
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Access-Control-Allow-Origin": responseOrigin,
-                            ...CORS_HEADERS,
-                        },
-                    });
-                } catch (fetchError) {
-                    errors.push({ model, error: fetchError.message });
-                    continue;
                 }
             }
 

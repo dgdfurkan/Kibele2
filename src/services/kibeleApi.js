@@ -69,7 +69,9 @@ export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) 
                 const errorJson = await proxyResponse.json().catch(() => ({}));
                 console.error(`Kibele Proxy Error (${proxyResponse.status}):`, errorJson);
 
-                if (JSON.stringify(errorJson).includes("429")) {
+                // Eğer tüm modeller 429 (quota) verdiyse kota uyarısı göster
+                const allQuotaExceeded = errorJson.details?.every(d => d.status === 429);
+                if (proxyResponse.status === 429 || allQuotaExceeded) {
                     throw new Error("Kibele Hoca şu an çok meşgul canım (Kota sınırı). Birkaç dakika dinlenelim, sonra tekrar konuşalım? It is okey. ✨");
                 }
 
@@ -77,12 +79,14 @@ export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) 
                     throw new Error("Erişim reddedildi canım.");
                 }
 
+                // Fallback tetiklemek için özel hata kodu
                 if (apiKeyOrNull && apiKeyOrNull !== "undefined" && apiKeyOrNull !== "") {
                     console.warn("Proxy failed, falling back to direct API...");
                     throw new Error("PROXY_FAILED");
                 }
 
-                throw new Error("Kibele Hoca şu an sana cevap veremiyor...");
+                const finalError = errorJson.error || "Kibele Hoca şu an sana cevap veremiyor...";
+                throw new Error(finalError);
             }
 
         } catch (proxyError) {
