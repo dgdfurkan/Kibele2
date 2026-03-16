@@ -26,12 +26,35 @@ KESİN KURALLAR:
 
 export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) => {
     try {
+        // Gemini strict alternation rule (user, model, user, model...)
+        // We start with persona (user) and ack (model)
         const contents = [
             { role: "user", parts: [{ text: KIBELE_PERSONA }] },
-            { role: "model", parts: [{ text: "Anladım canım. It is okey, öğrencilerimle sanatsal bir diyaloğa hazırım." }] },
-            ...history,
-            { role: "user", parts: [{ text: newMessage }] }
+            { role: "model", parts: [{ text: "Anladım canım. It is okey, öğrencilerimle sanatsal bir diyaloğa hazırım." }] }
         ];
+
+        // Only add history if it follows the pattern (starts with user, alternates)
+        if (history && history.length > 0) {
+            history.forEach((msg, idx) => {
+                // Ensure the first historical message is 'user' (after our hardcoded model ack)
+                // and subsequent messages alternate
+                const expectedRole = (contents.length % 2 === 0) ? "user" : "model";
+                if (msg.role === expectedRole) {
+                    contents.push(msg);
+                } else {
+                    console.warn(`Gemini API: Skipping message at index ${idx} due to role mismatch (Expected ${expectedRole}, got ${msg.role})`);
+                }
+            });
+        }
+
+        // Final message must be from user
+        if (contents[contents.length - 1].role === "user") {
+            // If last was user, we can't add another user message directly without a model response
+            // This case shouldn't happen with correct history, but let's be safe
+            contents[contents.length - 1].parts[0].text += "\n\nEk soru: " + newMessage;
+        } else {
+            contents.push({ role: "user", parts: [{ text: newMessage }] });
+        }
 
         const requestBody = { contents };
 

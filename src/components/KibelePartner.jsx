@@ -53,10 +53,13 @@ const KibelePartner = ({ roomId }) => {
         if (!input.trim() || isTyping) return;
 
         const userText = input.trim();
-        const history = messages.map(msg => ({
-            role: msg.role === 'ai' ? 'model' : 'user',
-            parts: [{ text: msg.text }]
-        }));
+        // Sadece kullanıcının ve AI'ın gerçek mesajlarını gönder (başlangıç selamlamasını hariç tut)
+        const history = messages
+            .filter(msg => msg.text !== INITIAL_MSG.text)
+            .map(msg => ({
+                role: msg.role === 'ai' ? 'model' : 'user',
+                parts: [{ text: msg.text }]
+            }));
 
         setInput('');
         
