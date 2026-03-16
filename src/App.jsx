@@ -393,9 +393,8 @@ function App() {
                     <section ref={heroRef} className="h-screen flex items-center px-[5%] relative overflow-hidden pt-20">
                         <div className="max-w-4xl z-10">
                             <h1 className="text-3xl sm:text-5xl lg:text-7xl mb-4 sm:mb-8 hero-text leading-[1.1]">
-                                Sizin yaratıcı dünyanızın <br />
-                                <i className="text-text-muted font-normal">bir parçası</i>, <br />
-                                işinizin sonu <span className="text-accent-blue">değil.</span>
+                                Yaratıcı dünyanızın <br />
+                                <i className="text-text-muted font-normal">bir parçası</i>
                             </h1>
                             <p className="text-base sm:text-xl text-text-muted mb-8 sm:mb-12 max-w-xl hero-text leading-relaxed">
                                 Sanatçı tercihlerini, estetik filtreleri ve teknik seçimleri anlayan;
@@ -739,24 +738,8 @@ function App() {
                  </div>
              </section>
 
-                    <section id="nasil-calisir" className="py-32 px-[5%] bg-background">
-                        <div className="max-w-2xl mx-auto text-center mb-20">
-                            <h2 className="text-5xl mb-6">Yaratıcı Diyalog Nasıl İşler?</h2>
-                            <p className="text-lg text-text-muted">Kontrol her zaman sizde. Kibele, süreci devralmaz, sürece ilham katar.</p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                            {[
-                                { num: "01", title: "Seçim & Analiz", desc: "Mevcut taslaklarınızı veya beğendiğiniz sanatçıların tarzlarını yükleyin. Yapay zeka, yönelimlerinizi estetik bir dille analiz eder." },
-                                { num: "02", title: "Eşleşme & Sentez", desc: "Seçtiğiniz parametrelere göre (renk paleti, akım) kendi tarzınız ile global ilham kaynaklarını harmanlar.", active: true },
-                                { num: "03", title: "Yeni Perspektivler", desc: "Doğrudan 'bitmiş iş' üretmek yerine, size yeni dokular, formlar ve kompozisyon yolları önerir." }
-                            ].map((step, i) => (
-                                <div key={i} className={`p-12 rounded-[2rem] border transition-all duration-500 group hover:-translate-y-2 ${step.active ? 'bg-white border-accent-blue/30 shadow-xl shadow-accent-blue/5' : 'bg-surface-light/50 border-transparent hover:bg-white hover:shadow-xl'}`}>
-                                    <div className={`font-serif text-6xl mb-6 italic transition-colors duration-500 ${step.active ? 'text-accent-blue opacity-100' : 'text-text-muted opacity-20 group-hover:text-accent-blue group-hover:opacity-100'}`}>{step.num}</div>
-                                    <h3 className="text-2xl mb-4">{step.title}</h3>
-                                </div>
-                            ))}
-                        </div>
 
+                    <section id="partner" className="py-20 bg-background">
                         <div className="mt-20">
                             <KibelePartner />
                         </div>
@@ -771,7 +754,7 @@ function App() {
                             <div className="max-w-7xl mx-auto relative">
                                 <div className="max-w-2xl mb-20">
                                     <h2 className="text-5xl mb-6">İlham Odaları</h2>
-                                    <p className="text-lg text-text-muted">Kendi disiplininize özel eğitilmiş estetik kümelenmeleri keşfedin.</p>
+                                    <p className="text-lg text-text-muted">Estetik kümelenmeleri keşfedin.</p>
                                 </div>
 
                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 relative">
@@ -807,7 +790,7 @@ function App() {
                         <div className="footer-content">
                             <div className="footer-brand">
                                 <h2>Kibele.</h2>
-                                <p>Yapay zeka işinizi elinizden almayacak, <br />aksine hayal gücünüzün sınırlarını genişletecek.</p>
+                                <p>Sanat ve teknoloji arasında <br />ilham verici bir köprü.</p>
                             </div>
                             <div className="footer-links">
                                 <div className="link-column">

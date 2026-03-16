@@ -38,7 +38,7 @@ const KibeleChat = ({ apiKey, isPremium }) => {
             <div className="px-10 py-8 bg-[#E8E5F9]/80 backdrop-blur-md flex items-center justify-between border-b border-text-main/5">
                 <div className="flex items-center gap-4">
                     <span className="text-2xl">✨</span>
-                    <h3 className="font-serif text-2xl text-text-main font-medium">Kibele AI Partner</h3>
+                    <h2 className="text-xl font-bold font-serif">Kibele</h2>
                 </div>
             </div>
 

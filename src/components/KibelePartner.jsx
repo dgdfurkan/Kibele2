@@ -95,7 +95,7 @@ const KibelePartner = ({ roomId }) => {
         <div className="kibele-chat-container">
             <div className="kibele-chat-header">
                 <div className="kibele-icon">✨</div>
-                <div className="kibele-title">Kibele AI Partner</div>
+                        <h2 className="text-6xl mb-6">Kibele</h2>
             </div>
 
             <div className="kibele-chat-box shadow-inner" ref={chatBoxRef}>

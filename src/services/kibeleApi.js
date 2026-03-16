@@ -1,5 +1,5 @@
 /**
- * Kibele AI Partner — Gemini API Service
+ * Kibele — Gemini API Service
  * Cloudflare Workers proxy üzerinden güvenli API erişimi.
  * API key frontend'de saklanmaz, proxy'de güvenli şekilde tutulur.
  */
