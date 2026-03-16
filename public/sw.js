@@ -31,8 +31,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     
-    // Skip non-GET and API requests
-    if (request.method !== 'GET' || request.url.includes('api.') || request.url.includes('firestore') || request.url.includes('firebase')) {
+    // Skip non-GET, API, and non-http/https requests (like chrome-extension)
+    if (request.method !== 'GET' || !request.url.startsWith('http') || request.url.includes('api.') || request.url.includes('firestore') || request.url.includes('firebase')) {
         return;
     }
 

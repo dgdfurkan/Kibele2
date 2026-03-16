@@ -12,6 +12,7 @@ import RegisterModal from './components/RegisterModal';
 import LoginModal from './components/LoginModal';
 import NotificationDropdown from './components/NotificationDropdown';
 import RequestActionModal from './components/RequestActionModal';
+import RoomSelector from './components/RoomSelector';
 import { auth, db, rtdb } from './firebase';
 import { ref, push } from 'firebase/database';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
