@@ -7,10 +7,9 @@
 
 const GEMINI_MODELS = [
     "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
     "gemini-1.5-flash",
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-pro-latest"
+    "gemini-1.5-flash-8b",
+    "gemini-1.5-pro"
 ];
 
 const CORS_HEADERS = {
@@ -59,7 +58,7 @@ export default {
             const apiKey = env.GEMINI_API_KEY;
 
             if (!apiKey) {
-                return new Response(JSON.stringify({ error: "API key not configured" }), {
+                return new Response(JSON.stringify({ error: "API key not configured in Cloudflare Worker secrets" }), {
                     status: 500,
                     headers: {
                         "Content-Type": "application/json",
@@ -69,8 +68,7 @@ export default {
             }
 
             // Try models in order (fallback chain)
-            let lastError = null;
-            let lastErrorStatus = 500;
+            let errors = [];
             for (const model of GEMINI_MODELS) {
                 const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -93,16 +91,17 @@ export default {
                         });
                     }
 
-                    // If 404 (model not found) or 429 (quota exceeded), try next model
+                    // Log error and try next model on 404/429
+                    const errorJson = await geminiResponse.json().catch(() => ({}));
+                    const errorMsg = errorJson.error?.message || `HTTP ${geminiResponse.status}`;
+                    errors.push({ model, status: geminiResponse.status, message: errorMsg });
+                    
                     if (geminiResponse.status === 404 || geminiResponse.status === 429) {
-                        lastError = `Model ${model}: ${geminiResponse.status === 404 ? 'not found' : 'quota exceeded'}`;
-                        lastErrorStatus = geminiResponse.status;
                         continue;
                     }
 
-                    // For other errors (400, 403 etc.), return the error immediately
-                    const errorText = await geminiResponse.text();
-                    return new Response(errorText, {
+                    // For other critical errors (400, 403), return immediately
+                    return new Response(JSON.stringify({ error: errorMsg, details: errors }), {
                         status: geminiResponse.status,
                         headers: {
                             "Content-Type": "application/json",
@@ -111,13 +110,16 @@ export default {
                         },
                     });
                 } catch (fetchError) {
-                    lastError = fetchError.message;
+                    errors.push({ model, error: fetchError.message });
                     continue;
                 }
             }
 
             // All models failed
-            return new Response(JSON.stringify({ error: `All models failed: ${lastError}` }), {
+            return new Response(JSON.stringify({ 
+                error: "All Gemini models failed. This usually means a quota or configuration issue.",
+                details: errors 
+            }), {
                 status: 502,
                 headers: {
                     "Content-Type": "application/json",

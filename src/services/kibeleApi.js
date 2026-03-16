@@ -112,8 +112,14 @@ export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) 
             }
             
             if (!proxyResponse.ok) {
-                const errorBody = await proxyResponse.text();
-                console.error(`Proxy Error (${proxyResponse.status}):`, errorBody);
+                const errorJson = await proxyResponse.json().catch(() => ({}));
+                console.error(`Kibele Proxy Error (${proxyResponse.status}):`, errorJson);
+                
+                // Kota aşımı (Too Many Requests) kontrolü
+                if (proxyResponse.status === 429 || JSON.stringify(errorJson).includes("429")) {
+                    throw new Error("Kibele Hoca şu an çok meşgul canım (Kota sınırı). Birkaç dakika dinlenelim, sonra tekrar konuşalım? It is okey. ✨");
+                }
+                
                 throw new Error(proxyResponse.status === 403 ? "Erişim reddedildi canım." : "Kibele Hoca şu an sana cevap veremiyor...");
             }
         } catch (proxyError) {
