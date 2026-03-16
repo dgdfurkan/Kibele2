@@ -15,7 +15,7 @@ const extractText = (data) => {
     return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
 };
 
-export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) => {
+export const generateKibeleResponse = async (history, newMessage) => {
     try {
         // ✅ Persona her zaman başa sabit olarak ekleniyor
         // user → model → user → model ... zinciri korunuyor
@@ -64,7 +64,7 @@ export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) 
                 if (text) return text;
             }
 
-            // Proxy başarısız + key var → fallback
+            // Proxy başarısız
             if (!proxyResponse.ok) {
                 const errorJson = await proxyResponse.json().catch(() => ({}));
                 console.error(`Kibele Proxy Error (${proxyResponse.status}):`, errorJson);
@@ -79,56 +79,18 @@ export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) 
                     throw new Error("Erişim reddedildi canım.");
                 }
 
-                // Fallback tetiklemek için özel hata kodu
-                if (apiKeyOrNull && apiKeyOrNull !== "undefined" && apiKeyOrNull !== "") {
-                    console.warn("Proxy failed, falling back to direct API...");
-                    throw new Error("PROXY_FAILED");
-                }
-
                 const finalError = errorJson.error || "Kibele Hoca şu an sana cevap veremiyor...";
                 throw new Error(finalError);
             }
 
-        } catch (proxyError) {
+        } catch (error) {
             // Kullanıcıya gösterilecek mesajlarsa direkt fırlat
-            if (proxyError.message.includes("canım") || proxyError.message.includes("Erişim")) {
-                throw proxyError;
+            if (error.message.includes("canım") || error.message.includes("Erişim") || error.message.includes("Kibele")) {
+                throw error;
             }
-
-            // 2. Fallback: Doğrudan Gemini API
-            if (apiKeyOrNull && apiKeyOrNull !== "undefined" && apiKeyOrNull !== "") {
-                console.warn("Using direct Gemini API fallback with key...");
-
-                const directResponse = await fetch(`${DIRECT_GEMINI_URL}?key=${apiKeyOrNull}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(requestBody)
-                });
-
-                if (directResponse.status === 429) {
-                    throw new Error("Canım Google kotası dolmuş, biraz bekleyip tekrar deneyelim mi?");
-                }
-
-                if (directResponse.ok) {
-                    const data = await directResponse.json();
-                    const text = extractText(data);
-                    if (text) return text;
-                }
-
-                // 400 ise detaylı hata logla
-                if (!directResponse.ok) {
-                    const errDetail = await directResponse.json().catch(() => ({}));
-                    console.error("Direct Gemini Error:", errDetail);
-                }
-
-                throw new Error("Direkt API bağlantısı da başarısız oldu.");
-            }
-
-            throw proxyError;
+            console.error("Kibele Service Error:", error);
+            return "Bir aksaklık oldu, ama it is okey — tekrar dener misin canım?";
         }
-
-        throw new Error("Beklenmedik veri yapısı.");
-
     } catch (error) {
         console.error("Kibele Service Error:", error);
         return "Bir aksaklık oldu, ama it is okey — tekrar dener misin canım?";

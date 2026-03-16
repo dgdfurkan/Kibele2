@@ -74,7 +74,7 @@ const KibelePartner = ({ roomId }) => {
         }
 
         try {
-            const aiResponse = await generateKibeleResponse(KIBELE_SECRET_KEY, history, userText);
+            const aiResponse = await generateKibeleResponse(history, userText);
             
             // Optimistic UI update for AI 
             const newAiMsg = { role: 'ai', text: aiResponse };
