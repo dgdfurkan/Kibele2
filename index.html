@@ -4,20 +4,46 @@
 <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/Kibele2/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Kibele | Yaratıcı Sürecinizin AI Partneri</title>
+    <meta name="description" content="Kibele — Sanat eserlerini keşfet, ilham odalarında işbirliği yap, AI ile yaratıcı sürecini geliştir." />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/Kibele2/manifest.json" />
+    <meta name="theme-color" content="#4A67FF" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Kibele" />
+    <link rel="apple-touch-icon" href="/Kibele2/logo.png" />
+
+    <!-- Mobile fixes -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap"
         rel="stylesheet">
-  <script type="module" crossorigin src="/Kibele2/assets/index-Bvp3uiWW.js"></script>
-  <link rel="stylesheet" crossorigin href="/Kibele2/assets/index-Bm2TuqPS.css">
+  <script type="module" crossorigin src="/Kibele2/assets/index-CyKePwnS.js"></script>
+  <link rel="stylesheet" crossorigin href="/Kibele2/assets/index-Dw3aN7b_.css">
 </head>
 
 <body>
     <div id="root"></div>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/Kibele2/sw.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.warn('SW registration failed:', err));
+            });
+        }
+    </script>
+
     <!-- CSS Noise Overlay SVG Filter -->
     <svg style="display: none;">
         <filter id="noiseFilter">
