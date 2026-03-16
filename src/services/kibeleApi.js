@@ -1,7 +1,6 @@
 /**
- * Kibele — Gemini API Service
+ * Kibele AI Partner — Gemini API Service
  * Cloudflare Workers proxy üzerinden güvenli API erişimi.
- * API key frontend'de saklanmaz, proxy'de güvenli şekilde tutulur.
  */
 
 const KIBELE_PROXY_URL = "https://kibele-proxy.frkngndz60.workers.dev";
@@ -9,7 +8,7 @@ const DIRECT_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/mode
 
 const KIBELE_PERSONA = `
 Sen "Kibele Hoca" adında bir yapay zeka sanat partnerisin.
-...
+... (persona metni aynen kalacak)
 `;
 
 const extractText = (data) => {
@@ -18,37 +17,36 @@ const extractText = (data) => {
 
 export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) => {
     try {
-        // Persona artık systemInstruction'da — contents'e karıştırmıyoruz
-        const contents = [];
+        // ✅ Persona her zaman başa sabit olarak ekleniyor
+        // user → model → user → model ... zinciri korunuyor
+        const contents = [
+            { role: "user", parts: [{ text: KIBELE_PERSONA }] },
+            { role: "model", parts: [{ text: "Hoş geldin canım, sanat üzerine konuşmaya hazırım.\n\nAklında ne varsa sor, birlikte düşünelim." }] }
+        ];
 
-        // History'yi ekle (alternation kontrolü)
+        // History'yi ekle
         if (history && history.length > 0) {
-            history.forEach((msg, idx) => {
-                const expectedRole = (contents.length % 2 === 0) ? "user" : "model";
+            for (const msg of history) {
+                const expectedRole = contents.length % 2 === 0 ? "user" : "model";
                 if (msg.role === expectedRole) {
                     contents.push(msg);
-                } else {
-                    console.warn(`Gemini API: Skipping message at index ${idx} (Expected ${expectedRole}, got ${msg.role})`);
                 }
-            });
+                // ✅ role uyuşmuyorsa atla, dur
+            }
         }
 
-        // Son mesaj user'dan gelmeli
-        if (contents.length > 0 && contents[contents.length - 1].role === "user") {
-            contents[contents.length - 1].parts[0].text += "\n\nEk soru: " + newMessage;
-        } else {
+        // ✅ Son eleman model ise → yeni user mesajı ekle (normal durum)
+        // ✅ Son eleman user ise → birleştir (edge case)
+        if (contents[contents.length - 1].role === "model") {
             contents.push({ role: "user", parts: [{ text: newMessage }] });
+        } else {
+            contents[contents.length - 1].parts[0].text += "\n\n" + newMessage;
         }
 
-        // ✅ Persona systemInstruction'a taşındı — 400 hatasının asıl sebebi buydu
-        const requestBody = {
-            systemInstruction: {
-                parts: [{ text: KIBELE_PERSONA }]
-            },
-            contents
-        };
+        // ✅ systemInstruction YOK — sadece contents var, her model destekler
+        const requestBody = { contents };
 
-        // 1. Cloudflare Worker proxy üzerinden dene
+        // 1. Proxy dene
         try {
             const proxyResponse = await fetch(KIBELE_PROXY_URL, {
                 method: "POST",
@@ -56,7 +54,6 @@ export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) 
                 body: JSON.stringify(requestBody)
             });
 
-            // ✅ 429 kontrolü en başta — eskiden ok bloğundan sonra geliyordu, kaçıyordu
             if (proxyResponse.status === 429) {
                 throw new Error("Kibele Hoca şu an çok meşgul canım (Kota sınırı). Birkaç dakika dinlenelim, sonra tekrar konuşalım? It is okey. ✨");
             }
@@ -64,15 +61,10 @@ export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) 
             if (proxyResponse.ok) {
                 const data = await proxyResponse.json();
                 const text = extractText(data);
-                // ✅ text null gelirse sessizce fallback'e geçiyor — eskiden kayboluyordu
                 if (text) return text;
             }
 
-            if (!proxyResponse.ok && apiKeyOrNull && apiKeyOrNull !== "undefined" && apiKeyOrNull !== "") {
-                console.warn("Proxy failed, falling back to direct API...");
-                throw new Error("Proxy failed");
-            }
-
+            // Proxy başarısız + key var → fallback
             if (!proxyResponse.ok) {
                 const errorJson = await proxyResponse.json().catch(() => ({}));
                 console.error(`Kibele Proxy Error (${proxyResponse.status}):`, errorJson);
@@ -81,11 +73,23 @@ export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) 
                     throw new Error("Kibele Hoca şu an çok meşgul canım (Kota sınırı). Birkaç dakika dinlenelim, sonra tekrar konuşalım? It is okey. ✨");
                 }
 
-                throw new Error(proxyResponse.status === 403 ? "Erişim reddedildi canım." : "Kibele Hoca şu an sana cevap veremiyor...");
+                if (proxyResponse.status === 403) {
+                    throw new Error("Erişim reddedildi canım.");
+                }
+
+                if (apiKeyOrNull && apiKeyOrNull !== "undefined" && apiKeyOrNull !== "") {
+                    console.warn("Proxy failed, falling back to direct API...");
+                    throw new Error("PROXY_FAILED");
+                }
+
+                throw new Error("Kibele Hoca şu an sana cevap veremiyor...");
             }
 
         } catch (proxyError) {
-            if (proxyError.message.includes("canım")) throw proxyError;
+            // Kullanıcıya gösterilecek mesajlarsa direkt fırlat
+            if (proxyError.message.includes("canım") || proxyError.message.includes("Erişim")) {
+                throw proxyError;
+            }
 
             // 2. Fallback: Doğrudan Gemini API
             if (apiKeyOrNull && apiKeyOrNull !== "undefined" && apiKeyOrNull !== "") {
@@ -94,7 +98,7 @@ export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) 
                 const directResponse = await fetch(`${DIRECT_GEMINI_URL}?key=${apiKeyOrNull}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(requestBody) // ✅ aynı requestBody — systemInstruction ile
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (directResponse.status === 429) {
@@ -105,6 +109,12 @@ export const generateKibeleResponse = async (apiKeyOrNull, history, newMessage) 
                     const data = await directResponse.json();
                     const text = extractText(data);
                     if (text) return text;
+                }
+
+                // 400 ise detaylı hata logla
+                if (!directResponse.ok) {
+                    const errDetail = await directResponse.json().catch(() => ({}));
+                    console.error("Direct Gemini Error:", errDetail);
                 }
 
                 throw new Error("Direkt API bağlantısı da başarısız oldu.");
