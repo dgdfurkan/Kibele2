@@ -34,13 +34,12 @@ function App() {
     const [artworks, setArtworks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [rooms, setRooms] = useState([]);
-    const [currentView, setCurrentView] = useState('hub'); // hub, request, workspace
+    const [currentView, setCurrentView] = useState('hub'); // hub, request, workspace, projects
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [userRequests, setUserRequests] = useState([]);
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
     const [selectedRequestId, setSelectedRequestId] = useState(null);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
-    const [isProjectsOpen, setIsProjectsOpen] = useState(false);
 
     const [filters, setFilters] = useState({
         artists: [],
@@ -320,29 +319,30 @@ function App() {
                     setCurrentView('hub');
                     setReturnToRooms(true);
                 }} />
+            ) : currentView === 'projects' ? (
+                <AdminProjectsView onClose={() => setCurrentView('hub')} />
             ) : (
                 <div className="min-h-screen bg-background text-text-main font-sans selection:bg-accent-blue selection:text-white">
                     <AdminPanel rooms={rooms} openOverride={isDashboardOpen} onOpenChange={setIsDashboardOpen} />
-                    {isProjectsOpen && <AdminProjectsView onClose={() => setIsProjectsOpen(false)} />}
 
-                    <nav className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-5xl transition-all duration-500">
-                        <div className="glass-card px-8 py-4 flex items-center justify-between">
+                    <nav className="fixed top-4 sm:top-8 left-1/2 -translate-x-1/2 z-[100] w-[95%] sm:w-[90%] max-w-5xl transition-all duration-500">
+                        <div className="glass-card px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <img src="./logo.svg" alt="Kibele Logo" className="w-9 h-9" />
-                                <div className="font-serif text-2xl font-bold tracking-tight">Kibele.</div>
+                                <img src="./logo.svg" alt="Kibele Logo" className="w-7 h-7 sm:w-9 sm:h-9" />
+                                <div className="font-serif text-xl sm:text-2xl font-bold tracking-tight">Kibele.</div>
                             </div>
                             <div className="hidden lg:flex items-center gap-10 text-xs font-bold uppercase tracking-widest text-text-muted">
                                 <a href="#kesfet" onClick={(e) => handleSmoothScroll(e, 'kesfet')} className="hover:text-accent-blue transition-colors">Keşfet</a>
                                 <a href="#nasil-calisir" onClick={(e) => handleSmoothScroll(e, 'nasil-calisir')} className="hover:text-accent-blue transition-colors">Yöntem</a>
                                 <a href="#inspiration-rooms" onClick={(e) => handleSmoothScroll(e, user ? 'inspiration-rooms' : 'hubs')} className="hover:text-accent-blue transition-colors">İlham Odaları</a>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 sm:gap-4">
                                 {user ? (
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-1 sm:gap-4">
                                         {isAdmin && (
-                                            <>
+                                            <div className="hidden sm:flex items-center gap-1">
                                                 <button
-                                                    onClick={() => setIsProjectsOpen(true)}
+                                                    onClick={() => setCurrentView('projects')}
                                                     className="p-2.5 text-accent-blue hover:bg-accent-blue/5 rounded-full transition-all relative group"
                                                     title="Projelerim"
                                                 >
@@ -355,7 +355,7 @@ function App() {
                                                 >
                                                     <LucideLayers size={21} />
                                                 </button>
-                                            </>
+                                            </div>
                                         )}
 
                                         <NotificationDropdown onRequestClick={(id) => {
@@ -370,7 +370,7 @@ function App() {
                                                 </span>
                                                 <button onClick={handleLogout} className="text-[10px] font-bold text-text-muted hover:text-red-500 uppercase tracking-tighter transition-colors">Çıkış Yap</button>
                                             </div>
-                                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-accent-blue to-accent-blue-hover flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-accent-blue/20 ring-2 ring-white">
+                                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-accent-blue to-accent-blue-hover flex items-center justify-center text-xs sm:text-sm font-bold text-white shadow-lg shadow-accent-blue/20 ring-2 ring-white">
                                                 {(user.name || user.displayName || user.email)?.charAt(0).toUpperCase()}
                                             </div>
                                         </div>
@@ -388,14 +388,14 @@ function App() {
                         </div>
                     </nav>
 
-                    <section ref={heroRef} className="h-screen flex items-center px-[5%] relative overflow-hidden">
+                    <section ref={heroRef} className="h-screen flex items-center px-[5%] relative overflow-hidden pt-20">
                         <div className="max-w-4xl z-10">
-                            <h1 className="text-7xl mb-8 hero-text leading-[1.1]">
+                            <h1 className="text-3xl sm:text-5xl lg:text-7xl mb-4 sm:mb-8 hero-text leading-[1.1]">
                                 Sizin yaratıcı dünyanızın <br />
                                 <i className="text-text-muted font-normal">bir parçası</i>, <br />
                                 işinizin sonu <span className="text-accent-blue">değil.</span>
                             </h1>
-                            <p className="text-xl text-text-muted mb-12 max-w-xl hero-text leading-relaxed">
+                            <p className="text-base sm:text-xl text-text-muted mb-8 sm:mb-12 max-w-xl hero-text leading-relaxed">
                                 Sanatçı tercihlerini, estetik filtreleri ve teknik seçimleri anlayan;
                                 sizi süreçten dışlamayan yeni nesil kürasyon ve ilham motoru.
                             </p>

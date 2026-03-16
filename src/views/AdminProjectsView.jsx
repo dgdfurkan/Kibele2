@@ -107,18 +107,18 @@ const AdminProjectsView = ({ onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[200] bg-background/80 backdrop-blur-xl flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl shadow-2xl border border-border-light/40 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="min-h-screen bg-background text-text-main font-sans">
+            <div className="max-w-4xl mx-auto pt-28 pb-16 px-4 sm:px-8">
                 
                 {/* Header */}
-                <div className="flex items-center justify-between px-8 py-6 border-b border-border-light/40 bg-surface-light/30 flex-shrink-0">
+                <div className="flex items-center justify-between mb-10">
                     <div className="flex items-center gap-4">
-                        <button onClick={onClose} className="p-2 -ml-2 hover:bg-white rounded-xl transition-all text-text-muted hover:text-text-main">
-                            <LucideChevronLeft size={20} />
+                        <button onClick={onClose} className="p-2.5 -ml-2 hover:bg-surface-light rounded-xl transition-all text-text-muted hover:text-text-main">
+                            <LucideChevronLeft size={22} />
                         </button>
                         <div>
-                            <h2 className="text-2xl font-display font-bold italic text-text-main">Projelerim</h2>
-                            <p className="text-xs text-text-muted font-medium">Portföy & proje yönetimi</p>
+                            <h2 className="text-3xl font-display font-bold italic text-text-main">Projelerim</h2>
+                            <p className="text-sm text-text-muted font-medium">Portföy & proje yönetimi</p>
                         </div>
                     </div>
                     <button
@@ -130,7 +130,7 @@ const AdminProjectsView = ({ onClose }) => {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-8 scrollbar-hide">
+                <div>
                     {projects.length === 0 && !isFormOpen ? (
                         <div className="flex flex-col items-center justify-center py-24 text-center">
                             <LucideFileText size={56} className="text-text-muted/20 mb-4" />
@@ -200,7 +200,8 @@ const AdminProjectsView = ({ onClose }) => {
 
                 {/* Form Modal */}
                 {isFormOpen && (
-                    <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-10 flex flex-col overflow-hidden rounded-3xl">
+                    <div className="fixed inset-0 z-[200] bg-background/80 backdrop-blur-xl flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl shadow-2xl border border-border-light/40 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between px-8 py-6 border-b border-border-light/40 bg-surface-light/30 flex-shrink-0">
                             <h3 className="text-xl font-display font-bold italic">{editingProject ? 'Projeyi Düzenle' : 'Yeni Proje Ekle'}</h3>
                             <button onClick={resetForm} className="p-2 hover:bg-white rounded-xl text-text-muted"><LucideX size={20} /></button>
@@ -297,6 +298,7 @@ const AdminProjectsView = ({ onClose }) => {
                                 {editingProject ? 'Güncelle' : 'Projeyi Kaydet'}
                             </button>
                         </form>
+                        </div>
                     </div>
                 )}
             </div>

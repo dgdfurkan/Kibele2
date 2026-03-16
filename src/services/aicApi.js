@@ -130,123 +130,212 @@ export const AIC_FILTERS = {
  * Art Institute of Chicago (AIC) API üzerinden eserleri getirir.
  * Elasticsearch Query DSL kullanarak gelişmiş filtreleme (çoklu seçim, renk aralıkları) sağlar.
  */
+/**
+ * Basit GET sorgusu ile AIC eserleri getirir (filtre yokken veya sadece metin araması varken)
+ */
+const fetchSimpleAIC = async (page = 1, limit = 20, sortType = 'relevance', query = '') => {
+    const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        fields: 'id,title,image_id,artist_display,medium_display,classification_title,style_title,place_of_origin,date_display,dimensions,credit_line,main_reference_number,description,department_title,artwork_type_title,date_start,date_end,artist_title,style_titles,subject_titles,technique_titles,material_titles,thumbnail,is_public_domain'
+    });
+
+    if (query) params.set('q', query);
+
+    const url = `${AIC_API_BASE}/artworks/search?${params}`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+
+        if (!data || !data.data) return { items: [], totalPages: 0 };
+
+        const iiifBaseUrl = data.config?.iiif_url || "https://www.artic.edu/iiif/2";
+
+        const artworks = data.data
+            .filter(item => item.image_id)
+            .map(item => ({
+                id: item.id,
+                title: item.title,
+                artist: item.artist_display,
+                artist_title: item.artist_title,
+                medium: item.medium_display || item.classification_title,
+                style: item.style_title,
+                place: item.place_of_origin,
+                date_display: item.date_display,
+                dimensions: item.dimensions,
+                credit_line: item.credit_line,
+                main_reference_number: item.main_reference_number,
+                description: item.description,
+                department_title: item.department_title,
+                artwork_type_title: item.artwork_type_title,
+                classification_title: item.classification_title,
+                date_start: item.date_start,
+                date_end: item.date_end,
+                style_titles: item.style_titles,
+                subject_titles: item.subject_titles,
+                technique_titles: item.technique_titles,
+                material_titles: item.material_titles,
+                aspect_ratio: item.thumbnail?.height && item.thumbnail?.width
+                    ? item.thumbnail.height / item.thumbnail.width
+                    : 1,
+                image_url: `${iiifBaseUrl}/${item.image_id}/full/843,/0/default.jpg`,
+                thumbnail: `${iiifBaseUrl}/${item.image_id}/full/400,/0/default.jpg`
+            }));
+
+        return {
+            items: artworks,
+            totalPages: Math.ceil((data.pagination?.total || 0) / limit),
+            total: data.pagination?.total || 0
+        };
+    } catch (error) {
+        console.error("AIC Simple Fetch Error:", error);
+        return { items: [], totalPages: 0 };
+    }
+};
+
 export const fetchAICArtworks = async (params = {}) => {
     const { limit = 20, page = 1, query = '', filters = {} } = params;
 
-    // Elasticsearch Query DSL
-    const must = [
-        { term: { is_public_domain: true } }
+    // Eğer filtre veya arama yoksa, basit GET ile popüler eserleri getir
+    const hasFilters = filters.artwork_type?.length > 0 ||
+        filters.artists?.length > 0 ||
+        filters.places?.length > 0 ||
+        filters.styles?.length > 0 ||
+        filters.subjects?.length > 0 ||
+        filters.classifications?.length > 0 ||
+        filters.medium?.length > 0 ||
+        filters.departments?.length > 0 ||
+        filters.color_hex ||
+        (filters.date_start !== undefined) ||
+        (filters.date_end !== undefined);
+
+    const hasQuery = query && query.trim() !== '';
+
+    // Basit GET sorgusu (filtre yoksa veya sadece metin araması varsa)
+    if (!hasFilters && !hasQuery) {
+        return fetchSimpleAIC(page, limit, filters.sort);
+    }
+
+    if (hasQuery && !hasFilters) {
+        return fetchSimpleAIC(page, limit, filters.sort, query);
+    }
+
+    // Elasticsearch Query DSL (filtreli arama)
+    const must = [];
+    const filter = [
+        { exists: { field: "image_id" } }
     ];
 
-    const filter = [];
-
-    // Metin araması (Boş değilse)
-    if (query && query.trim() !== '' && query !== 'art') {
+    // Metin araması
+    if (hasQuery) {
         must.push({
             multi_match: {
                 query: query,
-                fields: ["title", "artist_title", "style_title", "classification_title", "medium_display"],
-                type: "best_fields",
-                fuzziness: "AUTO"
+                fields: ["title^3", "artist_title^2", "style_title", "classification_title", "medium_display", "description", "place_of_origin"],
+                type: "cross_fields"
             }
         });
     }
 
-    // Teknik/Kategori Filtresi (Çoklu Seçim)
-    if (filters.artwork_type && filters.artwork_type.length > 0) {
+    // Artwork type filtresi
+    if (filters.artwork_type?.length > 0) {
         filter.push({
-            terms: {
-                "artwork_type_title.keyword": filters.artwork_type
+            terms: { "artwork_type_title": filters.artwork_type }
+        });
+    }
+
+    // Sanatçı filtresi
+    if (filters.artists?.length > 0) {
+        must.push({
+            bool: {
+                should: filters.artists.map(a => ({
+                    match: { "artist_title": a }
+                })),
+                minimum_should_match: 1
             }
         });
     }
 
-    // Sanatçı Filtresi (Çoklu Seçim)
-    if (filters.artists && filters.artists.length > 0) {
+    // Coğrafya filtresi
+    if (filters.places?.length > 0) {
         filter.push({
-            terms: {
-                "artist_title.keyword": filters.artists
+            terms: { "place_of_origin": filters.places }
+        });
+    }
+
+    // Style filtresi
+    if (filters.styles?.length > 0) {
+        must.push({
+            bool: {
+                should: filters.styles.map(s => ({
+                    match: { "style_title": s }
+                })),
+                minimum_should_match: 1
             }
         });
     }
 
-    // Coğrafya Filtresi (Çoklu Seçim)
-    if (filters.places && filters.places.length > 0) {
+    // Subject filtresi
+    if (filters.subjects?.length > 0) {
+        must.push({
+            bool: {
+                should: filters.subjects.map(s => ({
+                    match: { "subject_titles": s }
+                })),
+                minimum_should_match: 1
+            }
+        });
+    }
+
+    // Classification filtresi
+    if (filters.classifications?.length > 0) {
+        must.push({
+            bool: {
+                should: filters.classifications.map(c => ({
+                    match: { "classification_title": c }
+                })),
+                minimum_should_match: 1
+            }
+        });
+    }
+
+    // Medium / Material filtresi
+    if (filters.medium?.length > 0) {
+        must.push({
+            bool: {
+                should: filters.medium.map(m => ({
+                    match: { "material_titles": m }
+                })),
+                minimum_should_match: 1
+            }
+        });
+    }
+
+    // Department filtresi
+    if (filters.departments?.length > 0) {
         filter.push({
-            terms: {
-                "place_of_origin.keyword": filters.places
-            }
+            terms: { "department_title": filters.departments }
         });
     }
 
-    // Style Filtresi (Çoklu Seçim)
-    if (filters.styles && filters.styles.length > 0) {
-        filter.push({
-            terms: {
-                "style_title.keyword": filters.styles
-            }
-        });
-    }
-
-    // Subject Filtresi (Çoklu Seçim)
-    if (filters.subjects && filters.subjects.length > 0) {
-        filter.push({
-            terms: {
-                "subject_titles.keyword": filters.subjects
-            }
-        });
-    }
-
-    // Classification Filtresi (Çoklu Seçim)
-    if (filters.classifications && filters.classifications.length > 0) {
-        filter.push({
-            terms: {
-                "classification_title.keyword": filters.classifications
-            }
-        });
-    }
-
-    // Medium Filtresi (Çoklu Seçim)
-    if (filters.medium && filters.medium.length > 0) {
-        filter.push({
-            terms: {
-                "material_titles.keyword": filters.medium
-            }
-        });
-    }
-
-    // Department Filtresi (Çoklu Seçim)
-    if (filters.departments && filters.departments.length > 0) {
-        filter.push({
-            terms: {
-                "department_title.keyword": filters.departments
-            }
-        });
-    }
-
-    // Date Filtresi (Tarih Aralığı)
+    // Date filtresi
     if (filters.date_start !== undefined || filters.date_end !== undefined) {
         const dateRange = {};
         if (filters.date_start !== undefined) dateRange.gte = filters.date_start;
         if (filters.date_end !== undefined) dateRange.lte = filters.date_end;
-        
-        filter.push({
-            range: {
-                "date_start": dateRange // date_start field'ını temel alarak yapıyoruz (veya date_display)
-            }
-        });
+        filter.push({ range: { "date_start": dateRange } });
     }
 
-    // Renk Filtresi (Hex kodu)
+    // Renk filtresi
     if (filters.color_hex && filters.color_hex.trim() !== '') {
         const hsl = hexToHSL(filters.color_hex);
-        // HSL üzerinden yakın renk aralıklarıyla filtreleme yapıyoruz +- 15
         filter.push({
             bool: {
                 must: [
-                    { range: { "color.h": { gte: Math.max(0, hsl.h - 15), lte: Math.min(360, hsl.h + 15) } } },
-                    // { range: { "color.s": { gte: Math.max(0, hsl.s - 20) } } }, 
-                    // { range: { "color.l": { gte: Math.max(0, hsl.l - 20), lte: Math.min(100, hsl.l + 20) } } }
+                    { range: { "color.h": { gte: Math.max(0, hsl.h - 25), lte: Math.min(360, hsl.h + 25) } } },
+                    { range: { "color.s": { gte: Math.max(0, hsl.s - 30) } } }
                 ]
             }
         });
