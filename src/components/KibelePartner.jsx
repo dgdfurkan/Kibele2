@@ -17,8 +17,6 @@ const KibelePartner = ({ roomId }) => {
     const [isTyping, setIsTyping] = useState(false);
     const chatBoxRef = useRef(null);
 
-    const KIBELE_SECRET_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-
     // Sohbet geçmişini veritabanından çek ve dinle
     useEffect(() => {
         if (!user) {

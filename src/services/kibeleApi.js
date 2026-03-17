@@ -1,98 +1,65 @@
 /**
- * Kibele AI Partner — Gemini API Service
- * Cloudflare Workers proxy üzerinden güvenli API erişimi.
+ * Kibele AI Partner — Pollinations.ai
+ * API key yok, ücretsiz, hafızalı sohbet. Sunucu tarafında çalışır, kullanıcı cihazı yüklenmez.
  */
 
-const KIBELE_PROXY_URL = "https://kibele-proxy.frkngndz60.workers.dev";
-const DIRECT_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent";
+const POLLINATIONS_URL = "https://text.pollinations.ai/";
 
-const KIBELE_PERSONA = `
-Sen "Kibele Hoca" adında bir yapay zeka sanat partnerisin.
-... (persona metni aynen kalacak)
-`;
+const KIBELE_PERSONA = `Sen "Kibele Hoca" adında bir yapay zeka sanat partnerisin. Türkçe konuşursun, samimi ve ilham verici bir tonda yanıt verirsin. Cümlelerinde zaman zaman "canım", "it is okey" gibi ifadeler kullanırsın. Kullanıcının yaratıcı sürecine eşlik eder, fikir üretmesine yardım edersin. Kısa ve net cevaplar ver, gereksiz uzatma. Sanat, tasarım, tipografi, görsel kültür ve ilham konularında destek ol.`;
 
-const extractText = (data) => {
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
-};
+/**
+ * Projedeki mesaj formatı: { role: 'user'|'model', parts: [{ text }] }
+ * Pollinations formatı: { role: 'system'|'user'|'assistant', content: string }
+ */
+function toPollinationsMessages(history, newMessage) {
+    const messages = [
+        { role: "system", content: KIBELE_PERSONA }
+    ];
 
+    if (history && history.length > 0) {
+        for (const msg of history) {
+            const role = msg.role === "model" ? "assistant" : "user";
+            const content = msg.parts?.[0]?.text ?? msg.text ?? "";
+            if (content) messages.push({ role, content });
+        }
+    }
+
+    messages.push({ role: "user", content: newMessage });
+    return messages;
+}
+
+/**
+ * @param {Array} history — Önceki mesajlar: [{ role: 'user'|'model', parts: [{ text }] }, ...]
+ * @param {string} newMessage — Kullanıcının yeni mesajı
+ * @returns {Promise<string>} — Kibele yanıt metni
+ */
 export const generateKibeleResponse = async (history, newMessage) => {
     try {
-        // ✅ Persona her zaman başa sabit olarak ekleniyor
-        // user → model → user → model ... zinciri korunuyor
-        const contents = [
-            { role: "user", parts: [{ text: KIBELE_PERSONA }] },
-            { role: "model", parts: [{ text: "Hoş geldin canım, sanat üzerine konuşmaya hazırım.\n\nAklında ne varsa sor, birlikte düşünelim." }] }
-        ];
+        const messages = toPollinationsMessages(history, newMessage);
 
-        // History'yi ekle
-        if (history && history.length > 0) {
-            for (const msg of history) {
-                const expectedRole = contents.length % 2 === 0 ? "user" : "model";
-                if (msg.role === expectedRole) {
-                    contents.push(msg);
-                }
-                // ✅ role uyuşmuyorsa atla, dur
-            }
+        const response = await fetch(POLLINATIONS_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                messages,
+                model: "openai",
+                seed: Math.floor(Math.random() * 1000)
+            })
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            console.error("Pollinations error:", response.status, text);
+            throw new Error("Kibele Hoca şu an cevap veremiyor canım. Biraz sonra tekrar dene, it is okey. ✨");
         }
 
-        // ✅ Son eleman model ise → yeni user mesajı ekle (normal durum)
-        // ✅ Son eleman user ise → birleştir (edge case)
-        if (contents[contents.length - 1].role === "model") {
-            contents.push({ role: "user", parts: [{ text: newMessage }] });
-        } else {
-            contents[contents.length - 1].parts[0].text += "\n\n" + newMessage;
-        }
-
-        // ✅ systemInstruction YOK — sadece contents var, her model destekler
-        const requestBody = { contents };
-
-        // 1. Proxy dene
-        try {
-            const proxyResponse = await fetch(KIBELE_PROXY_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(requestBody)
-            });
-
-            if (proxyResponse.status === 429) {
-                throw new Error("Kibele Hoca şu an çok meşgul canım (Kota sınırı). Birkaç dakika dinlenelim, sonra tekrar konuşalım? It is okey. ✨");
-            }
-
-            if (proxyResponse.ok) {
-                const data = await proxyResponse.json();
-                const text = extractText(data);
-                if (text) return text;
-            }
-
-            // Proxy başarısız
-            if (!proxyResponse.ok) {
-                const errorJson = await proxyResponse.json().catch(() => ({}));
-                console.error(`Kibele Proxy Error (${proxyResponse.status}):`, errorJson);
-
-                // Eğer tüm modeller 429 (quota) verdiyse kota uyarısı göster
-                const allQuotaExceeded = errorJson.details?.every(d => d.status === 429);
-                if (proxyResponse.status === 429 || allQuotaExceeded) {
-                    throw new Error("Kibele Hoca şu an çok meşgul canım (Kota sınırı). Birkaç dakika dinlenelim, sonra tekrar konuşalım? It is okey. ✨");
-                }
-
-                if (proxyResponse.status === 403) {
-                    throw new Error("Erişim reddedildi canım.");
-                }
-
-                const finalError = errorJson.error || "Kibele Hoca şu an sana cevap veremiyor...";
-                throw new Error(finalError);
-            }
-
-        } catch (error) {
-            // Kullanıcıya gösterilecek mesajlarsa direkt fırlat
-            if (error.message.includes("canım") || error.message.includes("Erişim") || error.message.includes("Kibele")) {
-                throw error;
-            }
-            console.error("Kibele Service Error:", error);
-            return "Bir aksaklık oldu, ama it is okey — tekrar dener misin canım?";
-        }
+        const botYaniti = await response.text();
+        return botYaniti?.trim() || "Bir yanıt üretemedim canım, tekrar dener misin?";
     } catch (error) {
+        if (error.message?.includes("canım") || error.message?.includes("Kibele")) {
+            throw error;
+        }
         console.error("Kibele Service Error:", error);
-        return "Bir aksaklık oldu, ama it is okey — tekrar dener misin canım?";
+        throw new Error("Şu an sunuculara ulaşamıyorum canım, birazdan tekrar dene. It is okey. ✨");
     }
 };
