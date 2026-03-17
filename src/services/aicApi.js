@@ -242,61 +242,41 @@ export const fetchAICArtworks = async (params = {}) => {
         });
     }
 
-    // AIC API: title alanları için .keyword kullan (Elasticsearch filtre/aggregation için önerilir)
-    // Artwork type filtresi
+    // Tüm filtreler: match kullanıyoruz — büyük/küçük harf ve API'deki yazım farkları sonuç kaybettirmez
+    const addMatchFilter = (field, values) => {
+        const list = (values || []).map(v => (v || "").trim()).filter(Boolean);
+        if (list.length === 0) return;
+        filter.push({
+            bool: {
+                should: list.map(v => ({ match: { [field]: v } })),
+                minimum_should_match: 1
+            }
+        });
+    };
+
     if (filters.artwork_type?.length > 0) {
-        filter.push({
-            terms: { "artwork_type_title.keyword": filters.artwork_type }
-        });
+        addMatchFilter("artwork_type_title", filters.artwork_type);
     }
-
-    // Sanatçı filtresi (term = tam eşleşme)
     if (filters.artists?.length > 0) {
-        filter.push({
-            terms: { "artist_title.keyword": filters.artists }
-        });
+        addMatchFilter("artist_title", filters.artists);
     }
-
-    // Coğrafya filtresi
     if (filters.places?.length > 0) {
-        filter.push({
-            terms: { "place_of_origin.keyword": filters.places }
-        });
+        addMatchFilter("place_of_origin", filters.places);
     }
-
-    // Style filtresi (style_title tek değer, .keyword ile)
     if (filters.styles?.length > 0) {
-        filter.push({
-            terms: { "style_title.keyword": filters.styles }
-        });
+        addMatchFilter("style_title", filters.styles);
     }
-
-    // Subject filtresi (subject_titles dizi, keyword subfield)
     if (filters.subjects?.length > 0) {
-        filter.push({
-            terms: { "subject_titles.keyword": filters.subjects }
-        });
+        addMatchFilter("subject_titles", filters.subjects);
     }
-
-    // Classification filtresi
     if (filters.classifications?.length > 0) {
-        filter.push({
-            terms: { "classification_title.keyword": filters.classifications }
-        });
+        addMatchFilter("classification_titles", filters.classifications);
     }
-
-    // Medium / Material filtresi (material_titles dizi)
     if (filters.medium?.length > 0) {
-        filter.push({
-            terms: { "material_titles.keyword": filters.medium }
-        });
+        addMatchFilter("material_titles", filters.medium);
     }
-
-    // Department filtresi
     if (filters.departments?.length > 0) {
-        filter.push({
-            terms: { "department_title.keyword": filters.departments }
-        });
+        addMatchFilter("department_title", filters.departments);
     }
 
     // Date filtresi

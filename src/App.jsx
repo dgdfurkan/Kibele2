@@ -630,7 +630,9 @@ function App() {
                                             <p className="text-sm text-text-muted order-2 sm:order-1">
                                                 Sayfa <span className="font-bold text-text-main">{page}</span> / <span className="font-bold text-text-main">{totalPages}</span>
                                                 {totalArtworks > 0 && (
-                                                    <span className="ml-2">({totalArtworks.toLocaleString('tr-TR')} sonuç)</span>
+                                                    <span className="ml-2" title="Artic.edu tüm eserleri sayar; bizde sadece görseli olan eserler gösterilir.">
+                                                        ({totalArtworks.toLocaleString('tr-TR')} sonuç, görseli olanlar)
+                                                    </span>
                                                 )}
                                             </p>
                                             <div className="flex items-center gap-2 order-1 sm:order-2">
