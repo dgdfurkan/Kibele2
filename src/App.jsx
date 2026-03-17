@@ -76,6 +76,7 @@ function App() {
     const [userRooms, setUserRooms] = useState([]);
     const [selectedRoomId, setSelectedRoomId] = useState('');
     const lastSearchRef = useRef(null);
+    const scrollRestoreRef = useRef(null);
 
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -121,6 +122,15 @@ function App() {
         handleFetchArtworks();
     }, [filters, page]);
 
+    // Filtre/sayfa değişince kaymayı önle: yükleme bitince scroll pozisyonunu geri yükle
+    useEffect(() => {
+        if (!loading && scrollRestoreRef.current != null) {
+            const y = scrollRestoreRef.current;
+            scrollRestoreRef.current = null;
+            requestAnimationFrame(() => { window.scrollTo(0, y); });
+        }
+    }, [loading]);
+
     useEffect(() => {
         const timer = setTimeout(() => {
             if (queryText !== lastSearchRef.current) {
@@ -133,6 +143,7 @@ function App() {
     }, [queryText]);
 
     const handleFetchArtworks = async () => {
+        scrollRestoreRef.current = window.scrollY ?? window.pageYOffset;
         setLoading(true);
         const data = await fetchAICArtworks({
             page: page,
