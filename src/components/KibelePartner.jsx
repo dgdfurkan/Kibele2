@@ -3,6 +3,7 @@ import { LucideSparkles, LucideSend, LucideLoader2 } from 'lucide-react';
 import { generateKibeleResponse } from '../services/kibeleApi';
 import { useAuth } from '../context/AuthContext';
 import { saveKibeleChatMessage, subscribeToKibeleChat } from '../services/dbService';
+import FormattedChatMessage from './FormattedChatMessage';
 
 const KibelePartner = ({ roomId }) => {
     const { user } = useAuth();
@@ -99,7 +100,11 @@ const KibelePartner = ({ roomId }) => {
             <div className="kibele-chat-box shadow-inner" ref={chatBoxRef}>
                 {messages.map((msg, index) => (
                     <div key={index} className={`kibele-message ${msg.role}-message animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                        {msg.text}
+                        {msg.role === 'ai' ? (
+                            <FormattedChatMessage text={msg.text} />
+                        ) : (
+                            msg.text
+                        )}
                     </div>
                 ))}
                 {isTyping && (

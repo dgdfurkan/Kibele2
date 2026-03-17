@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { LucideMessageSquare, LucideSend, LucideSparkles } from 'lucide-react';
 import { generateKibeleResponse } from '../services/kibeleApi';
+import FormattedChatMessage from './FormattedChatMessage';
 
 const KibeleChat = ({ apiKey, isPremium }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -50,7 +51,11 @@ const KibeleChat = ({ apiKey, isPremium }) => {
                             ? 'bg-accent-blue text-white rounded-tr-none'
                             : 'bg-[#E8E5F9] text-text-main rounded-tl-none font-sans'
                             }`}>
-                            {msg.parts[0].text}
+                            {msg.role === 'model' ? (
+                                <FormattedChatMessage text={msg.parts[0].text} />
+                            ) : (
+                                msg.parts[0].text
+                            )}
                         </div>
                     </div>
                 ))}
