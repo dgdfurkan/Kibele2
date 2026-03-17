@@ -79,6 +79,7 @@ function App() {
 
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [totalArtworks, setTotalArtworks] = useState(0);
     const [returnToRooms, setReturnToRooms] = useState(false);
 
     // Fetch user's joined rooms for the Lightbox Room Selector
@@ -140,6 +141,7 @@ function App() {
         });
         setArtworks(data.items || []);
         setTotalPages(data.totalPages || 1);
+        setTotalArtworks(data.total ?? 0);
         setLoading(false);
     };
 
@@ -624,19 +626,63 @@ function App() {
                                     </div>
 
                                     {totalPages > 1 && (
-                                        <div className="mt-16 flex justify-center items-center gap-3">
-                                            {[...Array(Math.min(totalPages, 7))].map((_, i) => {
-                                                const pageNum = i + 1;
-                                                return (
-                                                    <button
-                                                        key={pageNum}
-                                                        onClick={() => setPage(pageNum)}
-                                                        className={`w-3 h-3 rounded-full transition-all duration-300 ${page === pageNum ? 'bg-accent-blue scale-125 shadow-md shadow-accent-blue/30' : 'bg-text-muted/20 hover:bg-accent-blue/40'}`}
-                                                        title={`Sayfa ${pageNum}`}
-                                                    />
-                                                );
-                                            })}
-                                            {totalPages > 7 && <span className="text-text-muted text-xs font-bold border border-border-light/40 px-3 py-1 rounded-full">{totalPages}</span>}
+                                        <div className="mt-16 flex flex-col sm:flex-row items-center justify-center gap-6">
+                                            <p className="text-sm text-text-muted order-2 sm:order-1">
+                                                Sayfa <span className="font-bold text-text-main">{page}</span> / <span className="font-bold text-text-main">{totalPages}</span>
+                                                {totalArtworks > 0 && (
+                                                    <span className="ml-2">({totalArtworks.toLocaleString('tr-TR')} sonuç)</span>
+                                                )}
+                                            </p>
+                                            <div className="flex items-center gap-2 order-1 sm:order-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                                    disabled={page <= 1}
+                                                    className="px-4 py-2.5 rounded-xl text-sm font-bold border border-border-light/60 bg-white hover:bg-surface-light disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                                                >
+                                                    Önceki
+                                                </button>
+                                                <div className="flex items-center gap-1">
+                                                    {(() => {
+                                                        const show = 5;
+                                                        let start = Math.max(1, page - Math.floor(show / 2));
+                                                        let end = Math.min(totalPages, start + show - 1);
+                                                        if (end - start + 1 < show) start = Math.max(1, end - show + 1);
+                                                        const pages = [];
+                                                        if (start > 1) {
+                                                            pages.push(1);
+                                                            if (start > 2) pages.push('…');
+                                                        }
+                                                        for (let i = start; i <= end; i++) pages.push(i);
+                                                        if (end < totalPages) {
+                                                            if (end < totalPages - 1) pages.push('…');
+                                                            pages.push(totalPages);
+                                                        }
+                                                        return pages.map((p, i) =>
+                                                            p === '…' ? (
+                                                                <span key={`ellip-${i}`} className="px-2 text-text-muted">…</span>
+                                                            ) : (
+                                                                <button
+                                                                    key={p}
+                                                                    type="button"
+                                                                    onClick={() => setPage(p)}
+                                                                    className={`min-w-[2.25rem] h-9 rounded-xl text-sm font-bold transition-all ${page === p ? 'bg-accent-blue text-white shadow-md shadow-accent-blue/25' : 'bg-white border border-border-light/60 hover:bg-surface-light text-text-main'}`}
+                                                                >
+                                                                    {p}
+                                                                </button>
+                                                            )
+                                                        );
+                                                    })()}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                                    disabled={page >= totalPages}
+                                                    className="px-4 py-2.5 rounded-xl text-sm font-bold border border-border-light/60 bg-white hover:bg-surface-light disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                                                >
+                                                    Sonraki
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </main>

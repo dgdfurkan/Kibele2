@@ -141,6 +141,9 @@ const fetchSimpleAIC = async (page = 1, limit = 20, sortType = 'relevance', quer
     });
 
     if (query) params.set('q', query);
+    if (sortType === 'title') params.set('sort', 'title.keyword');
+    else if (sortType === 'artist') params.set('sort', 'artist_title.keyword');
+    else if (sortType === 'date') params.set('sort', 'date_start:desc');
 
     const url = `${AIC_API_BASE}/artworks/search?${params}`;
 
@@ -239,84 +242,60 @@ export const fetchAICArtworks = async (params = {}) => {
         });
     }
 
+    // AIC API: title alanları için .keyword kullan (Elasticsearch filtre/aggregation için önerilir)
     // Artwork type filtresi
     if (filters.artwork_type?.length > 0) {
         filter.push({
-            terms: { "artwork_type_title": filters.artwork_type }
+            terms: { "artwork_type_title.keyword": filters.artwork_type }
         });
     }
 
-    // Sanatçı filtresi
+    // Sanatçı filtresi (term = tam eşleşme)
     if (filters.artists?.length > 0) {
-        must.push({
-            bool: {
-                should: filters.artists.map(a => ({
-                    match: { "artist_title": a }
-                })),
-                minimum_should_match: 1
-            }
+        filter.push({
+            terms: { "artist_title.keyword": filters.artists }
         });
     }
 
     // Coğrafya filtresi
     if (filters.places?.length > 0) {
         filter.push({
-            terms: { "place_of_origin": filters.places }
+            terms: { "place_of_origin.keyword": filters.places }
         });
     }
 
-    // Style filtresi
+    // Style filtresi (style_title tek değer, .keyword ile)
     if (filters.styles?.length > 0) {
-        must.push({
-            bool: {
-                should: filters.styles.map(s => ({
-                    match: { "style_title": s }
-                })),
-                minimum_should_match: 1
-            }
+        filter.push({
+            terms: { "style_title.keyword": filters.styles }
         });
     }
 
-    // Subject filtresi
+    // Subject filtresi (subject_titles dizi, keyword subfield)
     if (filters.subjects?.length > 0) {
-        must.push({
-            bool: {
-                should: filters.subjects.map(s => ({
-                    match: { "subject_titles": s }
-                })),
-                minimum_should_match: 1
-            }
+        filter.push({
+            terms: { "subject_titles.keyword": filters.subjects }
         });
     }
 
     // Classification filtresi
     if (filters.classifications?.length > 0) {
-        must.push({
-            bool: {
-                should: filters.classifications.map(c => ({
-                    match: { "classification_title": c }
-                })),
-                minimum_should_match: 1
-            }
+        filter.push({
+            terms: { "classification_title.keyword": filters.classifications }
         });
     }
 
-    // Medium / Material filtresi
+    // Medium / Material filtresi (material_titles dizi)
     if (filters.medium?.length > 0) {
-        must.push({
-            bool: {
-                should: filters.medium.map(m => ({
-                    match: { "material_titles": m }
-                })),
-                minimum_should_match: 1
-            }
+        filter.push({
+            terms: { "material_titles.keyword": filters.medium }
         });
     }
 
     // Department filtresi
     if (filters.departments?.length > 0) {
         filter.push({
-            terms: { "department_title": filters.departments }
+            terms: { "department_title.keyword": filters.departments }
         });
     }
 
@@ -371,7 +350,7 @@ export const fetchAICArtworks = async (params = {}) => {
             "material_titles", "thumbnail"
         ],
         sort: sort.length > 0 ? sort : undefined,
-        limit: limit,
+        size: limit,
         from: (page - 1) * limit
     };
 

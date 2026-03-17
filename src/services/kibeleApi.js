@@ -5,6 +5,38 @@
 
 const POLLINATIONS_URL = "https://text.pollinations.ai/";
 
+/** API yanıtından reklam/footer kaldır — öğrencilere asla göstermiyoruz */
+function stripPollinationsFooter(text) {
+    if (!text || typeof text !== "string") return text;
+    let out = text;
+
+    const footerMarkers = [
+        /Support Pollinations\.?AI\s*:?/i,
+        /Powered by Pollinations\.?AI/i,
+        /🌸\s*Ad\s*🌸/,
+        /\[Support our mission\]\([^)]+\)/i,
+        /free text APIs/i,
+        /keep AI accessible for everyone/i
+    ];
+
+    let cutAt = out.length;
+    for (const re of footerMarkers) {
+        const idx = out.search(re);
+        if (idx !== -1 && idx < cutAt) cutAt = idx;
+    }
+    if (cutAt < out.length) out = out.slice(0, cutAt);
+
+    const sepIdx = out.indexOf("\n---");
+    if (sepIdx !== -1) {
+        const afterSep = out.slice(sepIdx);
+        if (/Pollinations|Ad\s*🌸|Support our mission|Powered by/i.test(afterSep)) {
+            out = out.slice(0, sepIdx);
+        }
+    }
+
+    return out.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 const KIBELE_PERSONA = `Sen "Kibele Hoca" adında bir yapay zeka sanat partnerisin. Türkçe konuşursun, samimi ve ilham verici bir tonda yanıt verirsin. Cümlelerinde zaman zaman "canım", "it is okey" gibi ifadeler kullanırsın. Kullanıcının yaratıcı sürecine eşlik eder, fikir üretmesine yardım edersin. Kısa ve net cevaplar ver, gereksiz uzatma. Sanat, tasarım, tipografi, görsel kültür ve ilham konularında destek ol.`;
 
 /**
@@ -53,7 +85,8 @@ export const generateKibeleResponse = async (history, newMessage) => {
             throw new Error("Kibele Hoca şu an cevap veremiyor canım. Biraz sonra tekrar dene, it is okey. ✨");
         }
 
-        const botYaniti = await response.text();
+        let botYaniti = await response.text();
+        botYaniti = stripPollinationsFooter(botYaniti);
         return botYaniti?.trim() || "Bir yanıt üretemedim canım, tekrar dener misin?";
     } catch (error) {
         if (error.message?.includes("canım") || error.message?.includes("Kibele")) {
